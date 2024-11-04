@@ -1,6 +1,9 @@
 import moment from "moment";
 
-export function generateAccountRegisterContent(username: string): {
+export function generateResetPasswordContent(
+  username: string,
+  link: string
+): {
   html: string;
   text: string;
 } {
@@ -16,13 +19,13 @@ export function generateAccountRegisterContent(username: string): {
   <div>
     <p>Dear ${username},</p>
             <p>
-              Please Click the link below to validate your email address
+              Please Click the link below to setup your account password
             </p>
             <a
-              href="http://localhost:3000/allure/accounts/update"
+              href=${link}
               target="_blank"
               style="color: #0066cc; text-decoration: none"
-              >Validate my email</a
+              >Setup my account</a
             >
   </div>
 </body>

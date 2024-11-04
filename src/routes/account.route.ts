@@ -15,6 +15,12 @@ accountRouter.post(
   accountController.createAccount
 );
 
+accountRouter.put(
+  "update-account/:id",
+  validate(AccountUpdateSchema),
+  accountController.setPassword
+);
+
 accountRouter.use(authentication);
 accountRouter.get("/", accountController.getAllAccount);
 accountRouter.get("/me", accountController.getMyProfile);

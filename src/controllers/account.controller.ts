@@ -1,5 +1,5 @@
 import { Account } from "../entities/account.entity";
-import { EmailAlreadyExistError } from "../errors/error";
+import { EmailAlreadyExistError, NotFoundError } from "../errors/error";
 import { accountService } from "../services/account.service";
 import { NextFunction, Request, Response } from "express";
 import { encryptedPassword } from "../utils/jwt";
@@ -20,7 +20,10 @@ import { AccountResponse } from "../dtos/response/account.response";
 import { instanceToPlain, plainToClass } from "class-transformer";
 import { AuthRequest } from "../middleware/authentication";
 import moment from "moment";
-import { sendRegisterAccountEmail } from "../services/mail.service";
+import {
+  sendRegisterAccountEmail,
+  sendResetPasswordEmail,
+} from "../services/mail.service";
 
 async function getAllAccount(req: Request, res: Response, next: NextFunction) {
   try {
@@ -182,6 +185,62 @@ async function updateAccount(
   }
 }
 
+async function requestResetPassword(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const account = await accountService.findBy(req.body.email, "email");
+    if (!account[0] || account[0].status !== StatusEnum.ACTIVE) {
+      throw new NotFoundError("Account invalid!");
+    }
+    await sendResetPasswordEmail(account[0]);
+    return res
+      .status(200)
+      .send({ message: "Send reset password mail success" });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function setPassword(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const updateData: Partial<Account> = {
+      password: await encryptedPassword(req.body.password),
+      status: StatusEnum.ACTIVE,
+    };
+    const account = await accountService.update(req.params.id, updateData);
+    return res.status(200).send({ message: "Update account success" });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function modifyPassword(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const checkAccount = await accountService.findById(req.params.id);
+    if (!checkAccount || checkAccount.status !== StatusEnum.ACTIVE) {
+      throw new NotFoundError("Account invalid!");
+    }
+    const updateData: Partial<Account> = {
+      password: await encryptedPassword(req.body.password),
+    };
+    const account = await accountService.update(req.params.id, updateData);
+    return res.status(200).send({ message: "Update account success" });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function deleteAccount(req: Request, res: Response, next: NextFunction) {
   try {
     const account = await accountService.delete(
@@ -202,4 +261,7 @@ export const accountController = {
   updateAccount,
   deleteAccount,
   getMyProfile,
+  setPassword,
+  modifyPassword,
+  requestResetPassword,
 };

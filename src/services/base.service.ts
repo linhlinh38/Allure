@@ -25,6 +25,13 @@ export abstract class BaseService<T> implements ICRUDService<T> {
     } as FindOptionsWhere<T>);
   }
 
+  async findById(value: any): Promise<T | null> {
+    const data = await this.repository.findBy({
+      id: value,
+    } as FindOptionsWhere<T>);
+    return data[0];
+  }
+
   async create(data: T): Promise<T> {
     await this.beforeCreate(data);
     return await this.repository.save(data);

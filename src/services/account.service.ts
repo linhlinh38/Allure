@@ -11,6 +11,10 @@ import { Staff } from "../entities/staff.entity";
 import { Consultant } from "../entities/consultant.entity";
 import { KOL } from "../entities/KOL.entity";
 import { Operator } from "../entities/operator.entity";
+import {
+  sendRegisterAccountEmail,
+  sendResetPasswordEmail,
+} from "./mail.service";
 const repository = AppDataSource.getRepository(Account);
 class AccountService extends BaseService<Account> {
   constructor() {
@@ -71,18 +75,21 @@ class AccountService extends BaseService<Account> {
           address: data.address,
         };
         await queryRunner.manager.save(Customer, customer);
+        await sendRegisterAccountEmail(account);
         break;
       case RoleEnum.MANAGER:
         const manager: Partial<Manager> = {
           account: account,
         };
         await queryRunner.manager.save(Manager, manager);
+        await sendRegisterAccountEmail(account);
         break;
       case RoleEnum.STAFF:
         const staff: Partial<Staff> = {
           account: account,
         };
         await queryRunner.manager.save(Staff, staff);
+        await sendResetPasswordEmail(account);
         break;
       case RoleEnum.CONSULTANT:
         const consultant: Partial<Consultant> = {
@@ -91,6 +98,7 @@ class AccountService extends BaseService<Account> {
           certificates: data.certificates,
         };
         await queryRunner.manager.save(Consultant, consultant);
+        await sendRegisterAccountEmail(account);
         break;
       case RoleEnum.KOL:
         const kol: Partial<KOL> = {
@@ -99,12 +107,14 @@ class AccountService extends BaseService<Account> {
           certificates: data.certificates,
         };
         await queryRunner.manager.save(KOL, kol);
+        await sendResetPasswordEmail(account);
         break;
       case RoleEnum.OPERATION:
         const operator: Partial<Operator> = {
           account: account,
         };
         await queryRunner.manager.save(Operator, operator);
+        await sendResetPasswordEmail(account);
         break;
       default:
         throw new Error("Invalid role provided");
