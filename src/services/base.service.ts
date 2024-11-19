@@ -1,4 +1,4 @@
-import { EntityRepository, FindOptionsWhere, Repository } from "typeorm";
+import { EntityRepository, FindOptionsWhere, ILike, Repository } from "typeorm";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { ICRUDService } from "../utils/ICRUDService";
 
@@ -25,6 +25,12 @@ export abstract class BaseService<T> implements ICRUDService<T> {
     } as FindOptionsWhere<T>);
   }
 
+  async findByContains(option: string, value: any): Promise<T[] | null> {
+    return await this.repository.findBy({
+      [option]: ILike(value),
+    } as FindOptionsWhere<T>);
+  }
+
   async findById(value: any): Promise<T | null> {
     const data = await this.repository.findBy({
       id: value,
@@ -35,6 +41,13 @@ export abstract class BaseService<T> implements ICRUDService<T> {
   async create(data: T): Promise<T> {
     await this.beforeCreate(data);
     return await this.repository.save(data);
+  }
+
+  async createMany(dataArray: T[]): Promise<T[]> {
+    for (const data of dataArray) {
+      await this.beforeCreate(data);
+    }
+    return await this.repository.save(dataArray);
   }
 
   async update(id: any, data: QueryDeepPartialEntity<T>): Promise<T | null> {

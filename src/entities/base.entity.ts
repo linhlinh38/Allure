@@ -1,3 +1,4 @@
+import { Expose } from "class-transformer";
 import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
@@ -6,12 +7,12 @@ import {
 } from "typeorm";
 
 export abstract class BaseEntity extends TypeOrmBaseEntity {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @CreateDateColumn({ type: "timestamp with time zone" })
+  @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: "timestamp with time zone" })
+  @UpdateDateColumn({ type: 'timestamp with time zone' })
   updatedAt: Date;
 }

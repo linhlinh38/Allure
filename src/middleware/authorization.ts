@@ -9,7 +9,7 @@ export const Author = (roles: Array<string>) => {
 
     let account;
     try {
-      account = await accountService.findBy(id, "id");
+      account = await accountService.getById(id);
     } catch (error) {
       next(error);
     }
@@ -17,7 +17,7 @@ export const Author = (roles: Array<string>) => {
     if (account.length == 0)
       return res.status(401).json({ message: "Invalid Account" });
 
-    if (roles.indexOf(account[0].role) > -1) next();
+    if (roles.indexOf(account.role) > -1) next();
     else
       return res
         .status(401)

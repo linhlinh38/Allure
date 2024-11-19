@@ -1,6 +1,13 @@
 import { z } from "zod";
-import { GenderEnum, RoleEnum, StatusEnum } from "../../utils/enum";
+import {
+  AddressEnum,
+  GenderEnum,
+  RoleEnum,
+  StatusEnum,
+} from "../../utils/enum";
 import moment from "moment";
+import { AddressCreateSchema } from "./address.request";
+import { FileCreateSchema } from "./file.request";
 
 export const AccountCreateSchema = z.object({
   body: z.object({
@@ -17,14 +24,15 @@ export const AccountCreateSchema = z.object({
     username: z
       .string()
       .min(1, "Username is required")
-      .max(100, "Username cannot exceed 100 characters"),
+      .max(100, "Username cannot exceed 100 characters")
+      .optional(),
     email: z.string().email("Invalid email address"),
     password: z
       .string()
       .min(8, "Password must be at least 8 characters long")
       .optional(),
-    role: z.nativeEnum(RoleEnum).default(RoleEnum.CUSTOMER),
-    gender: z.nativeEnum(GenderEnum).optional().default(GenderEnum.MALE),
+    role: z.string(),
+    gender: z.nativeEnum(GenderEnum).optional(),
     phone: z
       .string()
       .regex(/^[0-9]{10,15}$/, "Phone must be a string with 10 to 15 digits")
@@ -43,11 +51,9 @@ export const AccountCreateSchema = z.object({
         }
       )
       .optional(),
-    avatar: z
-      .string()
-      .max(255, "Avatar cannot exceed 255 characters")
-      .optional(),
-    status: z.nativeEnum(StatusEnum).optional().default(StatusEnum.ACTIVE),
+    address: AddressCreateSchema.shape.body.optional(),
+    avatar: FileCreateSchema.optional(),
+    certificate: FileCreateSchema.optional(),
   }),
 });
 

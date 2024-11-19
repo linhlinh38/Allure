@@ -16,12 +16,42 @@ accountRouter.post(
 );
 
 accountRouter.put(
-  "update-account/:id",
+  "/set-password/:id",
   validate(AccountUpdateSchema),
   accountController.setPassword
 );
 
+accountRouter.put(
+  "/update-account-status/:id",
+  validate(AccountUpdateSchema),
+  accountController.updateAccountStatus
+);
+
+accountRouter.put(
+  "/verify-account/:id",
+  validate(AccountUpdateSchema),
+  accountController.verifyAccount
+);
+
+accountRouter.post(
+  "/request-reset-pass",
+  validate(AccountUpdateSchema),
+  accountController.requestResetPassword
+);
+
+accountRouter.put(
+  "/modify-password/:id",
+  validate(AccountUpdateSchema),
+  accountController.modifyPassword
+);
+
 accountRouter.use(authentication);
+
+accountRouter.post(
+  "/request-create-account",
+  validate(AccountUpdateSchema),
+  accountController.requestCreateAccount
+);
 accountRouter.get("/", accountController.getAllAccount);
 accountRouter.get("/me", accountController.getMyProfile);
 accountRouter.get("/get/:option/:value", accountController.getAccountBy);

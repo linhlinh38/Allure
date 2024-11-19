@@ -1,9 +1,6 @@
 import moment from "moment";
 
-export function generateAccountRegisterContent(
-  link: string,
-  username?: string
-): {
+export function generateRequestCreateAccountContent(link: string): {
   html: string;
   text: string;
 } {
@@ -17,15 +14,15 @@ export function generateAccountRegisterContent(
   "
 >
   <div>
-    <p>Dear ${username},</p>
+    <p>Dear,</p>
             <p>
-              Please Click the link below to verify your email address
+              Please Click the link below to setup your account
             </p>
             <a
               href=${link}
               target="_blank"
               style="color: #0066cc; text-decoration: none"
-              >Verify my email</a
+              >Setup my account</a
             >
   </div>
 </body>

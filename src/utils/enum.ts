@@ -5,7 +5,7 @@ export enum RoleEnum {
   STAFF = "STAFF",
   KOL = "KOL",
   ADMIN = "ADMIN",
-  OPERATION = "OPERATION",
+  OPERATOR = "OPERATOR",
 }
 
 export enum GenderEnum {
@@ -19,4 +19,21 @@ export enum StatusEnum {
   ACTIVE = "ACTIVE",
   INACTIVE = "INACTIVE",
   BANNED = "BANNED",
+}
+
+export enum AddressEnum {
+  HOME = "HOME",
+  OFFICE = "OFFICE",
+  OTHER = "OTHER",
+}
+
+export enum FileEnum {
+  CERTIFICATE = "CERTIFICATE",
+  AVATAR = "AVATAR",
+  PRODUCT_IMAGE = "PRODUCT_IMAGE",
+  POPUP_IMAGE = "POPUP_IMAGE",
+  BRAND_IMAGE = "BRAND_IMAGE",
+  BRAND_LOGO = "BRAND_LOGO",
+  BRAND_DOCUMENT = "BRAND_DOCUMENT",
+  SERVICE_IMAGE = "SERVICE_IMAGE",
 }

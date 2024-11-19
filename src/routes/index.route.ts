@@ -1,8 +1,20 @@
 import express from "express";
 import accountRouter from "./account.route";
 import authRoute from "./auth.route";
+import brandRoute from "./brand.route";
+import addressRouter from "./address.route";
+import categoryRouter from "./category.router";
+import productClassificationRouter from "./productClassification.route";
+import productRouter from "./product.route";
+import roleRouter from "./role.route";
 
 const router = express.Router();
 router.use("/accounts", accountRouter);
 router.use("/auth", authRoute);
+router.use("/role", roleRouter);
+router.use("/brands", brandRoute);
+router.use("/address", addressRouter);
+router.use("/category", categoryRouter);
+router.use("/product-classification", productClassificationRouter);
+router.use("/products", productRouter);
 export default router;

@@ -3,7 +3,7 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 import { config } from "../configs/envConfig";
 
 export interface AuthRequest extends Request {
-  loginUser?: number;
+  loginUser?: string;
 }
 
 function isJwtPayload(decoded: string | JwtPayload): decoded is JwtPayload {

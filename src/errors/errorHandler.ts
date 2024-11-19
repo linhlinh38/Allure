@@ -7,10 +7,10 @@ export function errorHandler(
   req: Request,
   res: Response,
   next: NextFunction
-): void {
+) {
   if (!err) return next();
   if (err instanceof HttpError) {
-    res.status(err.statusCode).json({ message: err.message });
+    return res.status(err.statusCode).json({ message: err.message });
   } else if (err instanceof DatabaseError) {
     Logging.error(err);
     res.status(503).json({ message: err.message });

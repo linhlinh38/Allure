@@ -15,7 +15,7 @@ export async function login(email: string, password: string) {
     throw new BadRequestError("Invalid email");
   }
 
-  if (account.password.length > 0) {
+  if (account.password) {
     const isMatch = await bcrypt.compare(password, account.password);
     if (!isMatch) {
       throw new BadRequestError("Invalid password");
