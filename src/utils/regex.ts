@@ -1,0 +1,1 @@
+export const regexFile = /jpeg|jpg|png|doc|docx|pdf/;

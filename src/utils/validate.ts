@@ -1,6 +1,6 @@
-import { NextFunction, Request, Response } from "express";
-import { AnyZodObject } from "zod";
-import Logging from "./Logging";
+import { NextFunction, Request, Response } from 'express';
+import { AnyZodObject } from 'zod';
+import Logging from './Logging';
 
 const validate =
   (schema: AnyZodObject) =>
@@ -16,9 +16,14 @@ const validate =
     } catch (err: any) {
       const error_message = JSON.parse(err.message);
       Logging.error(error_message);
+      const errors = error_message.reduce((acc, err) => {
+        const field = err.path[1];
+        acc[field] = err.message;
+        return acc;
+      }, {});
       return res.status(400).json({
-        status: "Bad Request!",
-        error: error_message,
+        message: 'Validation Error',
+        errors,
       });
     }
   };
