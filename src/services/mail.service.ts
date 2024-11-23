@@ -74,7 +74,8 @@ export async function sendResetPasswordEmail(account: Account) {
 export async function sendRequestCreateAccountEmail(
   email: string,
   brand: string,
-  role: string
+  role: string,
+  url: string
 ) {
   try {
     const transporter = nodemailer.createTransport({
@@ -89,7 +90,7 @@ export async function sendRequestCreateAccountEmail(
       expiresIn: "1d",
     });
 
-    const link = `http://localhost:3000/request-create-account?code=${code}`;
+    const link = `${url}?code=${code}`;
 
     const body = generateRequestCreateAccountContent(link);
 

@@ -8,7 +8,7 @@ export class ProductImage extends BaseEntity {
   @Column({ type: "varchar", length: 100, nullable: true })
   name?: string;
 
-  @Column({ type: "varchar", length: 100, nullable: false })
+  @Column({ name: "file_url", type: "varchar", length: 100, nullable: false })
   fileUrl: string;
 
   @Column({
@@ -19,6 +19,6 @@ export class ProductImage extends BaseEntity {
   status: StatusEnum;
 
   @ManyToOne(() => Product, (product) => product.images)
-  @JoinColumn({ name: "productId" })
+  @JoinColumn({ name: "product_id" })
   product: Product;
 }

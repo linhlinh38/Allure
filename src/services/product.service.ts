@@ -1,13 +1,14 @@
 import { ILike } from "typeorm";
 import { AppDataSource } from "../dataSource";
 import { Product } from "../entities/product.entity";
-import { ProductClassification } from "../entities/productClassification";
+import { ProductClassification } from "../entities/productClassification.entity";
 import { BadRequestError } from "../errors/error";
-import { StatusEnum } from "../utils/enum";
+import { ProductEnum, StatusEnum } from "../utils/enum";
 import { BaseService } from "./base.service";
 import { brandService } from "./brand.service";
 import { categoryService } from "./category.service";
 import { ProductImage } from "../entities/productImage.entity";
+import { PreOrderProduct } from "../entities/preOrderProduct.entity";
 
 const repository = AppDataSource.getRepository(Product);
 class ProductService extends BaseService<Product> {
@@ -53,20 +54,17 @@ class ProductService extends BaseService<Product> {
       const product = await queryRunner.manager.save(Product, productData);
 
       let productClassification: ProductClassification[] = [];
-      if (
-        productData.productClassifications &&
-        productData.productClassifications.length > 0
-      ) {
-        const classificationsWithProduct =
-          productData.productClassifications.map((classification) => ({
-            ...classification,
-            product,
-          }));
-        productClassification = await queryRunner.manager.save(
-          ProductClassification,
-          classificationsWithProduct
-        );
-      }
+
+      const classificationsWithProduct = productData.productClassifications.map(
+        (classification) => ({
+          ...classification,
+          product,
+        })
+      );
+      productClassification = await queryRunner.manager.save(
+        ProductClassification,
+        classificationsWithProduct
+      );
 
       let images: ProductImage[] = [];
       if (productData.images && productData.images.length > 0) {
@@ -76,7 +74,6 @@ class ProductService extends BaseService<Product> {
         }));
         images = await queryRunner.manager.save(ProductImage, productImages);
       }
-
       await queryRunner.commitTransaction();
       return product;
     } catch (error) {

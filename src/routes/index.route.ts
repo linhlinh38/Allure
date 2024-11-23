@@ -7,6 +7,7 @@ import categoryRouter from "./category.router";
 import productClassificationRouter from "./productClassification.route";
 import productRouter from "./product.route";
 import roleRouter from "./role.route";
+import preOrderProductRouter from "./preOrderProduct.route";
 import fileRouter from "./file.route";
 
 const router = express.Router();
@@ -17,6 +18,7 @@ router.use("/brands", brandRoute);
 router.use("/address", addressRouter);
 router.use("/category", categoryRouter);
 router.use("/product-classification", productClassificationRouter);
+router.use("/pre-order-product", preOrderProductRouter);
 router.use("/products", productRouter);
-router.use('/files', fileRouter);
+router.use("/files", fileRouter);
 export default router;

@@ -166,7 +166,8 @@ async function requestCreateAccount(
     await sendRequestCreateAccountEmail(
       req.body.email,
       req.body.brand,
-      req.body.role
+      req.body.role,
+      req.body.url
     );
     return res.status(200).send({ message: "Send mail success" });
   } catch (error) {

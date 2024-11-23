@@ -116,15 +116,15 @@ class AccountService extends BaseService<Account> {
     account: Account,
     data: any
   ) {
-    if (data.avatar) {
-      const avatar: Partial<File> = {
-        account: account,
-        name: data.avatar.name,
-        fileUrl: data.avatar.fileUrl,
-        type: data.avatar.type,
-      };
-      await queryRunner.manager.save(File, avatar);
-    }
+    // if (data.avatar) {
+    //   const avatar: Partial<File> = {
+    //     account: account,
+    //     name: data.avatar.name,
+    //     fileUrl: data.avatar.fileUrl,
+    //     type: data.avatar.type,
+    //   };
+    //   await queryRunner.manager.save(File, avatar);
+    // }
 
     if (
       data.role !== RoleEnum.CONSULTANT &&

@@ -29,7 +29,7 @@ const StartServer = () => {
     preflightContinue: false,
   };
 
-  app.use(cors(options));
+  app.use(cors());
 
   // Log the request and response
   app.use((req, res, next) => {

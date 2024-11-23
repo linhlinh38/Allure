@@ -31,7 +31,12 @@ export class Address extends BaseEntity {
   @Column({ type: "varchar", length: 255, nullable: true })
   province: string;
 
-  @Column({ type: "varchar", length: 100, nullable: true })
+  @Column({
+    name: "full_address",
+    type: "varchar",
+    length: 100,
+    nullable: true,
+  })
   fullAddress?: string;
 
   @Column({
@@ -48,10 +53,10 @@ export class Address extends BaseEntity {
   })
   status: StatusEnum;
 
-  @Column({ type: "boolean", default: false })
+  @Column({ name: "is_default", type: "boolean", default: false })
   isDefault: boolean;
 
   @ManyToOne(() => Account, (account) => account.addresses)
-  @JoinColumn({ name: "accountId" })
+  @JoinColumn({ name: "account_id" })
   account: Account;
 }

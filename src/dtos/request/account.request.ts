@@ -33,6 +33,7 @@ export const AccountCreateSchema = z.object({
       .optional(),
     role: z.string(),
     gender: z.nativeEnum(GenderEnum).optional(),
+    avatar: z.string().min(1, "avatar must more than 1 character").optional(),
     phone: z
       .string()
       .regex(/^[0-9]{10,15}$/, "Phone must be a string with 10 to 15 digits")
@@ -52,7 +53,6 @@ export const AccountCreateSchema = z.object({
       )
       .optional(),
     address: AddressCreateSchema.shape.body.optional(),
-    avatar: FileCreateSchema.optional(),
     certificate: FileCreateSchema.optional(),
   }),
 });

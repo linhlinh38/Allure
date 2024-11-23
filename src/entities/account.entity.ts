@@ -27,17 +27,20 @@ export class Account extends BaseEntity {
   @Column({ type: "varchar", length: 100, unique: true, nullable: true })
   username?: string;
 
+  @Column({ type: "varchar", length: 100, nullable: true })
+  avatar?: string;
+
   @Column({ type: "varchar", length: 255, nullable: false })
   email: string;
 
-  @Column({ type: "boolean", default: false })
+  @Column({ name: "is_email_verify", type: "boolean", default: false })
   isEmailVerify: boolean;
 
   @Column({ type: "varchar", length: 255, nullable: true })
   password: string;
 
   @ManyToOne(() => Role, (role) => role.accounts)
-  @JoinColumn({ name: "roleId" })
+  @JoinColumn({ name: "role_id" })
   role: Role;
 
   @Column({

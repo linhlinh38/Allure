@@ -27,6 +27,13 @@ export enum AddressEnum {
   OTHER = "OTHER",
 }
 
+export enum ProductEnum {
+  PRE_ORDER = "PRE_ORDER",
+  OFFICIAL = "OFFICIAL",
+  OUT_OF_STOCK = "OUT_OF_STOCK",
+  INACTIVE = "INACTIVE",
+}
+
 export enum FileEnum {
   CERTIFICATE = "CERTIFICATE",
   AVATAR = "AVATAR",

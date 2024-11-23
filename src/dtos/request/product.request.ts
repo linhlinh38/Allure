@@ -9,8 +9,6 @@ export const ProductCreateSchema = z.object({
     category: z.string().uuid().nullable().optional(),
     description: z.string().optional(),
     detail: z.string().optional(),
-    price: z.number().int().nonnegative("Price must be non-negative"),
-    quantity: z.number().int().nonnegative("Quantity must be non-negative"),
     productClassifications: z
       .array(ProductClassificationCreateSchema.shape.body)
       .optional(),

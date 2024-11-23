@@ -1,5 +1,5 @@
 import { AppDataSource } from "../dataSource";
-import { ProductClassification } from "../entities/productClassification";
+import { ProductClassification } from "../entities/productClassification.entity";
 import { BaseService } from "./base.service";
 
 const repository = AppDataSource.getRepository(ProductClassification);

@@ -10,24 +10,23 @@ import {
 } from "typeorm";
 import { Category } from "./category.entity";
 import { Brand } from "./brand.entity";
-import { StatusEnum } from "../utils/enum";
-import { ProductClassification } from "./productClassification";
+import { ProductEnum, StatusEnum } from "../utils/enum";
+import { ProductClassification } from "./productClassification.entity";
 import { ProductImage } from "./productImage.entity";
+import { BaseEntity } from "./base.entity";
+import { PreOrderProduct } from "./preOrderProduct.entity";
 
 @Entity("products")
-export class Product {
-  @PrimaryGeneratedColumn("uuid")
-  id: string;
-
+export class Product extends BaseEntity {
   @Column({ type: "varchar" })
   name: string;
 
   @ManyToOne(() => Brand, { nullable: false })
-  @JoinColumn({ name: "brandId" })
+  @JoinColumn({ name: "brand_id" })
   brand: Brand;
 
   @ManyToOne(() => Category, { nullable: true })
-  @JoinColumn({ name: "categoryId" })
+  @JoinColumn({ name: "category_id" })
   category: Category;
 
   @Column({ type: "varchar", nullable: true })
@@ -36,27 +35,28 @@ export class Product {
   @Column({ type: "varchar", nullable: true })
   detail: string;
 
-  @Column({ type: "int", nullable: false })
-  price: number;
-
-  @Column({ type: "int", nullable: false })
-  quantity: number;
-
   @OneToMany(
     () => ProductClassification,
     (productClassification) => productClassification.product
   )
-  @JoinColumn({ name: "productClassifications" })
+  @JoinColumn({ name: "product_classifications" })
   productClassifications: ProductClassification[];
 
   @OneToMany(() => ProductImage, (image) => image.product, { nullable: true })
-  @JoinColumn({ name: "productImages" })
+  @JoinColumn({ name: "product_images" })
   images?: ProductImage[];
+
+  @OneToMany(
+    () => PreOrderProduct,
+    (preOrderProduct) => preOrderProduct.product
+  )
+  @JoinColumn({ name: "pre_order_products" })
+  preOrderProducts: PreOrderProduct[];
 
   @Column({
     type: "enum",
-    enum: StatusEnum,
-    default: StatusEnum.ACTIVE,
+    enum: ProductEnum,
+    default: ProductEnum.OFFICIAL,
   })
-  status: StatusEnum;
+  status: ProductEnum;
 }
