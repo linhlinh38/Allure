@@ -5,10 +5,7 @@ import { AppDataSource } from "../dataSource";
 import { BadRequestError, EmailAlreadyExistError } from "../errors/error";
 import { encryptedPassword } from "../utils/jwt";
 import { RoleEnum, StatusEnum } from "../utils/enum";
-import {
-  sendRegisterAccountEmail,
-  sendResetPasswordEmail,
-} from "./mail.service";
+import { sendRegisterAccountEmail } from "./mail.service";
 import { Address } from "../entities/address.entity";
 import { File } from "../entities/file.entity";
 import { roleService } from "./role.service";
@@ -154,10 +151,10 @@ class AccountService extends BaseService<Account> {
           };
           await queryRunner.manager.save(Address, address);
         }
-        await sendRegisterAccountEmail(account);
+        await sendRegisterAccountEmail(account, data.url);
         break;
       case RoleEnum.MANAGER:
-        await sendRegisterAccountEmail(account);
+        await sendRegisterAccountEmail(account, data.url);
         break;
       case RoleEnum.STAFF:
         console.log("create staff");
@@ -174,7 +171,7 @@ class AccountService extends BaseService<Account> {
           await queryRunner.manager.save(File, certConsultant);
         }
 
-        await sendRegisterAccountEmail(account);
+        await sendRegisterAccountEmail(account, data.url);
         break;
       case RoleEnum.KOL:
         if (data.certificate) {

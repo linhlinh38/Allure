@@ -21,7 +21,6 @@ brandRoute.put(
   BrandController.updateDetail
 );
 
-
 brandRoute.use(authentication);
 brandRoute.post(
   '/create',

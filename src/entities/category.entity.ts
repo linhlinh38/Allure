@@ -24,6 +24,9 @@ export class Category extends BaseEntity {
   @JoinColumn({ name: "sub_categories" })
   subCategories: Category[];
 
+  @Column({ type: "jsonb", nullable: true })
+  detail: object;
+
   @OneToMany(() => Product, (product) => product.category)
   products: Product[];
 }

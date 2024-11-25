@@ -11,20 +11,16 @@ import { StatusEnum } from "../utils/enum";
 import { BaseEntity } from "./base.entity";
 import { ProductClassification } from "./productClassification.entity";
 
-@Entity("pre_order_products")
-export class PreOrderProduct extends BaseEntity {
+@Entity("product_discounts")
+export class ProductDiscount extends BaseEntity {
   @Column({ type: "varchar" })
   startTime: string;
 
   @Column({ type: "varchar" })
   endTime: string;
 
-  @OneToMany(
-    () => ProductClassification,
-    (productClassification) => productClassification.preOrderProduct
-  )
-  @JoinColumn({ name: "product_classifications" })
-  productClassifications: ProductClassification[];
+  @Column({ type: "int" })
+  discount: number;
 
   @ManyToOne(() => Product, { nullable: true })
   @JoinColumn({ name: "product_id" })

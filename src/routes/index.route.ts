@@ -9,6 +9,7 @@ import productRouter from "./product.route";
 import roleRouter from "./role.route";
 import preOrderProductRouter from "./preOrderProduct.route";
 import fileRouter from "./file.route";
+import productDiscountRouter from "./productDiscount.route";
 
 const router = express.Router();
 router.use("/accounts", accountRouter);
@@ -19,6 +20,7 @@ router.use("/address", addressRouter);
 router.use("/category", categoryRouter);
 router.use("/product-classification", productClassificationRouter);
 router.use("/pre-order-product", preOrderProductRouter);
+router.use("/product-discount", productDiscountRouter);
 router.use("/products", productRouter);
 router.use("/files", fileRouter);
 export default router;

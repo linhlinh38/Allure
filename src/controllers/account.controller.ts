@@ -56,7 +56,7 @@ async function getMyProfile(
     const account = await accountService.getById(req.loginUser);
     const responseData = {
       ...plainToClass(AccountResponse, account),
-      dob: account.dob.toLocaleString(),
+      dob: account?.dob ? account.dob.toLocaleString() : null,
       createdAt: account.createdAt.toLocaleString(),
       updatedAt: account.updatedAt.toLocaleString(),
     };
@@ -143,7 +143,7 @@ async function requestResetPassword(
     if (!account[0] || account[0].status !== StatusEnum.ACTIVE) {
       throw new NotFoundError("Account invalid!");
     }
-    await sendResetPasswordEmail(account[0]);
+    await sendResetPasswordEmail(account[0], req.body.url);
     return res
       .status(200)
       .send({ message: "Send reset password mail success" });

@@ -8,6 +8,7 @@ import { brandRepository } from '../repositories/brand.repository';
 import { BaseService } from './base.service';
 import { followRepository } from '../repositories/follow.repository';
 import { accountService } from './account.service';
+import { Voucher } from '../entities/voucher.entity';
 
 const repository = AppDataSource.getRepository(Brand);
 class BrandService extends BaseService<Brand> {

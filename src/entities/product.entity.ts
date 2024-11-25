@@ -15,6 +15,7 @@ import { ProductClassification } from "./productClassification.entity";
 import { ProductImage } from "./productImage.entity";
 import { BaseEntity } from "./base.entity";
 import { PreOrderProduct } from "./preOrderProduct.entity";
+import { ProductDiscount } from "./productDiscount.entity";
 
 @Entity("products")
 export class Product extends BaseEntity {
@@ -52,6 +53,13 @@ export class Product extends BaseEntity {
   )
   @JoinColumn({ name: "pre_order_products" })
   preOrderProducts: PreOrderProduct[];
+
+  @OneToMany(
+    () => ProductDiscount,
+    (productDiscount) => productDiscount.product
+  )
+  @JoinColumn({ name: "product_discounts" })
+  productDiscounts: ProductDiscount[];
 
   @Column({
     type: "enum",

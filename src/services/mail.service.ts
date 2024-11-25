@@ -7,7 +7,7 @@ import { generateRequestCreateAccountContent } from "../utils/email/requestCreat
 
 const nodemailer = require("nodemailer");
 
-export async function sendRegisterAccountEmail(account: Account) {
+export async function sendRegisterAccountEmail(account: Account, url: string) {
   try {
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -21,7 +21,7 @@ export async function sendRegisterAccountEmail(account: Account) {
       expiresIn: "3h",
     });
 
-    const link = `http://localhost:3000/verify-email?code=${code}`;
+    const link = `${url}?code=${code}`;
 
     const body = generateAccountRegisterContent(link, account?.username);
 
@@ -39,7 +39,7 @@ export async function sendRegisterAccountEmail(account: Account) {
   }
 }
 
-export async function sendResetPasswordEmail(account: Account) {
+export async function sendResetPasswordEmail(account: Account, url: string) {
   try {
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -53,7 +53,7 @@ export async function sendResetPasswordEmail(account: Account) {
       expiresIn: "3h",
     });
 
-    const link = `http://localhost:3000/reset-pass?code=${code}`;
+    const link = `${url}?code=${code}`;
 
     const body = generateResetPasswordContent(link, account?.username);
 

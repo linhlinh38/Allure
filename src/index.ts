@@ -4,8 +4,7 @@ import { config } from "./configs/envConfig";
 import cors from "cors";
 import Logging from "./utils/Logging";
 import http from "http";
-import swaggerUi from "swagger-ui-express";
-import accountRouter from "./routes/account.route";
+import "./services/cron.service";
 import router from "./routes/index.route";
 import { errorHandler } from "./errors/errorHandler";
 
