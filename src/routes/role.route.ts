@@ -8,10 +8,12 @@ import {
 import RoleController from "../controllers/role.controller";
 const roleRouter = express.Router();
 
+roleRouter.get("/", RoleController.getAll);
+
 roleRouter.use(authentication);
 roleRouter.post("/", validate(RoleCreateSchema), RoleController.create);
 
 roleRouter.get("/get-by-id/:id", RoleController.getById);
-roleRouter.get("/", RoleController.getAll);
+
 roleRouter.put("/:id", validate(RoleUpdateSchema), RoleController.update);
 export default roleRouter;
