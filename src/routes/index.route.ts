@@ -10,6 +10,7 @@ import roleRouter from "./role.route";
 import preOrderProductRouter from "./preOrderProduct.route";
 import fileRouter from "./file.route";
 import productDiscountRouter from "./productDiscount.route";
+import cartItemRouter from "./cartItem.route";
 
 const router = express.Router();
 router.use("/accounts", accountRouter);
@@ -22,5 +23,6 @@ router.use("/product-classification", productClassificationRouter);
 router.use("/pre-order-product", preOrderProductRouter);
 router.use("/product-discount", productDiscountRouter);
 router.use("/products", productRouter);
+router.use("/cart", cartItemRouter);
 router.use("/files", fileRouter);
 export default router;

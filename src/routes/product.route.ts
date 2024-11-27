@@ -10,6 +10,8 @@ import ProductController from "../controllers/product.controller";
 const productRouter = express.Router();
 
 productRouter.get("/get-by-id/:id", ProductController.getById);
+productRouter.get("/get-by-brand/:id", ProductController.getByBrand);
+productRouter.get("/get-by-category/:id", ProductController.getByCategory);
 productRouter.get("/search-by/:option/:value", ProductController.searchBy);
 productRouter.get(
   "/search-name/:searchKey",

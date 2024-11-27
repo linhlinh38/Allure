@@ -31,7 +31,7 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
       .leftJoinAndSelect("product.brand", "brand")
       .where("productDiscount.status = :status", { status: StatusEnum.ACTIVE })
       .andWhere("product.status = :productStatus", {
-        productStatus: ProductEnum.OFFICIAL,
+        productStatus: ProductEnum.FLASH_SALE,
       })
       .andWhere("brand.id = :brandId", { brandId })
       .getMany();

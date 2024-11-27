@@ -32,6 +32,24 @@ class ProductService extends BaseService<Product> {
     return product;
   }
 
+  async getByBrand(id: string) {
+    const product = await repository.find({
+      where: { brand: { id } },
+      relations: ["category", "brand", "productClassifications", "images"],
+    });
+
+    return product;
+  }
+
+  async getByCategory(id: string) {
+    const product = await repository.find({
+      where: { category: { id } },
+      relations: ["category", "brand", "productClassifications", "images"],
+    });
+
+    return product;
+  }
+
   async beforeCreate(body: Product) {
     if (body.category) {
       const checkCategory = await categoryService.findById(body.category);
