@@ -4,7 +4,7 @@ import { Product } from "../entities/product.entity";
 import { ProductClassification } from "../entities/productClassification.entity";
 import { ProductImage } from "../entities/productImage.entity";
 import { BadRequestError } from "../errors/error";
-import { ProductEnum, StatusEnum } from "../utils/enum";
+import { ClassificationTypeEnum, ProductEnum, StatusEnum } from "../utils/enum";
 import { BaseService } from "./base.service";
 import { productService } from "./product.service";
 
@@ -26,9 +26,9 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
         "productClassifications"
       )
       .where("preOrderProduct.status = :status", { status: StatusEnum.ACTIVE })
-      .andWhere("product.status = :productStatus", {
-        productStatus: ProductEnum.PRE_ORDER,
-      })
+      // .andWhere("product.status = :productStatus", {
+      //   productStatus: ProductEnum.,
+      // })
       .andWhere("brand.id = :brandId", { brandId })
       .getMany();
 
@@ -36,8 +36,25 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
   }
   async beforeCreate(data: PreOrderProduct) {
     const existingProduct = await productService.findById(data.product);
-    if (!existingProduct) {
-      throw new BadRequestError("Product does not exist.");
+    if (
+      !existingProduct ||
+      existingProduct.status === ProductEnum.INACTIVE ||
+      existingProduct.status == ProductEnum.BANNED
+    ) {
+      throw new BadRequestError("Product invalid.");
+    }
+
+    const preOrderClassifications = data.productClassifications || [];
+    console.log(preOrderClassifications);
+
+    const checkQuantity = preOrderClassifications.filter(
+      (p) => p.quantity !== 0
+    );
+
+    if (checkQuantity.length === 0) {
+      throw new BadRequestError(
+        "Product classification must have at least one quantity."
+      );
     }
   }
 
@@ -49,6 +66,8 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
     await queryRunner.startTransaction();
 
     try {
+      await this.beforeCreate(data);
+
       if (data.productData) {
         const product = await queryRunner.manager.save(
           Product,
@@ -115,5 +134,73 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
       await queryRunner.release();
     }
   }
+
+  async updatePreOrderProduct(
+    data: Partial<PreOrderProduct>,
+    id: string
+  ): Promise<PreOrderProduct> {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const preOrderPoductRepository =
+        queryRunner.manager.getRepository(PreOrderProduct);
+      const productClassificationRepository = queryRunner.manager.getRepository(
+        ProductClassification
+      );
+      const preOrderProduct = await preOrderPoductRepository.findOne({
+        where: { id },
+        relations: ["productClassifications", "product"],
+      });
+
+      if (!preOrderProduct) {
+        throw new Error("Product not found.");
+      }
+
+      if (
+        data.productClassifications &&
+        data.productClassifications.length > 0 &&
+        data.productClassifications[0].type === ClassificationTypeEnum.CUSTOM
+      ) {
+        await productClassificationRepository.delete({
+          preOrderProduct: { id },
+          type: ClassificationTypeEnum.DEFAULT,
+        });
+
+        for (const classification of data.productClassifications) {
+          if (classification.id) {
+            await productClassificationRepository.update(
+              classification.id,
+              classification
+            );
+          } else {
+            await productClassificationRepository.save({
+              ...classification,
+              preOrderProduct,
+            });
+          }
+        }
+      }
+
+      const { productClassifications, ...updateData } = data;
+      await preOrderPoductRepository.update(id, updateData);
+
+      await queryRunner.commitTransaction();
+
+      const updatedProduct = await preOrderPoductRepository.findOne({
+        where: { id },
+        relations: ["productClassifications", "product"],
+      });
+
+      return updatedProduct!;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
 }
+
 export const preOrderProductService = new PreOrderProductService();

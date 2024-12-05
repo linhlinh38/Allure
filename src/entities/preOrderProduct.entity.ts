@@ -7,7 +7,7 @@ import {
   OneToMany,
 } from "typeorm";
 import { Product } from "./product.entity";
-import { StatusEnum } from "../utils/enum";
+import { PreOrderProductEnum, StatusEnum } from "../utils/enum";
 import { BaseEntity } from "./base.entity";
 import { ProductClassification } from "./productClassification.entity";
 
@@ -32,8 +32,8 @@ export class PreOrderProduct extends BaseEntity {
 
   @Column({
     type: "enum",
-    enum: StatusEnum,
-    default: StatusEnum.ACTIVE,
+    enum: PreOrderProductEnum,
+    default: PreOrderProductEnum.INACTIVE,
   })
-  status: StatusEnum;
+  status: PreOrderProductEnum;
 }

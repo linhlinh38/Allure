@@ -1,6 +1,6 @@
 import { Entity, Column, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { Product } from "./product.entity";
-import { StatusEnum } from "../utils/enum";
+import { ClassificationTypeEnum, StatusEnum } from "../utils/enum";
 import { BaseEntity } from "./base.entity";
 import { PreOrderProduct } from "./preOrderProduct.entity";
 import { CartItem } from "./cartItem.entity";
@@ -18,6 +18,13 @@ export class ProductClassification extends BaseEntity {
 
   @Column({ type: "varchar", length: 100, nullable: true })
   image: string;
+
+  @Column({
+    type: "enum",
+    enum: ClassificationTypeEnum,
+    nullable: true,
+  })
+  type: ClassificationTypeEnum;
 
   @ManyToOne(() => Product, { nullable: true })
   @JoinColumn({ name: "product_id" })

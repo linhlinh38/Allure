@@ -55,7 +55,10 @@ export default class PreOrderProductController {
 
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
-      await preOrderProductService.update(req.params.id, req.body);
+      await preOrderProductService.updatePreOrderProduct(
+        req.body,
+        req.params.id
+      );
       return createNormalResponse(res, "Update PreOrderProduct success");
     } catch (err) {
       next(err);

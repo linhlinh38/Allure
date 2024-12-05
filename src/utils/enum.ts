@@ -28,11 +28,18 @@ export enum AddressEnum {
 }
 
 export enum ProductEnum {
-  PRE_ORDER = "PRE_ORDER",
   FLASH_SALE = "FLASH_SALE",
   OFFICIAL = "OFFICIAL",
   OUT_OF_STOCK = "OUT_OF_STOCK",
   INACTIVE = "INACTIVE",
+  BANNED = "BANNED",
+}
+
+export enum PreOrderProductEnum {
+  ACTIVE = "ACTIVE",
+  SOLD_OUT = "SOLD_OUT",
+  INACTIVE = "INACTIVE",
+  CANCELLED = "CANCELLED",
 }
 
 export enum FileEnum {
@@ -54,4 +61,14 @@ export enum VoucherEnum {
 export enum DiscountTypeEnum {
   PERCENTAGE = "PERCENTAGE",
   AMOUNT = "AMOUNT",
+}
+
+export enum ServiceTypeEnum {
+  STANDARD = "STANDARD",
+  PREMIUM = "PREMIUM",
+}
+
+export enum ClassificationTypeEnum {
+  DEFAULT = "DEFAULT",
+  CUSTOM = "CUSTOM",
 }

@@ -16,10 +16,21 @@ class AccountService extends BaseService<Account> {
     super(repository);
   }
 
+  async getAll() {
+    const accounts = await repository.find({
+      relations: ["role", "brands"],
+    });
+
+    return (await accounts).map((account) => ({
+      ...account,
+      role: account.role ? account.role.role : null,
+    }));
+  }
+
   async getById(accountId: string) {
     const account = await repository.findOne({
       where: { id: accountId },
-      relations: ["role"],
+      relations: ["role", "brands", "cartItems"],
     });
 
     if (!account) {
@@ -36,7 +47,7 @@ class AccountService extends BaseService<Account> {
       where: {
         [option]: value,
       },
-      relations: ["role"],
+      relations: ["role", "brands", "cartItems"],
     });
 
     return (await accounts).map((account) => ({

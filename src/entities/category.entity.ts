@@ -8,6 +8,7 @@ import {
 } from "typeorm";
 import { BaseEntity } from "./base.entity";
 import { Product } from "./product.entity";
+import { Service } from "./service.entity";
 
 @Entity("categories")
 export class Category extends BaseEntity {
@@ -29,4 +30,7 @@ export class Category extends BaseEntity {
 
   @OneToMany(() => Product, (product) => product.category)
   products: Product[];
+
+  @OneToMany(() => Service, (service) => service.category)
+  services: Product[];
 }

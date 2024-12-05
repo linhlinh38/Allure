@@ -1,7 +1,7 @@
 import cron from "node-cron";
 import { AppDataSource } from "../dataSource";
 import { PreOrderProduct } from "../entities/preOrderProduct.entity";
-import { ProductEnum, StatusEnum } from "../utils/enum";
+import { PreOrderProductEnum, ProductEnum, StatusEnum } from "../utils/enum";
 import { Product } from "../entities/product.entity";
 import { ProductDiscount } from "../entities/productDiscount.entity";
 const startPreOrderCheck = () => {
@@ -11,9 +11,10 @@ const startPreOrderCheck = () => {
 
     try {
       await queryRunner.connect();
+      await queryRunner.startTransaction();
 
       const preOrderProducts = await queryRunner.manager.find(PreOrderProduct, {
-        relations: ["product"],
+        relations: ["product", "productClassifications"],
       });
 
       const currentDate = new Date();
@@ -21,24 +22,34 @@ const startPreOrderCheck = () => {
       for (const preOrder of preOrderProducts) {
         const startTime = new Date(preOrder.startTime);
         const endTime = new Date(preOrder.endTime);
+        const preOrderClassifications = preOrder.productClassifications || [];
+
+        const checkQuantity = preOrderClassifications.filter(
+          (p) => p.quantity !== 0
+        );
 
         if (
           currentDate >= startTime &&
           currentDate <= endTime &&
-          preOrder.product.status !== ProductEnum.PRE_ORDER &&
-          preOrder.status === StatusEnum.ACTIVE
+          preOrder.status !== PreOrderProductEnum.ACTIVE &&
+          preOrder.product.status !== ProductEnum.INACTIVE &&
+          preOrder.product.status !== ProductEnum.BANNED &&
+          checkQuantity.length > 0
         ) {
-          await queryRunner.manager.update(Product, preOrder.product.id, {
-            status: ProductEnum.PRE_ORDER,
+          await queryRunner.manager.update(PreOrderProduct, preOrder.id, {
+            status: PreOrderProductEnum.ACTIVE,
           });
 
           console.log(
-            `Product ${preOrder.product.id} has been updated to PRE-ORDER status.`
+            `Pre order Product ${preOrder.product.id} has been updated to ACTIVE status.`
           );
         }
       }
+      await queryRunner.commitTransaction();
     } catch (error) {
+      await queryRunner.rollbackTransaction();
       console.error("Error updating pre-order products:", error);
+      throw error;
     } finally {
       await queryRunner.release();
     }
@@ -51,6 +62,7 @@ const endPreOrderCheck = () => {
 
     try {
       await queryRunner.connect();
+      await queryRunner.startTransaction();
 
       const preOrderProducts = await queryRunner.manager
         .createQueryBuilder(PreOrderProduct, "preOrderProduct")
@@ -68,31 +80,32 @@ const endPreOrderCheck = () => {
       for (const preOrder of preOrderProducts) {
         const preOrderClassifications = preOrder.productClassifications || [];
 
-        const checkOutOfStocks = preOrderClassifications.filter(
+        const checkQuantity = preOrderClassifications.filter(
           (p) => p.quantity !== 0
         );
 
         const endTime = new Date(preOrder.endTime);
 
-        if (
-          (currentDate > endTime && preOrder.status === "ACTIVE") ||
-          checkOutOfStocks.length === 0
-        ) {
+        if (checkQuantity.length === 0) {
           await queryRunner.manager.update(PreOrderProduct, preOrder.id, {
-            status: StatusEnum.INACTIVE,
+            status: PreOrderProductEnum.SOLD_OUT,
           });
 
-          await queryRunner.manager.update(Product, preOrder.product.id, {
-            status: ProductEnum.OUT_OF_STOCK,
+          console.log(`PreOrderProduct ${preOrder.id} marked as SOLD_OUT`);
+        }
+        if (currentDate > endTime && preOrder.status === "ACTIVE") {
+          await queryRunner.manager.update(PreOrderProduct, preOrder.id, {
+            status: PreOrderProductEnum.INACTIVE,
           });
 
-          console.log(
-            `PreOrderProduct ${preOrder.id} marked as INACTIVE and Product ${preOrder.product.id} marked as OUT_OF_STOCK.`
-          );
+          console.log(`PreOrderProduct ${preOrder.id} marked as INACTIVE`);
         }
       }
+      await queryRunner.commitTransaction();
     } catch (error) {
-      console.error("Error updating expired pre-order products:", error);
+      await queryRunner.rollbackTransaction();
+      console.error("Error end pre-order products:", error);
+      throw error;
     } finally {
       await queryRunner.release();
     }
@@ -105,6 +118,7 @@ const startProductDiscount = () => {
 
     try {
       await queryRunner.connect();
+      await queryRunner.startTransaction();
 
       const productDiscounts = await queryRunner.manager.find(ProductDiscount, {
         relations: ["product"],
@@ -135,8 +149,11 @@ const startProductDiscount = () => {
           );
         }
       }
+      await queryRunner.commitTransaction();
     } catch (error) {
-      console.error("Error updating FLASH_SALE products:", error);
+      await queryRunner.rollbackTransaction();
+      console.error("Error update flashsale products:", error);
+      throw error;
     } finally {
       await queryRunner.release();
     }
@@ -149,6 +166,7 @@ const endProductDiscount = () => {
 
     try {
       await queryRunner.connect();
+      await queryRunner.startTransaction();
 
       const productDiscounts = await queryRunner.manager
         .createQueryBuilder(ProductDiscount, "productDiscount")
@@ -200,8 +218,11 @@ const endProductDiscount = () => {
           );
         }
       }
+      await queryRunner.commitTransaction();
     } catch (error) {
-      console.error("Error updating expired pre-order products:", error);
+      await queryRunner.rollbackTransaction();
+      console.error("Error end flashsale products:", error);
+      throw error;
     } finally {
       await queryRunner.release();
     }

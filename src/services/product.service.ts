@@ -3,7 +3,7 @@ import { AppDataSource } from "../dataSource";
 import { Product } from "../entities/product.entity";
 import { ProductClassification } from "../entities/productClassification.entity";
 import { BadRequestError } from "../errors/error";
-import { ProductEnum, StatusEnum } from "../utils/enum";
+import { ClassificationTypeEnum, ProductEnum, StatusEnum } from "../utils/enum";
 import { BaseService } from "./base.service";
 import { brandService } from "./brand.service";
 import { categoryService } from "./category.service";
@@ -69,6 +69,8 @@ class ProductService extends BaseService<Product> {
     await queryRunner.startTransaction();
 
     try {
+      await this.beforeCreate(productData);
+
       const product = await queryRunner.manager.save(Product, productData);
 
       let productClassification: ProductClassification[] = [];
@@ -94,6 +96,84 @@ class ProductService extends BaseService<Product> {
       }
       await queryRunner.commitTransaction();
       return product;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async updateProduct(
+    productData: Partial<Product>,
+    id: string
+  ): Promise<Product> {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const productRepository = queryRunner.manager.getRepository(Product);
+      const productClassificationRepository = queryRunner.manager.getRepository(
+        ProductClassification
+      );
+      const productImageRepository =
+        queryRunner.manager.getRepository(ProductImage);
+
+      const product = await productRepository.findOne({
+        where: { id },
+        relations: ["productClassifications", "images"],
+      });
+
+      if (!product) {
+        throw new Error("Product not found.");
+      }
+
+      if (
+        productData.productClassifications &&
+        productData.productClassifications.length > 0 &&
+        productData.productClassifications[0].type ===
+          ClassificationTypeEnum.CUSTOM
+      ) {
+        await productClassificationRepository.delete({
+          product: { id },
+          type: ClassificationTypeEnum.DEFAULT,
+        });
+
+        for (const classification of productData.productClassifications) {
+          if (classification.id) {
+            await productClassificationRepository.update(
+              classification.id,
+              classification
+            );
+          } else {
+            await productClassificationRepository.save({
+              ...classification,
+              product,
+            });
+          }
+        }
+      }
+
+      if (productData.images && productData.images.length > 0) {
+        const productImages = productData.images.map((image) => ({
+          ...image,
+          product,
+        }));
+        await productImageRepository.save(productImages);
+      }
+
+      const { productClassifications, images, ...productFields } = productData;
+      await productRepository.update(id, productFields);
+
+      await queryRunner.commitTransaction();
+
+      const updatedProduct = await productRepository.findOne({
+        where: { id },
+        relations: ["productClassifications", "images"],
+      });
+
+      return updatedProduct!;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;

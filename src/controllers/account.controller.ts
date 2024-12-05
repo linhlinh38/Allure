@@ -17,7 +17,7 @@ import { roleService } from "../services/role.service";
 
 async function getAllAccount(req: Request, res: Response, next: NextFunction) {
   try {
-    const accounts = await accountService.findAll();
+    const accounts = await accountService.getAll();
     const responseData = accounts.map((acc) =>
       plainToClass(AccountResponse, acc)
     );
