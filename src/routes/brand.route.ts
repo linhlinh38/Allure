@@ -3,6 +3,7 @@ import BrandController from '../controllers/brand.controller';
 import validate from '../utils/validate';
 import {
   BrandCreateSchema,
+  BrandUpdateSchema,
   BrandUpdateStatusSchema,
 } from '../dtos/request/brand.request';
 import authentication from '../middleware/authentication';
@@ -17,7 +18,7 @@ brandRoute.put(
 );
 brandRoute.put(
   '/update-detail/:id',
-  validate(BrandUpdateStatusSchema),
+  validate(BrandUpdateSchema),
   BrandController.updateDetail
 );
 
