@@ -19,6 +19,7 @@ export enum StatusEnum {
   ACTIVE = "ACTIVE",
   INACTIVE = "INACTIVE",
   BANNED = "BANNED",
+  DENIED = "DENIED",
 }
 
 export enum AddressEnum {

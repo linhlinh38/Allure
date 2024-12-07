@@ -2,25 +2,29 @@ import express from 'express';
 import validate from '../utils/validate';
 import authentication from '../middleware/authentication';
 import VoucherController from '../controllers/voucher.controller';
-import { VoucherCreateSchema, VoucherUpdateSchema, VoucherUpdateStatusSchema } from '../dtos/request/voucher.request';
-const voucherRoute = express.Router();
-voucherRoute.get('/', VoucherController.getAll);
-voucherRoute.get('/get-by-id/:id', VoucherController.getById);
-voucherRoute.post('/search', VoucherController.search);
-voucherRoute.post(
+import {
+  VoucherCreateSchema,
+  VoucherUpdateSchema,
+  VoucherUpdateStatusSchema,
+} from '../dtos/request/voucher.request';
+const voucherRouter = express.Router();
+voucherRouter.get('/', VoucherController.getAll);
+voucherRouter.get('/get-by-id/:id', VoucherController.getById);
+voucherRouter.post('/search', VoucherController.search);
+voucherRouter.post(
   '/create',
   validate(VoucherCreateSchema),
   VoucherController.create
 );
-voucherRoute.put(
+voucherRouter.put(
   '/update-detail/:id',
   validate(VoucherUpdateSchema),
   VoucherController.updateDetail
 );
-voucherRoute.put(
+voucherRouter.put(
   '/update-detail/:id',
   validate(VoucherUpdateStatusSchema),
   VoucherController.updateStatus
 );
-voucherRoute.use(authentication);
-export default voucherRoute;
+voucherRouter.use(authentication);
+export default voucherRouter;
