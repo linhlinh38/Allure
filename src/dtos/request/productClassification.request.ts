@@ -1,12 +1,14 @@
 import { z } from "zod";
 import { ClassificationTypeEnum } from "../../utils/enum";
+import { ProductImageCreateSchema } from "./productImage.request";
 
 export const ProductClassificationCreateSchema = z.object({
   body: z.object({
     title: z.string().min(1, "Title is required"),
+    sku: z.string(),
     price: z.number().int().nonnegative("Price must be non-negative"),
     quantity: z.number().int().nonnegative("Quantity must be non-negative"),
-    image: z.string().max(100),
+    images: z.array(ProductImageCreateSchema.shape.body).optional(),
     type: z.nativeEnum(ClassificationTypeEnum),
     product: z.string().uuid().nullable().optional(),
     preOrderPoduct: z.string().uuid().nullable().optional(),

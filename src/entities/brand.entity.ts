@@ -13,6 +13,7 @@ import { Account } from "./account.entity";
 import { Follow } from "./follow.entity";
 import { Expose } from "class-transformer";
 import { Voucher } from "./voucher.entity";
+import { BrandStatusTracking } from "./brandStatusTracking.entity";
 
 @Entity('brands')
 export class Brand extends BaseEntity {
@@ -62,4 +63,10 @@ export class Brand extends BaseEntity {
 
   @OneToMany(() => Voucher, (voucher) => voucher.brand)
   vouchers: Brand[];
-}
+
+  @OneToMany(
+    () => BrandStatusTracking,
+    (statusTracking) => statusTracking.brand
+  )
+  statusTrackings: BrandStatusTracking[];
+};

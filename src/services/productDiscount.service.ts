@@ -1,5 +1,7 @@
 import { AppDataSource } from "../dataSource";
+import { ProductClassification } from "../entities/productClassification.entity";
 import { ProductDiscount } from "../entities/productDiscount.entity";
+import { ProductImage } from "../entities/productImage.entity";
 import { BadRequestError } from "../errors/error";
 import { ProductEnum, StatusEnum } from "../utils/enum";
 import { BaseService } from "./base.service";
@@ -28,6 +30,7 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
         "product.productClassifications",
         "productClassifications"
       )
+      .leftJoinAndSelect("productClassifications.images", "images")
       .leftJoinAndSelect("product.brand", "brand")
       .where("productDiscount.status = :status", { status: StatusEnum.ACTIVE })
       .andWhere("product.status = :productStatus", {
@@ -39,10 +42,179 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
     return products;
   }
 
+  async getProductDiscountOfBrand(brandId: string): Promise<ProductDiscount[]> {
+    const products = await repository
+      .createQueryBuilder("productDiscount")
+      .leftJoinAndSelect("productDiscount.product", "product")
+      .leftJoinAndSelect(
+        "product.productClassifications",
+        "productClassifications"
+      )
+      .leftJoinAndSelect("productClassifications.images", "images")
+      .leftJoinAndSelect("product.brand", "brand")
+      .where("product.status IN (:...productStatus)", {
+        productStatus: [ProductEnum.OFFICIAL, ProductEnum.FLASH_SALE],
+      })
+      .andWhere("brand.id = :brandId", { brandId })
+      .getMany();
+
+    return products;
+  }
+
+  async getProductDiscountOfProduct(
+    productId: string
+  ): Promise<ProductDiscount[]> {
+    const products = await repository
+      .createQueryBuilder("productDiscount")
+      .leftJoinAndSelect("productDiscount.product", "product")
+      .leftJoinAndSelect(
+        "product.productClassifications",
+        "productClassifications"
+      )
+      .leftJoinAndSelect("productClassifications.images", "images")
+      .leftJoinAndSelect("product.brand", "brand")
+      .where("product.id = :productId", { productId })
+      .getMany();
+
+    return products;
+  }
+
   async beforeCreate(data: ProductDiscount) {
     const existingProduct = await productService.findById(data.product);
     if (!existingProduct) {
       throw new BadRequestError("Product does not exist.");
+    }
+  }
+
+  async create(data: ProductDiscount): Promise<ProductDiscount> {
+    let productDiscount;
+    const queryRunner = AppDataSource.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      await this.beforeCreate(data);
+
+      productDiscount = await queryRunner.manager.save(ProductDiscount, data);
+
+      for (const classification of data.productClassifications) {
+        const { images, ...classificationFields } = classification;
+        const classificationResponse = await queryRunner.manager.save(
+          ProductClassification,
+          {
+            ...classificationFields,
+            productDiscount,
+          }
+        );
+
+        if (classification.images && classification.images.length > 0) {
+          for (const image of classification.images) {
+            await queryRunner.manager.save(ProductImage, {
+              ...image,
+              productClassification: classificationResponse,
+            });
+          }
+        }
+      }
+
+      await queryRunner.commitTransaction();
+      return productDiscount;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async update(
+    id: string,
+    data: Partial<ProductDiscount>
+  ): Promise<ProductDiscount> {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const productDiscountRepository =
+        queryRunner.manager.getRepository(ProductDiscount);
+
+      const productClassificationRepository = queryRunner.manager.getRepository(
+        ProductClassification
+      );
+
+      const productImageRepository =
+        queryRunner.manager.getRepository(ProductImage);
+
+      const productDiscount = await productDiscountRepository.findOne({
+        where: { id },
+        relations: ["productClassifications", "product"],
+      });
+
+      if (!productDiscount) {
+        throw new Error("Product not found.");
+      }
+
+      if (
+        data.productClassifications &&
+        data.productClassifications.length > 0
+        // data.productClassifications[0].type === ClassificationTypeEnum.CUSTOM
+      ) {
+        // await productClassificationRepository.delete({
+        //   preOrderProduct: { id },
+        //   type: ClassificationTypeEnum.DEFAULT,
+        // });
+
+        for (const classification of data.productClassifications) {
+          const { images, ...classificationFields } = classification;
+          let classificationResponse;
+          if (classificationFields.id) {
+            await productClassificationRepository.update(
+              classificationFields.id,
+              classificationFields
+            );
+            classificationResponse = classification;
+          } else {
+            classificationResponse = await productClassificationRepository.save(
+              {
+                ...classificationFields,
+                productDiscount,
+              }
+            );
+          }
+
+          if (classification.images && classification.images.length > 0) {
+            for (const image of classification.images) {
+              if (image.id) {
+                await productImageRepository.update(image.id, image);
+              } else {
+                await productImageRepository.save({
+                  ...image,
+                  productClassification: classificationResponse,
+                });
+              }
+            }
+          }
+        }
+      }
+
+      const { productClassifications, ...updateData } = data;
+      await productDiscountRepository.update(id, updateData);
+
+      await queryRunner.commitTransaction();
+
+      const updatedProduct = await productDiscountRepository.findOne({
+        where: { id },
+        relations: ["productClassifications", "product"],
+      });
+
+      return updatedProduct!;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
   }
 }

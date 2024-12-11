@@ -1,7 +1,12 @@
 import cron from "node-cron";
 import { AppDataSource } from "../dataSource";
 import { PreOrderProduct } from "../entities/preOrderProduct.entity";
-import { PreOrderProductEnum, ProductEnum, StatusEnum } from "../utils/enum";
+import {
+  PreOrderProductEnum,
+  ProductDiscountEnum,
+  ProductEnum,
+  StatusEnum,
+} from "../utils/enum";
 import { Product } from "../entities/product.entity";
 import { ProductDiscount } from "../entities/productDiscount.entity";
 const startPreOrderCheck = () => {
@@ -31,7 +36,7 @@ const startPreOrderCheck = () => {
         if (
           currentDate >= startTime &&
           currentDate <= endTime &&
-          preOrder.status !== PreOrderProductEnum.ACTIVE &&
+          preOrder.status === PreOrderProductEnum.WAITING &&
           preOrder.product.status !== ProductEnum.INACTIVE &&
           preOrder.product.status !== ProductEnum.BANNED &&
           checkQuantity.length > 0
@@ -121,26 +126,43 @@ const startProductDiscount = () => {
       await queryRunner.startTransaction();
 
       const productDiscounts = await queryRunner.manager.find(ProductDiscount, {
-        relations: ["product"],
+        relations: ["product", "productClassifications"],
       });
 
       const currentDate = new Date();
 
       for (const productDiscount of productDiscounts) {
+        const productDiscountClassifications =
+          productDiscount.productClassifications || [];
+
+        const checkQuantity = productDiscountClassifications.filter(
+          (p) => p.quantity !== 0
+        );
+
         const startTime = new Date(productDiscount.startTime);
         const endTime = new Date(productDiscount.endTime);
 
         if (
           currentDate >= startTime &&
           currentDate <= endTime &&
-          productDiscount.product.status !== ProductEnum.FLASH_SALE &&
-          productDiscount.status === StatusEnum.ACTIVE
+          productDiscount.product.status !== ProductEnum.INACTIVE &&
+          productDiscount.product.status !== ProductEnum.BANNED &&
+          productDiscount.status === ProductDiscountEnum.WAITING &&
+          checkQuantity.length > 0
         ) {
           await queryRunner.manager.update(
             Product,
             productDiscount.product.id,
             {
               status: ProductEnum.FLASH_SALE,
+            }
+          );
+
+          await queryRunner.manager.update(
+            ProductDiscount,
+            productDiscount.id,
+            {
+              status: ProductDiscountEnum.ACTIVE,
             }
           );
 
@@ -182,31 +204,26 @@ const endProductDiscount = () => {
       const currentDate = new Date();
 
       for (const discount of productDiscounts) {
-        const classifications = discount.product.productClassifications || [];
+        const productDiscountClassifications =
+          discount.productClassifications || [];
 
-        const checkOutOfStocks = classifications.filter(
+        const checkQuantity = productDiscountClassifications.filter(
           (p) => p.quantity !== 0
         );
 
         const endTime = new Date(discount.endTime);
 
-        if (checkOutOfStocks.length === 0) {
+        if (checkQuantity.length === 0) {
           await queryRunner.manager.update(ProductDiscount, discount.id, {
-            status: StatusEnum.INACTIVE,
+            status: ProductDiscountEnum.SOLD_OUT,
           });
 
-          await queryRunner.manager.update(Product, discount.product.id, {
-            status: ProductEnum.OUT_OF_STOCK,
-          });
-
-          console.log(
-            `PreOrderProduct ${discount.id} marked as INACTIVE and Product ${discount.product.id} marked as OUT_OF_STOCK.`
-          );
+          console.log(`PreOrderProduct ${discount.id} marked as SOLD_OUT.`);
         }
 
         if (currentDate > endTime && discount.status === "ACTIVE") {
           await queryRunner.manager.update(ProductDiscount, discount.id, {
-            status: StatusEnum.INACTIVE,
+            status: ProductDiscountEnum.INACTIVE,
           });
 
           await queryRunner.manager.update(Product, discount.product.id, {

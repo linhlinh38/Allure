@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { GenderEnum, RoleEnum, StatusEnum } from '../../utils/enum';
+import { Expose } from 'class-transformer';
 
 export const BrandCreateSchema = z.object({
   body: z.object({
@@ -35,6 +36,17 @@ export const BrandUpdateSchema = z.object({
 
 export const BrandUpdateStatusSchema = z.object({
   body: z.object({
-    status: z.nativeEnum(StatusEnum).optional(),
+    status: z.nativeEnum(StatusEnum),
+    reason: z.string().min(1, 'Reason is required').optional(),
+    brandId: z.string().uuid('Invalid brand id'),
   }),
 });
+
+export class BrandUpdateStatusRequest {
+  @Expose()
+  reason: string;
+  @Expose()
+  brandId: string;
+  @Expose()
+  status: StatusEnum;
+}

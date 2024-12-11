@@ -22,7 +22,7 @@ voucherRouter.put(
   VoucherController.updateDetail
 );
 voucherRouter.put(
-  '/update-detail/:id',
+  '/update-status/:id',
   validate(VoucherUpdateStatusSchema),
   VoucherController.updateStatus
 );

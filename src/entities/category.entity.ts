@@ -15,6 +15,9 @@ export class Category extends BaseEntity {
   @Column({ type: "varchar", nullable: false })
   name: string;
 
+  @Column({ type: "int", default: 1 })
+  level: number;
+
   @ManyToOne(() => Category, (category) => category.subCategories, {
     nullable: true,
   })

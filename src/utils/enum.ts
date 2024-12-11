@@ -22,6 +22,15 @@ export enum StatusEnum {
   DENIED = "DENIED",
 }
 
+export enum ShippingStatusEnum {
+  TO_PAY = 'TO_PAY',
+  TO_SHIP = 'TO_SHIP',
+  TO_RECEIVED = 'TO_RECEIVED',
+  RETURN_REFUND = 'RETURN_REFUND',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+}
+
 export enum AddressEnum {
   HOME = "HOME",
   OFFICE = "OFFICE",
@@ -39,6 +48,15 @@ export enum ProductEnum {
 export enum PreOrderProductEnum {
   ACTIVE = "ACTIVE",
   SOLD_OUT = "SOLD_OUT",
+  WAITING = "WAITING",
+  INACTIVE = "INACTIVE",
+  CANCELLED = "CANCELLED",
+}
+
+export enum ProductDiscountEnum {
+  ACTIVE = "ACTIVE",
+  SOLD_OUT = "SOLD_OUT",
+  WAITING = "WAITING",
   INACTIVE = "INACTIVE",
   CANCELLED = "CANCELLED",
 }
@@ -62,6 +80,14 @@ export enum VoucherEnum {
 export enum DiscountTypeEnum {
   PERCENTAGE = "PERCENTAGE",
   AMOUNT = "AMOUNT",
+}
+
+export enum OrderEnum {
+  PRE_ORDER = "PRE_ORDER",
+  NORMAL = "NORMAL",
+  GROUP_BUYING = "GROUP_BUYING",
+  FLASH_SALE = "FLASH_SALE",
+  LIVE_STREAM = "LIVE_STREAM",
 }
 
 export enum ServiceTypeEnum {

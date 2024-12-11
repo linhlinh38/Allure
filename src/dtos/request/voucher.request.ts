@@ -37,18 +37,19 @@ export const VoucherCreateSchema = z.object({
       .positive('Amount must be positive')
       .optional(),
     startTime: z
-      .date()
-      .optional()
+      .string()
+      .transform((str) => (str ? new Date(str) : undefined))
       .refine((date) => !date || date > new Date(), {
         message: 'Start Time must be greater than the current time.',
       }),
     endTime: z
-      .date()
-      .optional()
+      .string()
+      .transform((str) => (str ? new Date(str) : undefined))
       .refine((date) => !date || date > new Date(), {
         message: 'End Time must be greater than the current time.',
       }),
     status: z.nativeEnum(StatusEnum).optional().default(StatusEnum.ACTIVE),
+    brandId: z.string().optional(),
   }),
 });
 
@@ -98,4 +99,7 @@ export class VoucherRequest {
 
   @Expose()
   endTime: Date;
+
+  @Expose()
+  brandId: string;
 }

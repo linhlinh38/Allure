@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { productService } from "../services/product.service";
 import { createNormalResponse } from "../utils/response";
 import { NotFoundError } from "../errors/error";
+import { Product } from "../entities/product.entity";
 export default class ProductController {
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
@@ -37,6 +38,38 @@ export default class ProductController {
       const product = await productService.getByCategory(req.params.id);
       if (!product) throw new NotFoundError("product not found");
       return createNormalResponse(res, "Get product success", product);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async filterProduct(req: Request, res: Response, next: NextFunction) {
+    try {
+      const {
+        search,
+        brandId,
+        categoryId,
+        status,
+        sortBy,
+        order,
+        page,
+        limit,
+      } = req.query;
+
+      // Construct the filter object
+      const filter = {
+        search: search?.toString(),
+        brandId: brandId?.toString(),
+        categoryId: categoryId?.toString(),
+        status: status?.toString(),
+        sortBy: (sortBy?.toString() as keyof Product) ?? "id",
+        order: order?.toString() ?? "ASC",
+        page: page ? Number(page) : 1,
+        limit: limit ? Number(limit) : 10,
+      };
+
+      const product = await productService.filteredProducts(filter);
+      return createNormalResponse(res, "Get products success", product);
     } catch (err) {
       next(err);
     }

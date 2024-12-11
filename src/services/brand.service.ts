@@ -1,3 +1,4 @@
+import { BrandStatusTracking } from './../entities/brandStatusTracking.entity';
 import { Not } from 'typeorm';
 import { AppDataSource } from '../dataSource';
 import { SearchDTO } from '../dtos/other/search.dto';
@@ -8,10 +9,64 @@ import { brandRepository } from '../repositories/brand.repository';
 import { BaseService } from './base.service';
 import { followRepository } from '../repositories/follow.repository';
 import { accountService } from './account.service';
-import { Voucher } from '../entities/voucher.entity';
+import { BrandUpdateStatusRequest } from '../dtos/request/brand.request';
+import { StatusEnum } from '../utils/enum';
+import { brandStatusTrackingRepository } from '../repositories/brandStatusTracking.repository';
 
 const repository = AppDataSource.getRepository(Brand);
 class BrandService extends BaseService<Brand> {
+  async getStatusTrackings(brandId: string) {
+    const brand = await brandRepository.findOne({
+      where: { id: brandId },
+    });
+    if (!brand) throw new BadRequestError('Brand not found');
+    const statusTrackings = await brandStatusTrackingRepository.find({
+      relations: { brand: true, updatedBy: true },
+      where: { brand: { id: brandId } },
+      order: { createdAt: 'DESC' },
+    });
+    return statusTrackings;
+  }
+  async updateStatus(
+    loginUser: string,
+    brandUpdateStatusRequest: BrandUpdateStatusRequest
+  ) {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const account = await accountRepository.findOne({
+        where: { id: loginUser },
+      });
+      const brand = await brandRepository.findOne({
+        where: { id: brandUpdateStatusRequest.brandId },
+      });
+      if (!brand) throw new BadRequestError('Brand not found');
+      if (
+        brandUpdateStatusRequest.status == StatusEnum.DENIED &&
+        !brandUpdateStatusRequest.reason
+      ) {
+        throw new BadRequestError('Reason is required');
+      }
+      const brandStatusTracking = new BrandStatusTracking();
+      brandStatusTracking.reason = brandUpdateStatusRequest.reason;
+      brandStatusTracking.status = brandUpdateStatusRequest.status;
+      brandStatusTracking.updatedBy = account;
+      brandStatusTracking.brand = brand;
+      await queryRunner.manager.save(BrandStatusTracking, brandStatusTracking);
+
+      brand.status = brandUpdateStatusRequest.status;
+      await queryRunner.manager.save(Brand, brand);
+
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
   constructor() {
     super(repository);
   }
@@ -77,6 +132,9 @@ class BrandService extends BaseService<Brand> {
     if (existBrandByName) {
       throw new BadRequestError('Name already exists');
     }
+    if (brand.status == StatusEnum.DENIED) {
+      brandBody.status = StatusEnum.PENDING;
+    }
     await this.update(id, brandBody);
   }
 
@@ -105,10 +163,10 @@ class BrandService extends BaseService<Brand> {
     const follows = await followRepository.find({
       where: { account: { id: accountId } },
       relations: {
-        brand: true
-      }
+        brand: true,
+      },
     });
-    return follows.flatMap(follow => [follow.brand]);
+    return follows.flatMap((follow) => [follow.brand]);
   }
 }
 

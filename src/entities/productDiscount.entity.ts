@@ -7,7 +7,7 @@ import {
   OneToMany,
 } from "typeorm";
 import { Product } from "./product.entity";
-import { StatusEnum } from "../utils/enum";
+import { ProductDiscountEnum } from "../utils/enum";
 import { BaseEntity } from "./base.entity";
 import { ProductClassification } from "./productClassification.entity";
 
@@ -22,14 +22,21 @@ export class ProductDiscount extends BaseEntity {
   @Column({ type: "int" })
   discount: number;
 
+  @OneToMany(
+    () => ProductClassification,
+    (productClassification) => productClassification.productDiscount
+  )
+  @JoinColumn({ name: "product_classifications" })
+  productClassifications: ProductClassification[];
+
   @ManyToOne(() => Product, { nullable: true })
   @JoinColumn({ name: "product_id" })
   product: Product;
 
   @Column({
     type: "enum",
-    enum: StatusEnum,
-    default: StatusEnum.ACTIVE,
+    enum: ProductDiscountEnum,
+    default: ProductDiscountEnum.WAITING,
   })
-  status: StatusEnum;
+  status: ProductDiscountEnum;
 }

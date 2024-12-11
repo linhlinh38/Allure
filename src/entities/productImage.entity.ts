@@ -2,6 +2,7 @@ import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
 import { BaseEntity } from "./base.entity";
 import { StatusEnum } from "../utils/enum";
 import { Product } from "./product.entity";
+import { ProductClassification } from "./productClassification.entity";
 
 @Entity("product_images")
 export class ProductImage extends BaseEntity {
@@ -21,4 +22,11 @@ export class ProductImage extends BaseEntity {
   @ManyToOne(() => Product, (product) => product.images)
   @JoinColumn({ name: "product_id" })
   product: Product;
+
+  @ManyToOne(
+    () => ProductClassification,
+    (classification) => classification.images
+  )
+  @JoinColumn({ name: "product_classification_id" })
+  productClassification: ProductClassification;
 }

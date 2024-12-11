@@ -33,8 +33,6 @@ export default class CategoryController {
 
   static async create(req: Request, res: Response, next: NextFunction) {
     try {
-      console.log(req.body);
-
       await categoryService.create(req.body);
       return createNormalResponse(res, "Create Category success");
     } catch (err) {

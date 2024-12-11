@@ -7,8 +7,25 @@ import { AppDataSource } from '../dataSource';
 import { createBadResponse, createNormalResponse } from '../utils/response';
 import { AuthRequest } from '../middleware/authentication';
 import { SearchDTO as SearchDTO } from '../dtos/other/search.dto';
+import { BrandUpdateStatusRequest } from '../dtos/request/brand.request';
 
 export default class BrandController {
+  static async getStatusTrackings(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get status trackings success',
+        await brandService.getStatusTrackings(req.params.brandId)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
       const brands = await brandService.findAll();
@@ -43,11 +60,23 @@ export default class BrandController {
     }
   }
 
-  static async updateStatus(req: Request, res: Response, next: NextFunction) {
+  static async updateStatus(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
+      const brandUpdateStatusRequest = plainToInstance(
+        BrandUpdateStatusRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      await brandService.updateStatus(req.loginUser, brandUpdateStatusRequest);
       const brand: Brand = await brandService.findById(req.params.id);
       if (!brand) return createBadResponse(res, 'No brand found');
-      brandService.update(brand.id, {status: req.body.status});
+      await brandService.update(brand.id, { status: req.body.status });
       return createNormalResponse(res, 'Update status success');
     } catch (err) {
       next(err);
@@ -102,7 +131,11 @@ export default class BrandController {
     next: NextFunction
   ) {
     try {
-      return createNormalResponse(res, 'Get followed brands success', await brandService.getFollowedBrands(req.loginUser));
+      return createNormalResponse(
+        res,
+        'Get followed brands success',
+        await brandService.getFollowedBrands(req.loginUser)
+      );
     } catch (err) {
       next(err);
     }

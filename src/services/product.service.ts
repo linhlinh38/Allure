@@ -11,6 +11,18 @@ import { ProductImage } from "../entities/productImage.entity";
 import { PreOrderProduct } from "../entities/preOrderProduct.entity";
 
 const repository = AppDataSource.getRepository(Product);
+
+interface ProductFilter {
+  search?: string; // Search across multiple fields
+  sortBy?: keyof Product; // Field to sort by (e.g., "id", "sku")
+  order?: string; // Sort order
+  limit?: number; // Number of items per page
+  page?: number; // Page number (for pagination)
+  status?: string; // Filter by status
+  brandId?: string; // Filter by brand
+  categoryId?: string; // Filter by category
+}
+
 class ProductService extends BaseService<Product> {
   constructor() {
     super(repository);
@@ -18,7 +30,13 @@ class ProductService extends BaseService<Product> {
 
   async getAll() {
     const product = await repository.find({
-      relations: ["category", "brand", "productClassifications", "images"],
+      relations: [
+        "category",
+        "brand",
+        "productClassifications",
+        "productClassifications.images",
+        "images",
+      ],
     });
 
     return product;
@@ -26,7 +44,13 @@ class ProductService extends BaseService<Product> {
   async getById(id: string) {
     const product = await repository.find({
       where: { id },
-      relations: ["category", "brand", "productClassifications", "images"],
+      relations: [
+        "category",
+        "brand",
+        "productClassifications",
+        "productClassifications.images",
+        "images",
+      ],
     });
 
     return product;
@@ -35,7 +59,13 @@ class ProductService extends BaseService<Product> {
   async getByBrand(id: string) {
     const product = await repository.find({
       where: { brand: { id } },
-      relations: ["category", "brand", "productClassifications", "images"],
+      relations: [
+        "category",
+        "brand",
+        "productClassifications",
+        "productClassifications.images",
+        "images",
+      ],
     });
 
     return product;
@@ -44,10 +74,72 @@ class ProductService extends BaseService<Product> {
   async getByCategory(id: string) {
     const product = await repository.find({
       where: { category: { id } },
-      relations: ["category", "brand", "productClassifications", "images"],
+      relations: [
+        "category",
+        "brand",
+        "productClassifications",
+        "productClassifications.images",
+        "images",
+      ],
     });
 
     return product;
+  }
+
+  async filteredProducts(filter: ProductFilter): Promise<{
+    data: Product[];
+    total: number;
+  }> {
+    const queryBuilder = this.repository.createQueryBuilder("product");
+
+    queryBuilder
+      .leftJoinAndSelect("product.brand", "brand")
+      .leftJoinAndSelect("product.category", "category")
+      .leftJoinAndSelect(
+        "product.productClassifications",
+        "productClassifications"
+      )
+      .leftJoinAndSelect(
+        "productClassifications.images",
+        "classification_images"
+      )
+      .leftJoinAndSelect("product.images", "product_images");
+
+    if (filter.search) {
+      queryBuilder.andWhere(
+        "(product.name ILIKE :search OR product.sku ILIKE :search OR product.description ILIKE :search)",
+        { search: `%${filter.search}%` }
+      );
+    }
+
+    if (filter.status) {
+      queryBuilder.andWhere("product.status = :status", {
+        status: filter.status,
+      });
+    }
+
+    if (filter.brandId) {
+      queryBuilder.andWhere("product.brand.id = :brandId", {
+        brandId: filter.brandId,
+      });
+    }
+
+    if (filter.categoryId) {
+      queryBuilder.andWhere("product.category.id = :categoryId", {
+        categoryId: filter.categoryId,
+      });
+    }
+
+    queryBuilder.orderBy(
+      `product.${filter.sortBy}`,
+      filter.order.toUpperCase() as "ASC" | "DESC"
+    );
+
+    queryBuilder.take(filter.limit).skip((filter.page - 1) * filter.limit);
+
+    const [data, total] = await queryBuilder.getManyAndCount();
+
+    return { data, total };
   }
 
   async beforeCreate(body: Product) {
@@ -73,18 +165,25 @@ class ProductService extends BaseService<Product> {
 
       const product = await queryRunner.manager.save(Product, productData);
 
-      let productClassification: ProductClassification[] = [];
+      for (const classification of productData.productClassifications) {
+        const { images, ...classificationFields } = classification;
+        const classificationResponse = await queryRunner.manager.save(
+          ProductClassification,
+          {
+            ...classificationFields,
+            product,
+          }
+        );
 
-      const classificationsWithProduct = productData.productClassifications.map(
-        (classification) => ({
-          ...classification,
-          product,
-        })
-      );
-      productClassification = await queryRunner.manager.save(
-        ProductClassification,
-        classificationsWithProduct
-      );
+        if (classification.images && classification.images.length > 0) {
+          for (const image of classification.images) {
+            await queryRunner.manager.save(ProductImage, {
+              ...image,
+              productClassification: classificationResponse,
+            });
+          }
+        }
+      }
 
       let images: ProductImage[] = [];
       if (productData.images && productData.images.length > 0) {
@@ -122,7 +221,6 @@ class ProductService extends BaseService<Product> {
 
       const product = await productRepository.findOne({
         where: { id },
-        relations: ["productClassifications", "images"],
       });
 
       if (!product) {
@@ -131,36 +229,59 @@ class ProductService extends BaseService<Product> {
 
       if (
         productData.productClassifications &&
-        productData.productClassifications.length > 0 &&
-        productData.productClassifications[0].type ===
-          ClassificationTypeEnum.CUSTOM
+        productData.productClassifications.length > 0
+        //    &&productData.productClassifications[0].type ===
+        //     ClassificationTypeEnum.CUSTOM
       ) {
-        await productClassificationRepository.delete({
-          product: { id },
-          type: ClassificationTypeEnum.DEFAULT,
-        });
+        //   await productClassificationRepository.delete({
+        //     product: { id },
+        //     type: ClassificationTypeEnum.DEFAULT,
+        //   });
 
         for (const classification of productData.productClassifications) {
-          if (classification.id) {
+          const { images, ...classificationFields } = classification;
+          let classificationResponse;
+          if (classificationFields.id) {
             await productClassificationRepository.update(
-              classification.id,
-              classification
+              classificationFields.id,
+              classificationFields
             );
+            classificationResponse = classification;
           } else {
-            await productClassificationRepository.save({
-              ...classification,
-              product,
-            });
+            classificationResponse = await productClassificationRepository.save(
+              {
+                ...classificationFields,
+                product,
+              }
+            );
+          }
+
+          if (classification.images && classification.images.length > 0) {
+            for (const image of classification.images) {
+              if (image.id) {
+                await productImageRepository.update(image.id, image);
+              } else {
+                await productImageRepository.save({
+                  ...image,
+                  productClassification: classificationResponse,
+                });
+              }
+            }
           }
         }
       }
 
       if (productData.images && productData.images.length > 0) {
-        const productImages = productData.images.map((image) => ({
-          ...image,
-          product,
-        }));
-        await productImageRepository.save(productImages);
+        for (const image of productData.images) {
+          if (image.id) {
+            await productImageRepository.update(image.id, image);
+          } else {
+            await productImageRepository.save({
+              ...image,
+              product,
+            });
+          }
+        }
       }
 
       const { productClassifications, images, ...productFields } = productData;

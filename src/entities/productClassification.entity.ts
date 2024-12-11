@@ -4,6 +4,8 @@ import { ClassificationTypeEnum, StatusEnum } from "../utils/enum";
 import { BaseEntity } from "./base.entity";
 import { PreOrderProduct } from "./preOrderProduct.entity";
 import { CartItem } from "./cartItem.entity";
+import { ProductImage } from "./productImage.entity";
+import { ProductDiscount } from "./productDiscount.entity";
 
 @Entity("product_classifications")
 export class ProductClassification extends BaseEntity {
@@ -16,8 +18,14 @@ export class ProductClassification extends BaseEntity {
   @Column({ type: "int", nullable: false })
   quantity: number;
 
-  @Column({ type: "varchar", length: 100, nullable: true })
-  image: string;
+  @OneToMany(() => ProductImage, (image) => image.productClassification, {
+    nullable: true,
+  })
+  @JoinColumn({ name: "product_classification_images" })
+  images?: ProductImage[];
+
+  @Column({ type: "varchar", default: null })
+  sku: string;
 
   @Column({
     type: "enum",
@@ -33,6 +41,10 @@ export class ProductClassification extends BaseEntity {
   @ManyToOne(() => PreOrderProduct, { nullable: true })
   @JoinColumn({ name: "pre_order_product_id" })
   preOrderProduct: PreOrderProduct;
+
+  @ManyToOne(() => ProductDiscount, { nullable: true })
+  @JoinColumn({ name: "product_discount_id" })
+  productDiscount: ProductDiscount;
 
   @OneToMany(() => CartItem, (cartItem) => cartItem.productClassification, {
     nullable: true,

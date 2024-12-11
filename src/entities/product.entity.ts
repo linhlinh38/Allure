@@ -36,6 +36,9 @@ export class Product extends BaseEntity {
   @Column({ type: "varchar", nullable: true })
   detail: string;
 
+  @Column({ type: "varchar", default: null })
+  sku: string;
+
   @OneToMany(
     () => ProductClassification,
     (productClassification) => productClassification.product

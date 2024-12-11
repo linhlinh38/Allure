@@ -79,7 +79,8 @@ class AccountService extends BaseService<Account> {
       if (
         role.role === RoleEnum.KOL ||
         role.role === RoleEnum.STAFF ||
-        role.role === RoleEnum.OPERATOR
+        role.role === RoleEnum.OPERATOR ||
+        role.role === RoleEnum.CONSULTANT
       ) {
         accountData.status = StatusEnum.ACTIVE;
         accountData.isEmailVerify = true;
@@ -182,7 +183,7 @@ class AccountService extends BaseService<Account> {
           await queryRunner.manager.save(File, certConsultant);
         }
 
-        await sendRegisterAccountEmail(account, data.url);
+        // await sendRegisterAccountEmail(account, data.url);
         break;
       case RoleEnum.KOL:
         if (data.certificate) {

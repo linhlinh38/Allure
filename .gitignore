@@ -4,3 +4,4 @@ build
 docker-compose.yml
 package-lock.json
 migrations
+.vscode

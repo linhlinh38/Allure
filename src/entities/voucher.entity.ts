@@ -2,6 +2,7 @@ import { Column, Entity, JoinColumn, ManyToMany, ManyToOne, OneToMany } from 'ty
 import { BaseEntity } from './base.entity';
 import { StatusEnum } from '../utils/enum';
 import { Brand } from './brand.entity';
+import { Order } from './order.entity';
 
 @Entity('vouchers')
 export class Voucher extends BaseEntity {
@@ -20,13 +21,13 @@ export class Voucher extends BaseEntity {
   @Column({ type: 'double precision' })
   discountValue: number;
 
-  @Column({ type: 'double precision' })
+  @Column({ type: 'double precision', nullable: true })
   maxDiscount: number;
 
-  @Column({ type: 'double precision' })
+  @Column({ type: 'double precision', nullable: true })
   minOrderValue: number;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   description: string;
 
   @Column({
@@ -48,4 +49,7 @@ export class Voucher extends BaseEntity {
   @ManyToOne(() => Brand, (brand) => brand.vouchers)
   @JoinColumn({ name: 'brand_id' })
   brand: Brand;
+
+  @OneToMany(() => Order, (order) => order.voucher)
+  orders: Order[];
 }

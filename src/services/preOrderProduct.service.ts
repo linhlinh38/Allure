@@ -4,7 +4,12 @@ import { Product } from "../entities/product.entity";
 import { ProductClassification } from "../entities/productClassification.entity";
 import { ProductImage } from "../entities/productImage.entity";
 import { BadRequestError } from "../errors/error";
-import { ClassificationTypeEnum, ProductEnum, StatusEnum } from "../utils/enum";
+import {
+  ClassificationTypeEnum,
+  PreOrderProductEnum,
+  ProductEnum,
+  StatusEnum,
+} from "../utils/enum";
 import { BaseService } from "./base.service";
 import { productService } from "./product.service";
 
@@ -25,7 +30,10 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
         "preOrderProduct.productClassifications",
         "productClassifications"
       )
-      .where("preOrderProduct.status = :status", { status: StatusEnum.ACTIVE })
+      .leftJoinAndSelect("productClassifications.images", "images")
+      .where("preOrderProduct.status = :status", {
+        status: PreOrderProductEnum.ACTIVE,
+      })
       // .andWhere("product.status = :productStatus", {
       //   productStatus: ProductEnum.,
       // })
@@ -34,6 +42,47 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
 
     return products;
   }
+
+  async getPreOrderProductOfBrand(brandId: string): Promise<PreOrderProduct[]> {
+    const products = await repository
+      .createQueryBuilder("preOrderProduct")
+      .leftJoinAndSelect("preOrderProduct.product", "product")
+      .leftJoinAndSelect("product.brand", "brand")
+      .leftJoinAndSelect(
+        "preOrderProduct.productClassifications",
+        "productClassifications"
+      )
+      .leftJoinAndSelect("productClassifications.images", "images")
+      // .andWhere("product.status = :productStatus", {
+      //   productStatus: ProductEnum.,
+      // })
+      .where("brand.id = :brandId", { brandId })
+      .getMany();
+
+    return products;
+  }
+
+  async getPreOrderProductOfProduct(
+    productId: string
+  ): Promise<PreOrderProduct[]> {
+    const products = await repository
+      .createQueryBuilder("preOrderProduct")
+      .leftJoinAndSelect("preOrderProduct.product", "product")
+      .leftJoinAndSelect("product.brand", "brand")
+      .leftJoinAndSelect(
+        "preOrderProduct.productClassifications",
+        "productClassifications"
+      )
+      .leftJoinAndSelect("productClassifications.images", "images")
+      // .andWhere("product.status = :productStatus", {
+      //   productStatus: ProductEnum.,
+      // })
+      .where("product.id = :productId", { productId })
+      .getMany();
+
+    return products;
+  }
+
   async beforeCreate(data: PreOrderProduct) {
     const existingProduct = await productService.findById(data.product);
     if (
@@ -74,17 +123,25 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
           data.productData
         );
 
-        let productClassification: ProductClassification[] = [];
+        for (const classification of data.productData.productClassifications) {
+          const { images, ...classificationFields } = classification;
+          const classificationResponse = await queryRunner.manager.save(
+            ProductClassification,
+            {
+              ...classificationFields,
+              product,
+            }
+          );
 
-        const classificationsWithProduct =
-          data.productData.productClassifications.map((classification) => ({
-            ...classification,
-            product,
-          }));
-        productClassification = await queryRunner.manager.save(
-          ProductClassification,
-          classificationsWithProduct
-        );
+          if (classification.images && classification.images.length > 0) {
+            for (const image of classification.images) {
+              await queryRunner.manager.save(ProductImage, {
+                ...image,
+                productClassification: classificationResponse,
+              });
+            }
+          }
+        }
 
         let images: ProductImage[] = [];
         if (data.productData.images && data.productData.images.length > 0) {
@@ -100,29 +157,47 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
           product,
         });
 
-        const classificationsWithPreOrderPoduct =
-          data.productClassifications.map((classification) => ({
-            ...classification,
-            preOrderProduct,
-          }));
+        for (const classification of data.productClassifications) {
+          const { images, ...classificationFields } = classification;
+          const classificationResponse = await queryRunner.manager.save(
+            ProductClassification,
+            {
+              ...classificationFields,
+              preOrderProduct,
+            }
+          );
 
-        await queryRunner.manager.save(
-          ProductClassification,
-          classificationsWithPreOrderPoduct
-        );
+          if (classification.images && classification.images.length > 0) {
+            for (const image of classification.images) {
+              await queryRunner.manager.save(ProductImage, {
+                ...image,
+                productClassification: classificationResponse,
+              });
+            }
+          }
+        }
       } else {
         preOrderProduct = await queryRunner.manager.save(PreOrderProduct, data);
 
-        const classificationsWithPreOrderPoduct =
-          data.productClassifications.map((classification) => ({
-            ...classification,
-            preOrderProduct,
-          }));
+        for (const classification of data.productClassifications) {
+          const { images, ...classificationFields } = classification;
+          const classificationResponse = await queryRunner.manager.save(
+            ProductClassification,
+            {
+              ...classificationFields,
+              preOrderProduct,
+            }
+          );
 
-        await queryRunner.manager.save(
-          ProductClassification,
-          classificationsWithPreOrderPoduct
-        );
+          if (classification.images && classification.images.length > 0) {
+            for (const image of classification.images) {
+              await queryRunner.manager.save(ProductImage, {
+                ...image,
+                productClassification: classificationResponse,
+              });
+            }
+          }
+        }
       }
 
       await queryRunner.commitTransaction();
@@ -146,9 +221,13 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
     try {
       const preOrderPoductRepository =
         queryRunner.manager.getRepository(PreOrderProduct);
+
       const productClassificationRepository = queryRunner.manager.getRepository(
         ProductClassification
       );
+      const productImageRepository =
+        queryRunner.manager.getRepository(ProductImage);
+
       const preOrderProduct = await preOrderPoductRepository.findOne({
         where: { id },
         relations: ["productClassifications", "product"],
@@ -160,25 +239,43 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
 
       if (
         data.productClassifications &&
-        data.productClassifications.length > 0 &&
-        data.productClassifications[0].type === ClassificationTypeEnum.CUSTOM
+        data.productClassifications.length > 0
+        //data.productClassifications[0].type === ClassificationTypeEnum.CUSTOM
       ) {
-        await productClassificationRepository.delete({
-          preOrderProduct: { id },
-          type: ClassificationTypeEnum.DEFAULT,
-        });
+        // await productClassificationRepository.delete({
+        //   preOrderProduct: { id },
+        //   type: ClassificationTypeEnum.DEFAULT,
+        // });
 
         for (const classification of data.productClassifications) {
-          if (classification.id) {
+          const { images, ...classificationFields } = classification;
+          let classificationResponse;
+          if (classificationFields.id) {
             await productClassificationRepository.update(
-              classification.id,
-              classification
+              classificationFields.id,
+              classificationFields
             );
+            classificationResponse = classification;
           } else {
-            await productClassificationRepository.save({
-              ...classification,
-              preOrderProduct,
-            });
+            classificationResponse = await productClassificationRepository.save(
+              {
+                ...classificationFields,
+                preOrderProduct,
+              }
+            );
+          }
+
+          if (classification.images && classification.images.length > 0) {
+            for (const image of classification.images) {
+              if (image.id) {
+                await productImageRepository.update(image.id, image);
+              } else {
+                await productImageRepository.save({
+                  ...image,
+                  productClassification: classificationResponse,
+                });
+              }
+            }
           }
         }
       }

@@ -49,7 +49,7 @@ export default class VoucherController {
       const voucherBody = plainToInstance(VoucherRequest, req.body, {
         excludeExtraneousValues: true,
       });
-      await voucherService.updateDetail(req.params.id, voucherBody as Voucher);
+      await voucherService.updateDetail(req.params.id, voucherBody);
 
       return createNormalResponse(res, 'Update success');
     } catch (err) {
@@ -61,7 +61,7 @@ export default class VoucherController {
     try {
       const voucher: Voucher = await voucherService.findById(req.params.id);
       if (!voucher) return createBadResponse(res, 'No voucher found');
-      voucherService.update(voucher.id, req.body.status);
+      voucherService.update(voucher.id, {status: req.body.status});
       return createNormalResponse(res, 'Update status success');
     } catch (err) {
       next(err);
@@ -73,7 +73,7 @@ export default class VoucherController {
       const voucherBody = plainToInstance(VoucherRequest, req.body, {
         excludeExtraneousValues: true,
       });
-      await voucherService.createVoucher(voucherBody as Voucher);
+      await voucherService.createVoucher(voucherBody);
       return createNormalResponse(res, 'Create success');
     } catch (err) {
       next(err);

@@ -11,6 +11,7 @@ import preOrderProductRouter from './preOrderProduct.route';
 import fileRouter from './file.route';
 import productDiscountRouter from './productDiscount.route';
 import cartItemRouter from './cartItem.route';
+import orderRouter from './order.route';
 import voucherRouter from './voucher.route';
 
 const router = express.Router();
@@ -26,5 +27,6 @@ router.use('/product-discount', productDiscountRouter);
 router.use('/products', productRouter);
 router.use('/cart', cartItemRouter);
 router.use('/files', fileRouter);
+router.use('/orders', orderRouter);
 router.use('/vouchers', voucherRouter);
 export default router;

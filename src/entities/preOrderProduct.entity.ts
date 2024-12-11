@@ -33,7 +33,7 @@ export class PreOrderProduct extends BaseEntity {
   @Column({
     type: "enum",
     enum: PreOrderProductEnum,
-    default: PreOrderProductEnum.INACTIVE,
+    default: PreOrderProductEnum.WAITING,
   })
   status: PreOrderProductEnum;
 }
