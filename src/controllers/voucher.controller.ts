@@ -61,7 +61,7 @@ export default class VoucherController {
     try {
       const voucher: Voucher = await voucherService.findById(req.params.id);
       if (!voucher) return createBadResponse(res, 'No voucher found');
-      voucherService.update(voucher.id, {status: req.body.status});
+      await voucherService.update(voucher.id, {status: req.body.status});
       return createNormalResponse(res, 'Update status success');
     } catch (err) {
       next(err);
