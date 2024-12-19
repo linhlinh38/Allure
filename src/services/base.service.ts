@@ -11,7 +11,7 @@ export abstract class BaseService<T> implements ICRUDService<T> {
 
   async beforeCreate(data: T): Promise<void> {}
   async beforeUpdate(
-    id: number,
+    id: string,
     data: QueryDeepPartialEntity<T>
   ): Promise<void> {}
 

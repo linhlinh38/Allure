@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { DiscountTypeEnum, StatusEnum, VoucherEnum } from '../../utils/enum';
+import {
+  DiscountTypeEnum,
+  StatusEnum,
+  VoucherApplyTypeEnum,
+  VoucherEnum,
+  VoucherVisibilityEnum,
+} from '../../utils/enum';
 import { Expose } from 'class-transformer';
 
 export const VoucherCreateSchema = z.object({
@@ -48,6 +54,9 @@ export const VoucherCreateSchema = z.object({
       .refine((date) => !date || date > new Date(), {
         message: 'End Time must be greater than the current time.',
       }),
+    applyType: z.nativeEnum(VoucherApplyTypeEnum),
+    visibility: z.nativeEnum(VoucherVisibilityEnum),
+    applyProductIds: z.array(z.string()).optional().nullable(),
     status: z.nativeEnum(StatusEnum).optional().default(StatusEnum.ACTIVE),
     brandId: z.string().optional(),
   }),
@@ -99,6 +108,15 @@ export class VoucherRequest {
 
   @Expose()
   endTime: Date;
+
+  @Expose()
+  applyType: VoucherApplyTypeEnum;
+
+  @Expose()
+  visibility: VoucherVisibilityEnum;
+
+  @Expose()
+  applyProductIds: string[];
 
   @Expose()
   brandId: string;

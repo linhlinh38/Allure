@@ -16,6 +16,7 @@ addressRouter.post(
 );
 
 addressRouter.get("/get-by-id/:id", AddressController.getById);
+addressRouter.get("/get-my-address", AddressController.getMyAddress);
 addressRouter.get("/", AddressController.getAll);
 addressRouter.put(
   "/:id",

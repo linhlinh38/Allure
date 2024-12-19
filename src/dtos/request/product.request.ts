@@ -5,7 +5,7 @@ import { ProductImageCreateSchema } from "./productImage.request";
 export const ProductCreateSchema = z.object({
   body: z.object({
     name: z.string().min(1, "Name is required"),
-    sku: z.string(),
+    sku: z.string().optional(),
     brand: z.string().uuid(),
     category: z.string().uuid().nullable().optional(),
     description: z.string().optional(),

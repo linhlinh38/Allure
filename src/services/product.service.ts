@@ -1,4 +1,4 @@
-import { ILike } from "typeorm";
+import { ILike, In, Not } from "typeorm";
 import { AppDataSource } from "../dataSource";
 import { Product } from "../entities/product.entity";
 import { ProductClassification } from "../entities/productClassification.entity";
@@ -9,6 +9,7 @@ import { brandService } from "./brand.service";
 import { categoryService } from "./category.service";
 import { ProductImage } from "../entities/productImage.entity";
 import { PreOrderProduct } from "../entities/preOrderProduct.entity";
+import { ProductDiscount } from "../entities/productDiscount.entity";
 
 const repository = AppDataSource.getRepository(Product);
 
@@ -142,7 +143,40 @@ class ProductService extends BaseService<Product> {
     return { data, total };
   }
 
-  async beforeCreate(body: Product) {
+  async beforeCreate(body: any) {
+    if (body.category) {
+      const checkCategory = await categoryService.findById(body.category);
+      if (!checkCategory) throw new BadRequestError("Category not found");
+    }
+    if (body.brand) {
+      const checkBrand = await brandService.findById(body.brand);
+
+      if (!checkBrand || checkBrand.status !== StatusEnum.ACTIVE) {
+        throw new BadRequestError("Brand not found");
+      }
+    }
+    if (body.sku && body.sku !== "") {
+      const checkSku = await this.repository.find({
+        where: {
+          brand: { id: body.brand },
+          sku: body.sku,
+          status: Not(In([ProductEnum.INACTIVE, ProductEnum.BANNED])),
+        },
+      });
+
+      if (checkSku.length !== 0)
+        throw new BadRequestError("sku already exists");
+    }
+  }
+
+  async beforeUpdate(id: string, body: any) {
+    const product = await this.repository.findOne({
+      where: {
+        id: id,
+      },
+    });
+    if (!product) throw new BadRequestError("Product not found");
+
     if (body.category) {
       const checkCategory = await categoryService.findById(body.category);
       if (!checkCategory) throw new BadRequestError("Category not found");
@@ -151,6 +185,43 @@ class ProductService extends BaseService<Product> {
       const checkBrand = await brandService.findById(body.brand);
       if (!checkBrand || checkBrand.status !== StatusEnum.ACTIVE)
         throw new BadRequestError("Brand not found");
+    }
+    if (
+      body.sku &&
+      body.sku !== "" &&
+      body?.status !== ProductEnum.BANNED &&
+      body?.status !== ProductEnum.INACTIVE &&
+      product.status !== ProductEnum.BANNED &&
+      product.status !== ProductEnum.INACTIVE
+    ) {
+      const checkSku = await this.repository.find({
+        where: {
+          sku: body.sku,
+          id: Not(id),
+          brand: product.brand,
+          status: Not(In([ProductEnum.INACTIVE, ProductEnum.BANNED])),
+        },
+      });
+      if (checkSku.length !== 0)
+        throw new BadRequestError("sku already exists");
+    }
+
+    if (
+      body.status &&
+      body.status !== ProductEnum.BANNED &&
+      body.status !== ProductEnum.INACTIVE
+    ) {
+      const checkSku = await this.repository.find({
+        where: {
+          sku: body.sku ?? product.sku,
+          id: Not(id),
+          brand: product.brand,
+          status: Not(In([ProductEnum.INACTIVE, ProductEnum.BANNED])),
+        },
+      });
+
+      if (checkSku.length !== 0)
+        throw new BadRequestError("sku already exists");
     }
   }
 
@@ -212,10 +283,13 @@ class ProductService extends BaseService<Product> {
     await queryRunner.startTransaction();
 
     try {
+      await this.beforeUpdate(id, productData);
       const productRepository = queryRunner.manager.getRepository(Product);
       const productClassificationRepository = queryRunner.manager.getRepository(
         ProductClassification
       );
+      const productDiscountRepository =
+        queryRunner.manager.getRepository(ProductDiscount);
       const productImageRepository =
         queryRunner.manager.getRepository(ProductImage);
 
@@ -239,6 +313,11 @@ class ProductService extends BaseService<Product> {
         //   });
 
         for (const classification of productData.productClassifications) {
+          const originalClassification =
+            await productClassificationRepository.findOne({
+              where: { id: classification.id },
+            });
+
           const { images, ...classificationFields } = classification;
           let classificationResponse;
           if (classificationFields.id) {
@@ -247,6 +326,29 @@ class ProductService extends BaseService<Product> {
               classificationFields
             );
             classificationResponse = classification;
+
+            const productDiscounts = await productDiscountRepository.find({
+              where: { product: { id } },
+              relations: ["productClassifications"],
+            });
+
+            for (const discount of productDiscounts) {
+              for (const discountClassification of discount.productClassifications) {
+                if (
+                  discountClassification.title ===
+                    originalClassification.title &&
+                  discountClassification.sku === originalClassification.sku
+                ) {
+                  const { quantity, id, ...discountUpdatableFields } =
+                    classificationResponse;
+
+                  await productClassificationRepository.update(
+                    discountClassification.id,
+                    discountUpdatableFields
+                  );
+                }
+              }
+            }
           } else {
             classificationResponse = await productClassificationRepository.save(
               {

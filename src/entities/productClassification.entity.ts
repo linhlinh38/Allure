@@ -24,7 +24,7 @@ export class ProductClassification extends BaseEntity {
   @JoinColumn({ name: "product_classification_images" })
   images?: ProductImage[];
 
-  @Column({ type: "varchar", default: null })
+  @Column({ type: "varchar", nullable: true, default: null })
   sku: string;
 
   @Column({

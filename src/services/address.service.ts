@@ -8,5 +8,16 @@ class AddressService extends BaseService<Address> {
   constructor() {
     super(addressRepository);
   }
+
+  async getMyAddress(accountId: string) {
+    const address = await addressRepository.find({
+      where: { account: { id: accountId } },
+    });
+
+    if (!address) {
+      throw new Error("Address not found");
+    }
+    return address;
+  }
 }
 export const addressService = new AddressService();

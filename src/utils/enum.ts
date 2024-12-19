@@ -29,6 +29,7 @@ export enum ShippingStatusEnum {
   RETURN_REFUND = 'RETURN_REFUND',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
+  CANCELLED_BY_SHOP = 'CANCELLED_BY_SHOP'
 }
 
 export enum AddressEnum {
@@ -98,4 +99,19 @@ export enum ServiceTypeEnum {
 export enum ClassificationTypeEnum {
   DEFAULT = "DEFAULT",
   CUSTOM = "CUSTOM",
+}
+
+export enum VoucherApplyTypeEnum {
+  ALL = "ALL",
+  SPECIFIC = "SPECIFIC",
+}
+
+export enum VoucherVisibilityEnum {
+  WALLET = "WALLET",
+  PUBLIC = "PUBLIC",
+}
+
+export enum VoucherWalletStatus {
+  USED = 'USED',
+  NOT_USED = 'NOT_USED',
 }

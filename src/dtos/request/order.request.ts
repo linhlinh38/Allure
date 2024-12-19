@@ -4,10 +4,7 @@ import { Expose } from 'class-transformer';
 
 export const OrderNormalCreateSchema = z.object({
   body: z.object({
-    shippingAddress: z.string().min(1, 'Shipping Address is required'),
-    phone: z
-      .string()
-      .regex(/^[0-9]{10,15}$/, 'Phone must be a string with 10 to 15 digits'),
+    addressId: z.string().min(1, 'Address id is required'),
     paymentMethod: z.string().min(1, 'Payment Method is required'),
     notes: z
       .string()
@@ -57,10 +54,7 @@ export const SearchOrderSchema = z.object({
 
 export class OrderNormalRequest {
   @Expose()
-  shippingAddress: string;
-
-  @Expose()
-  phone: string;
+  addressId: string;
 
   @Expose()
   paymentMethod: string;
@@ -83,10 +77,7 @@ export class OrderNormalRequest {
 
 export class PreOrderRequest {
   @Expose()
-  shippingAddress: string;
-
-  @Expose()
-  phone: string;
+  addressId: string;
 
   @Expose()
   paymentMethod: string;

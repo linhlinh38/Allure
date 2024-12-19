@@ -9,6 +9,18 @@ import {
 import { AuthRequest } from '../middleware/authentication';
 
 export default class OrderController {
+  static async createGroupOrder(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const preOrderBody = plainToInstance(PreOrderRequest, req.body, {
+        excludeExtraneousValues: true,
+      });
+      await orderService.createPreOrder(preOrderBody, req.loginUser);
+      return createNormalResponse(res, 'Create order successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+  
   static async createPreOrder(
     req: AuthRequest,
     res: Response,

@@ -10,8 +10,38 @@ export default class CartItemController {
     next: NextFunction
   ) {
     try {
+      const groupCartItemsByBrand = (cartItems) => {
+        const grouped = new Map();
+
+        cartItems.forEach((item) => {
+          let brandName;
+          if (item.productClassification.preOrderProduct !== null) {
+            brandName =
+              item.productClassification.preOrderProduct.product.brand.name;
+          } else if (item.productClassification.productDiscount !== null) {
+            brandName =
+              item.productClassification.productDiscount.product.brand.name;
+          } else {
+            brandName = item.productClassification.product.brand.name;
+          }
+
+          if (!grouped.has(brandName)) {
+            grouped.set(brandName, []);
+          }
+
+          grouped.get(brandName).push(item);
+        });
+
+        return Object.fromEntries(grouped);
+      };
+
       const cartItems = await cartItemService.getCartItems(req.loginUser);
-      return createNormalResponse(res, "Get all cartItems success", cartItems);
+      const groupedCartItems = groupCartItemsByBrand(cartItems);
+      return createNormalResponse(
+        res,
+        "Get all cartItems success",
+        groupedCartItems
+      );
     } catch (err) {
       next(err);
     }
@@ -45,8 +75,10 @@ export default class CartItemController {
       });
       if (isExisted) {
         await cartItemService.update(data.id, { quantity: data.quantity });
+      } else {
+        await cartItemService.create(data);
       }
-      await cartItemService.create(data);
+
       return createNormalResponse(res, "Create cartItem success");
     } catch (err) {
       next(err);

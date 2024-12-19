@@ -13,6 +13,7 @@ import productDiscountRouter from './productDiscount.route';
 import cartItemRouter from './cartItem.route';
 import orderRouter from './order.route';
 import voucherRouter from './voucher.route';
+import groupProductRouter from './groupProduct.route';
 
 const router = express.Router();
 router.use('/accounts', accountRouter);
@@ -29,4 +30,5 @@ router.use('/cart', cartItemRouter);
 router.use('/files', fileRouter);
 router.use('/orders', orderRouter);
 router.use('/vouchers', voucherRouter);
+router.use('/group-products', groupProductRouter);
 export default router;

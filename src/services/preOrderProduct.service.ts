@@ -124,7 +124,8 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
         );
 
         for (const classification of data.productData.productClassifications) {
-          const { images, ...classificationFields } = classification;
+          const { images, originalClassification, ...classificationFields } =
+            classification;
           const classificationResponse = await queryRunner.manager.save(
             ProductClassification,
             {

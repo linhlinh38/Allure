@@ -86,7 +86,7 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
     }
   }
 
-  async create(data: ProductDiscount): Promise<ProductDiscount> {
+  async create(data: any): Promise<ProductDiscount> {
     let productDiscount;
     const queryRunner = AppDataSource.createQueryRunner();
 
@@ -108,6 +108,21 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
           }
         );
 
+        if (classification.originalClassification) {
+          const originalClassificationRecord =
+            await queryRunner.manager.findOne(ProductClassification, {
+              where: { id: classification.originalClassification },
+            });
+          await queryRunner.manager.update(
+            ProductClassification,
+            { id: classification.originalClassification },
+            {
+              quantity:
+                originalClassificationRecord.quantity - classification.quantity,
+            }
+          );
+        }
+
         if (classification.images && classification.images.length > 0) {
           for (const image of classification.images) {
             await queryRunner.manager.save(ProductImage, {
@@ -128,10 +143,7 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
     }
   }
 
-  async update(
-    id: string,
-    data: Partial<ProductDiscount>
-  ): Promise<ProductDiscount> {
+  async update(id: string, data: any): Promise<ProductDiscount> {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -168,6 +180,13 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
 
         for (const classification of data.productClassifications) {
           const { images, ...classificationFields } = classification;
+          const currentClassificationRecord = await queryRunner.manager.findOne(
+            ProductClassification,
+            {
+              where: { id: classificationFields.id },
+            }
+          );
+
           let classificationResponse;
           if (classificationFields.id) {
             await productClassificationRepository.update(
@@ -175,6 +194,35 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
               classificationFields
             );
             classificationResponse = classification;
+
+            const originalClassificationRecord =
+              await queryRunner.manager.findOne(ProductClassification, {
+                where: {
+                  product: { id: productDiscount.product.id },
+                  title: classification.title,
+                },
+              });
+
+            if (
+              originalClassificationRecord.quantity -
+                (classification.quantity -
+                  currentClassificationRecord.quantity) <
+              0
+            ) {
+              throw new BadRequestError(
+                "Invalid classification quantity: Quantity should be smaller than the current stock"
+              );
+            }
+            await queryRunner.manager.update(
+              ProductClassification,
+              { id: originalClassificationRecord.id },
+              {
+                quantity:
+                  originalClassificationRecord.quantity -
+                  (classification.quantity -
+                    currentClassificationRecord.quantity),
+              }
+            );
           } else {
             classificationResponse = await productClassificationRepository.save(
               {
@@ -182,6 +230,22 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
                 productDiscount,
               }
             );
+
+            if (classification.originalClassification) {
+              const originalClassificationRecord =
+                await queryRunner.manager.findOne(ProductClassification, {
+                  where: { id: classification.originalClassification },
+                });
+              await queryRunner.manager.update(
+                ProductClassification,
+                { id: classification.originalClassification },
+                {
+                  quantity:
+                    originalClassificationRecord.quantity -
+                    classification.quantity,
+                }
+              );
+            }
           }
 
           if (classification.images && classification.images.length > 0) {
