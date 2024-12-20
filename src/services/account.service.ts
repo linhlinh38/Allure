@@ -152,13 +152,14 @@ class AccountService extends BaseService<Account> {
           const address: Partial<Address> = {
             account: account,
             fullName: data.address.fullName,
-            phoneNumber: data.address.phoneNumber,
+            phone: data.address.phoneNumber,
             district: data.address.district,
             ward: data.address.ward,
             detailAddress: data.address.detailAddress,
             province: data.address.province,
             fullAddress: data.address.fullAddress,
             type: data.address.type,
+            notes: data.address.notes,
             isDefault: true,
           };
           await queryRunner.manager.save(Address, address);

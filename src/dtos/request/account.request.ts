@@ -32,7 +32,7 @@ export const AccountCreateSchema = z.object({
       .min(8, "Password must be at least 8 characters long")
       .optional(),
     role: z.string(),
-    url: z.string(),
+    url: z.string().optional(),
     gender: z.nativeEnum(GenderEnum).optional(),
     avatar: z.string().min(1, "avatar must more than 1 character").optional(),
     phone: z

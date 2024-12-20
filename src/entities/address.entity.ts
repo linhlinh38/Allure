@@ -19,7 +19,7 @@ export class Address extends BaseEntity {
     length: 100,
     nullable: true,
   })
-  phoneNumber?: string;
+  phone?: string;
 
   @Column({ type: "varchar", length: 100, nullable: true })
   ward?: string;
@@ -43,6 +43,9 @@ export class Address extends BaseEntity {
     nullable: true,
   })
   detailAddress?: string;
+
+  @Column({ type: "varchar", nullable: true })
+  notes: string;
 
   @Column({
     type: "enum",
