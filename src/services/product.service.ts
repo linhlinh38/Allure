@@ -3,7 +3,13 @@ import { AppDataSource } from "../dataSource";
 import { Product } from "../entities/product.entity";
 import { ProductClassification } from "../entities/productClassification.entity";
 import { BadRequestError } from "../errors/error";
-import { ClassificationTypeEnum, ProductEnum, StatusEnum } from "../utils/enum";
+import {
+  ClassificationTypeEnum,
+  PreOrderProductEnum,
+  ProductDiscountEnum,
+  ProductEnum,
+  StatusEnum,
+} from "../utils/enum";
 import { BaseService } from "./base.service";
 import { brandService } from "./brand.service";
 import { categoryService } from "./category.service";
@@ -43,16 +49,49 @@ class ProductService extends BaseService<Product> {
     return product;
   }
   async getById(id: string) {
-    const product = await repository.find({
-      where: { id },
-      relations: [
-        "category",
-        "brand",
-        "productClassifications",
+    const product = await repository
+      .createQueryBuilder("product")
+      .leftJoinAndSelect("product.category", "category")
+      .leftJoinAndSelect("product.brand", "brand")
+      .leftJoinAndSelect(
+        "product.productClassifications",
+        "productClassifications"
+      )
+      .leftJoinAndSelect(
         "productClassifications.images",
-        "images",
-      ],
-    });
+        "classificationImages"
+      )
+      .leftJoinAndSelect("product.images", "images")
+      .leftJoinAndSelect(
+        "product.productDiscounts",
+        "productDiscounts",
+        "productDiscounts.status = :discountActiveStatus",
+        { discountActiveStatus: ProductDiscountEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
+        "productDiscounts.productClassifications",
+        "productDiscount_productClassifications"
+      )
+      .leftJoinAndSelect(
+        "productDiscount_productClassifications.images",
+        "productDiscount_productClassifications_images"
+      )
+      .leftJoinAndSelect(
+        "product.preOrderProducts",
+        "preOrderProducts",
+        "preOrderProducts.status = :preOrderActiveStatus",
+        { preOrderActiveStatus: PreOrderProductEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
+        "preOrderProducts.productClassifications",
+        "preOrderProduct_productClassifications"
+      )
+      .leftJoinAndSelect(
+        "preOrderProduct_productClassifications.images",
+        "preOrderProduct_productClassifications_images"
+      )
+      .where("product.id = :id", { id })
+      .getOne();
 
     return product;
   }
@@ -88,7 +127,7 @@ class ProductService extends BaseService<Product> {
   }
 
   async filteredProducts(filter: ProductFilter): Promise<{
-    data: Product[];
+    items: Product[];
     total: number;
   }> {
     const queryBuilder = this.repository.createQueryBuilder("product");
@@ -138,9 +177,9 @@ class ProductService extends BaseService<Product> {
 
     queryBuilder.take(filter.limit).skip((filter.page - 1) * filter.limit);
 
-    const [data, total] = await queryBuilder.getManyAndCount();
+    const [items, total] = await queryBuilder.getManyAndCount();
 
-    return { data, total };
+    return { items, total };
   }
 
   async beforeCreate(body: any) {

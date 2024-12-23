@@ -15,6 +15,7 @@ export const OrderNormalCreateSchema = z.object({
       .array(
         z.object({
           shopVoucherId: z.string().optional(),
+          message: z.string().max(255).optional(),
           items: z
             .array(
               z.object({
@@ -65,6 +66,7 @@ export class OrderNormalRequest {
   @Expose()
   orders: Array<{
     shopVoucherId?: string;
+    message: string;
     items: Array<{
       productClassificationId: string;
       quantity: number;

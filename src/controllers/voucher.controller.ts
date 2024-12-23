@@ -3,10 +3,151 @@ import { plainToInstance } from 'class-transformer';
 import { createBadResponse, createNormalResponse } from '../utils/response';
 import { AuthRequest } from '../middleware/authentication';
 import { voucherService } from '../services/voucher.service';
-import { VoucherRequest } from '../dtos/request/voucher.request';
+import { CheckoutItemRequest, GetBestPlatformVouchersRequest, GetBestShopVouchersRequest, VoucherRequest } from '../dtos/request/voucher.request';
 import { Voucher } from '../entities/voucher.entity';
 
 export default class VoucherController {
+  static async categorizePlatformVouchersWhenCheckout(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const getBestPlatformVouchersRequest = plainToInstance(
+        GetBestPlatformVouchersRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Get vouchers success',
+        await voucherService.categorizePlatformVouchersWhenCheckout(
+          getBestPlatformVouchersRequest,
+          req.loginUser
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async categorizeShopVouchersWhenCheckout(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const checkoutItemRequest = plainToInstance(
+        CheckoutItemRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Get vouchers success',
+        await voucherService.categorizeShopVouchersWhenCheckout(
+          checkoutItemRequest,
+          req.loginUser
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async getBestPlatformVouchersForProducts(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const getBestPlatformVouchersRequest = plainToInstance(
+        GetBestPlatformVouchersRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Get voucher success',
+        await voucherService.getBestPlatformVouchersForProducts(
+          getBestPlatformVouchersRequest,
+          req.loginUser
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async getBestShopVouchersForProducts(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const getBestShopVouchersRequest = plainToInstance(
+        GetBestShopVouchersRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Get voucher success',
+        await voucherService.getBestShopVouchersForProducts(
+          getBestShopVouchersRequest,
+          req.loginUser
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async collectVoucher(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      await voucherService.collectVoucher(req.params.voucherId, req.loginUser);
+      return createNormalResponse(res, 'Collect voucher success');
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async getByBrand(req: Request, res: Response, next: NextFunction) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get vouchers success',
+        await voucherService.getByBrand(req.params.brandId)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async getPlatformVouchers(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get vouchers success',
+        await voucherService.getPlatformVouchers()
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
       return createNormalResponse(
@@ -61,7 +202,7 @@ export default class VoucherController {
     try {
       const voucher: Voucher = await voucherService.findById(req.params.id);
       if (!voucher) return createBadResponse(res, 'No voucher found');
-      await voucherService.update(voucher.id, {status: req.body.status});
+      await voucherService.update(voucher.id, { status: req.body.status });
       return createNormalResponse(res, 'Update status success');
     } catch (err) {
       next(err);

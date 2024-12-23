@@ -152,7 +152,7 @@ class AccountService extends BaseService<Account> {
           const address: Partial<Address> = {
             account: account,
             fullName: data.address.fullName,
-            phone: data.address.phoneNumber,
+            phone: data.address.phone,
             district: data.address.district,
             ward: data.address.ward,
             detailAddress: data.address.detailAddress,

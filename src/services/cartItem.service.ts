@@ -4,6 +4,7 @@ import { PreOrderProduct } from "../entities/preOrderProduct.entity";
 import { Product } from "../entities/product.entity";
 import { ProductDiscount } from "../entities/productDiscount.entity";
 import { BadRequestError } from "../errors/error";
+import { ProductDiscountEnum } from "../utils/enum";
 import { BaseService } from "./base.service";
 import { productClassificationService } from "./productClassification.service";
 
@@ -40,10 +41,14 @@ class CartItemService extends BaseService<CartItem> {
       where: { account: { id: account } },
       relations: [
         "productClassification",
+        "productClassification.images",
         "productClassification.product",
         "productClassification.preOrderProduct",
         "productClassification.productDiscount",
       ],
+      order: {
+        createdAt: "DESC",
+      },
     });
 
     await Promise.all(
@@ -52,10 +57,31 @@ class CartItemService extends BaseService<CartItem> {
         const preOrderProduct = item.productClassification.preOrderProduct;
         const productDiscount = item.productClassification.productDiscount;
         if (product) {
-          const fullProduct = await repository.manager.findOne(Product, {
-            where: { id: product.id },
-            relations: ["brand"],
-          });
+          const fullProduct = await repository.manager
+            .createQueryBuilder(Product, "product")
+            .leftJoinAndSelect("product.brand", "brand")
+            .leftJoinAndSelect(
+              "product.productClassifications",
+              "productClassifications"
+            )
+            .leftJoinAndSelect("productClassifications.images", "images")
+            .leftJoinAndSelect(
+              "product.productDiscounts",
+              "productDiscounts",
+              "productDiscounts.status = :status",
+              { status: ProductDiscountEnum.ACTIVE }
+            )
+            .leftJoinAndSelect(
+              "productDiscounts.productClassifications",
+              "productDiscounts_productClassifications"
+            )
+            .leftJoinAndSelect(
+              "productDiscounts_productClassifications.images",
+              "productDiscounts_images"
+            )
+            .where("product.id = :id", { id: product.id })
+            .getOne();
+
           if (fullProduct && fullProduct.brand) {
             item.productClassification.product = fullProduct;
           }
@@ -66,6 +92,8 @@ class CartItemService extends BaseService<CartItem> {
               where: { id: preOrderProduct.id },
               relations: [
                 "product",
+                "productClassifications",
+                "productClassifications.images",
                 "product.brand",
                 "product.productClassifications",
               ],
@@ -83,6 +111,8 @@ class CartItemService extends BaseService<CartItem> {
               relations: [
                 "product",
                 "product.brand",
+                "productClassifications",
+                "productClassifications.images",
                 "product.productClassifications",
               ],
             }
@@ -112,6 +142,42 @@ class CartItemService extends BaseService<CartItem> {
       isExisted = true;
     }
     return { data, isExisted };
+  }
+
+  async removeItems(itemIds: string[]) {
+    if (!Array.isArray(itemIds) || itemIds.length === 0) {
+      throw new Error("Invalid or empty itemIds array");
+    }
+
+    const itemList = await Promise.all(
+      itemIds.map(async (item) => {
+        const itemToRemove = await this.repository.findOne({
+          where: { id: item },
+        });
+        if (!itemToRemove) {
+          throw new Error("No items found for the provided IDs");
+        }
+        return itemToRemove;
+      })
+    );
+
+    await this.repository.delete(itemIds);
+  }
+
+  async removeAllCart(accountId: string): Promise<void> {
+    if (!accountId) {
+      throw new Error("Account ID is required");
+    }
+
+    const itemsToClear = await this.repository.find({
+      where: { account: { id: accountId } },
+    });
+
+    if (itemsToClear.length === 0) {
+      throw new Error("No items found in the cart for the given account");
+    }
+
+    await this.repository.delete({ account: { id: accountId } });
   }
 }
 export const cartItemService = new CartItemService();

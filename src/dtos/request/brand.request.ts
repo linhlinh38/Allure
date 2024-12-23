@@ -26,6 +26,13 @@ export const BrandCreateSchema = z.object({
       .string()
       .max(255, 'Address cannot exceed 255 characters')
       .optional(),
+    businessTaxCode: z.string().max(100),
+    businessRegistrationCode: z.string().max(100),
+    establishmentDate: z.string().max(255).optional(),
+    province: z.string().max(255),
+    district: z.string().max(255),
+    ward: z.string().max(255),
+    businessRegistrationAddress: z.string().max(255).optional(),
     status: z.nativeEnum(StatusEnum).optional().default(StatusEnum.PENDING),
   }),
 });

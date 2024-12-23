@@ -36,8 +36,11 @@ export class Order extends BaseEntity {
   @Column({ type: 'varchar', length: 50, nullable: false })
   paymentMethod: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   notes: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  message: string;
 
   @Column({
     type: 'enum',

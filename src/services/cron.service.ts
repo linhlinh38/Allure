@@ -194,7 +194,7 @@ const endProductDiscount = () => {
         .createQueryBuilder(ProductDiscount, "productDiscount")
         .leftJoinAndSelect("productDiscount.product", "product")
         .leftJoinAndSelect(
-          "product.productClassifications",
+          "productDiscount.productClassifications",
           "productClassifications"
         )
         .where("productDiscount.status = :status", {
@@ -218,7 +218,13 @@ const endProductDiscount = () => {
             status: ProductDiscountEnum.SOLD_OUT,
           });
 
-          console.log(`PreOrderProduct ${discount.id} marked as SOLD_OUT.`);
+          await queryRunner.manager.update(Product, discount.product.id, {
+            status: ProductEnum.OFFICIAL,
+          });
+
+          console.log(
+            `PreOrderProduct ${discount.id} marked as SOLD_OUT and Product ${discount.product.id} marked as OFFICIAL.`
+          );
         }
 
         if (currentDate > endTime && discount.status === "ACTIVE") {

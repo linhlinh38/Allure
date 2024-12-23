@@ -15,4 +15,6 @@ cartItemRouter.get("/get-my-cart", CartItemController.getCartItemsOfCustomer);
 cartItemRouter.get("/get-by-id/:id", CartItemController.getById);
 cartItemRouter.put("/:id", CartItemController.update);
 cartItemRouter.delete("/:id", CartItemController.delete);
+cartItemRouter.post("/remove-all", CartItemController.removeAllCart);
+cartItemRouter.post("/remove-multiple", CartItemController.removeMultipleItems);
 export default cartItemRouter;

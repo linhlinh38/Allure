@@ -1,12 +1,54 @@
+import { In, Not } from "typeorm";
 import { AppDataSource } from "../dataSource";
 import { ProductClassification } from "../entities/productClassification.entity";
 import { ProductImage } from "../entities/productImage.entity";
 import { BaseService } from "./base.service";
+import { StatusEnum } from "../utils/enum";
+import { BadRequestError } from "../errors/error";
 
 const repository = AppDataSource.getRepository(ProductClassification);
 class ProductClassificationService extends BaseService<ProductClassification> {
   constructor() {
     super(repository);
+  }
+
+  async beforeCreate(body: any) {
+    if (body.sku && body.sku !== "" && body.product) {
+      const checkSku = await this.repository.find({
+        where: {
+          product: { id: body.product },
+          sku: body.sku,
+          status: Not(In([StatusEnum.INACTIVE, StatusEnum.BANNED])),
+        },
+      });
+
+      if (checkSku.length !== 0)
+        throw new BadRequestError("sku already exists");
+    }
+    if (body.sku && body.sku !== "" && body.preOrderProduct) {
+      const checkSku = await this.repository.find({
+        where: {
+          preOrderProduct: { id: body.preOrderProduct },
+          sku: body.sku,
+          status: Not(In([StatusEnum.INACTIVE, StatusEnum.BANNED])),
+        },
+      });
+
+      if (checkSku.length !== 0)
+        throw new BadRequestError("sku already exists");
+    }
+    if (body.sku && body.sku !== "" && body.productDiscount) {
+      const checkSku = await this.repository.find({
+        where: {
+          productDiscount: { id: body.productDiscount },
+          sku: body.sku,
+          status: Not(In([StatusEnum.INACTIVE, StatusEnum.BANNED])),
+        },
+      });
+
+      if (checkSku.length !== 0)
+        throw new BadRequestError("sku already exists");
+    }
   }
 
   async create(
@@ -18,6 +60,7 @@ class ProductClassificationService extends BaseService<ProductClassification> {
     await queryRunner.startTransaction();
 
     try {
+      await this.beforeCreate(productClassificationData);
       const productClassification = await queryRunner.manager.save(
         ProductClassification,
         productClassificationData

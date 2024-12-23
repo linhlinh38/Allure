@@ -93,4 +93,30 @@ export default class CartItemController {
       next(err);
     }
   }
+
+  static async removeMultipleItems(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      await cartItemService.removeItems(req.body.itemIds);
+      return createNormalResponse(res, "Delete cartItems success");
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async removeAllCart(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      await cartItemService.removeAllCart(req.loginUser);
+      return createNormalResponse(res, "Delete all cartItems success");
+    } catch (err) {
+      next(err);
+    }
+  }
 }

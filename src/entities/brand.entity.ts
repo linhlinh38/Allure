@@ -51,6 +51,34 @@ export class Brand extends BaseEntity {
   @Column({ type: 'varchar', length: 255 })
   address: string;
 
+  @Expose()
+  @Column({ type: 'varchar', length: 100 })
+  businessTaxCode: string;
+
+  @Expose()
+  @Column({ type: 'varchar', length: 100 })
+  businessRegistrationCode: string;
+
+  @Expose()
+  @Column({ type: 'date' })
+  establishmentDate: Date;
+
+  @Expose()
+  @Column({ type: 'varchar', length: 100 })
+  province: string;
+
+  @Expose()
+  @Column({ type: 'varchar', length: 100 })
+  district: string;
+
+  @Expose()
+  @Column({ type: 'varchar', length: 100})
+  ward: string;
+
+  @Expose()
+  @Column({ type: 'varchar', length: 255 })
+  businessRegistrationAddress: string;
+
   @Column({ type: 'float', default: 0 })
   star: number;
 
