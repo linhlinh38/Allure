@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { productClassificationService } from "../services/productClassification.service";
 import { createNormalResponse } from "../utils/response";
-import { NotFoundError } from "../errors/error";
+import { BadRequestError, NotFoundError } from "../errors/error";
 export default class ProductClassificationController {
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
@@ -36,7 +36,26 @@ export default class ProductClassificationController {
 
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
+      if (req.body.title) {
+        throw new BadRequestError("cannot update product title");
+      }
       await productClassificationService.update(req.params.id, req.body);
+      return createNormalResponse(res, "Update Product Classification success");
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async updateClassificationTitle(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      await productClassificationService.updateClassificationTitle(
+        req.body.newClassification,
+        req.body.oldClassificationId
+      );
       return createNormalResponse(res, "Update Product Classification success");
     } catch (err) {
       next(err);

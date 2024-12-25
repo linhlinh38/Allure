@@ -16,7 +16,6 @@ import {
   VoucherVisibilityEnum,
   VoucherWalletStatus,
   ClassificationTypeEnum,
-  VoucherEnum,
 } from '../utils/enum';
 import { Order } from '../entities/order.entity';
 import { orderRepository } from '../repositories/order.repository';
@@ -90,10 +89,10 @@ class VoucherService extends BaseService<Voucher> {
       await voucherWalletRepository.find({
         where: {
           owner: { id: loginUser },
+          status: VoucherWalletStatus.NOT_USED,
           voucher: {
             endTime: MoreThan(new Date()),
             brand: IsNull(),
-            type: VoucherWalletStatus.NOT_USED,
           },
         },
         relations: {
@@ -240,10 +239,10 @@ class VoucherService extends BaseService<Voucher> {
       await voucherWalletRepository.find({
         where: {
           owner: { id: loginUser },
+          status: VoucherWalletStatus.NOT_USED,
           voucher: {
             endTime: MoreThan(new Date()),
             brand: { id: checkoutItemRequest.brandId },
-            type: VoucherWalletStatus.NOT_USED,
           },
         },
         relations: {
@@ -355,11 +354,11 @@ class VoucherService extends BaseService<Voucher> {
       await voucherWalletRepository.find({
         where: {
           owner: { id: loginUser },
+          status: VoucherWalletStatus.NOT_USED,
           voucher: {
             startTime: LessThanOrEqual(new Date()),
             endTime: MoreThan(new Date()),
             brand: null,
-            type: VoucherWalletStatus.NOT_USED,
           },
         },
         relations: {
@@ -444,11 +443,11 @@ class VoucherService extends BaseService<Voucher> {
         await voucherWalletRepository.find({
           where: {
             owner: { id: loginUser },
+            status: VoucherWalletStatus.NOT_USED,
             voucher: {
               startTime: LessThanOrEqual(new Date()),
               endTime: MoreThan(new Date()),
               brand: { id: checkoutItem.brandId },
-              type: VoucherWalletStatus.NOT_USED,
             },
           },
           relations: {
@@ -834,9 +833,6 @@ class VoucherService extends BaseService<Voucher> {
           break;
         case 'code':
           query.andWhere('voucher.code ILIKE :code', { code: `%${value}%` });
-          break;
-        case 'type':
-          query.andWhere('voucher.type = :type', { type: value });
           break;
         case 'status':
           query.andWhere('voucher.status = :status', {

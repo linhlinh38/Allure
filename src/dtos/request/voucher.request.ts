@@ -3,7 +3,6 @@ import {
   DiscountTypeEnum,
   StatusEnum,
   VoucherApplyTypeEnum,
-  VoucherEnum,
   VoucherVisibilityEnum,
 } from '../../utils/enum';
 import { Expose } from 'class-transformer';
@@ -18,7 +17,6 @@ export const VoucherCreateSchema = z.object({
       .string()
       .min(1, 'Code is required')
       .max(50, 'Code cannot exceed 50 characters'),
-    type: z.nativeEnum(VoucherEnum).default(VoucherEnum.NORMAL),
     discountType: z.nativeEnum(DiscountTypeEnum),
     discountValue: z
       .number()

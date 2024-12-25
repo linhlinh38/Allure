@@ -86,5 +86,60 @@ class ProductClassificationService extends BaseService<ProductClassification> {
       await queryRunner.release();
     }
   }
+
+  async updateClassificationTitle(
+    productClassificationData: Partial<ProductClassification>,
+    oldClassificationId: string
+  ): Promise<ProductClassification> {
+    const queryRunner = AppDataSource.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      //await this.beforeCreate(productClassificationData);
+      const oldClassification = await queryRunner.manager.findOne(
+        ProductClassification,
+        {
+          where: { id: oldClassificationId },
+        }
+      );
+
+      if (!oldClassification) {
+        throw new BadRequestError("Classification not found!");
+      }
+      await queryRunner.manager.update(
+        ProductClassification,
+        oldClassificationId,
+        {
+          status: StatusEnum.INACTIVE,
+        }
+      );
+
+      const productClassification = await queryRunner.manager.save(
+        ProductClassification,
+        productClassificationData
+      );
+
+      let images: ProductImage[] = [];
+      if (
+        productClassificationData.images &&
+        productClassificationData.images.length > 0
+      ) {
+        const productImages = productClassificationData.images.map((image) => ({
+          ...image,
+          productClassification,
+        }));
+        images = await queryRunner.manager.save(ProductImage, productImages);
+      }
+      await queryRunner.commitTransaction();
+      return productClassification;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
 }
 export const productClassificationService = new ProductClassificationService();

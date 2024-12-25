@@ -13,7 +13,7 @@ export class GroupProduct extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ type: 'integer'})
+  @Column({ type: 'integer', nullable: true})
   maxBuyAmountEachPerson: number;
 
   @OneToMany(() => GroupBuyingCriteria, (criteria) => criteria.groupProduct, {

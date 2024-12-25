@@ -73,11 +73,6 @@ export enum FileEnum {
   SERVICE_IMAGE = "SERVICE_IMAGE",
 }
 
-export enum VoucherEnum {
-  GROUP_BUYING = "GROUP_BUYING",
-  NORMAL = "NORMAL",
-}
-
 export enum DiscountTypeEnum {
   PERCENTAGE = "PERCENTAGE",
   AMOUNT = "AMOUNT",
@@ -109,6 +104,7 @@ export enum VoucherApplyTypeEnum {
 export enum VoucherVisibilityEnum {
   WALLET = "WALLET",
   PUBLIC = "PUBLIC",
+  GROUP = "GROUP",
 }
 
 export enum VoucherWalletStatus {

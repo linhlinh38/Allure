@@ -27,9 +27,6 @@ export class Voucher extends BaseEntity {
   @Column({ type: 'varchar', length: 100, unique: true })
   code: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: false })
-  type: string;
-
   @Column({ type: 'varchar', length: 50, nullable: false })
   discountType: string;
 
@@ -52,13 +49,13 @@ export class Voucher extends BaseEntity {
   })
   status: StatusEnum;
 
-  @Column({ type: 'integer' })
+  @Column({ type: 'integer', nullable: true })
   amount: number;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamp', nullable: true })
   startTime: Date;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamp', nullable: true })
   endTime: Date;
 
   @Column({

@@ -10,7 +10,7 @@ import { productRepository } from '../repositories/product.repository';
 import { voucherRepository } from '../repositories/voucher.repository';
 import { BaseService } from './base.service';
 import { groupBuyingRepository } from '../repositories/groupBuying.repository';
-import { StatusEnum, VoucherEnum } from '../utils/enum';
+import { StatusEnum, VoucherVisibilityEnum } from '../utils/enum';
 import { GroupBuyingRequest } from '../dtos/request/groupBuying.request';
 import { GroupBuying } from '../entities/groupBuying.entity';
 import { accountRepository } from '../repositories/account.repository';
@@ -119,7 +119,7 @@ class GroupProductService extends BaseService<GroupProduct> {
         if (!brand) throw new BadRequestError('Brand not found');
         voucherBody.brand = brand;
       }
-      voucherBody.type = VoucherEnum.GROUP_BUYING;
+      voucherBody.visibility = VoucherVisibilityEnum.GROUP;
       groupBuyingCriteria.voucher = voucherBody;
       groupProduct.criterias.push(groupBuyingCriteria);
     }

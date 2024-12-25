@@ -14,6 +14,11 @@ productClassificationRouter.post(
   ProductClassificationController.create
 );
 
+productClassificationRouter.post(
+  "/update-classification-title",
+  ProductClassificationController.updateClassificationTitle
+);
+
 productClassificationRouter.get(
   "/get-by-id/:id",
   ProductClassificationController.getById

@@ -252,7 +252,56 @@ const endProductDiscount = () => {
   });
 };
 
+const autoCheckOutOfStock = () => {
+  cron.schedule("* * * * *", async () => {
+    const queryRunner = AppDataSource.createQueryRunner();
+
+    try {
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+
+      const products = await queryRunner.manager
+        .createQueryBuilder(Product, "product")
+        .leftJoinAndSelect(
+          "product.productClassifications",
+          "productClassifications",
+          "productClassifications.status = :classification_status",
+          { classification_status: StatusEnum.ACTIVE }
+        )
+        .where("product.status = :status", {
+          status: ProductEnum.OFFICIAL,
+        })
+
+        .getMany();
+
+      for (const product of products) {
+        const productClassifications = product.productClassifications || [];
+
+        const checkQuantity = productClassifications.filter(
+          (p) => p.quantity !== 0
+        );
+
+        if (checkQuantity.length === 0) {
+          await queryRunner.manager.update(Product, product.id, {
+            status: ProductEnum.OUT_OF_STOCK,
+          });
+
+          console.log(`Product ${product.id} marked as OUT_OF_STOCK.`);
+        }
+      }
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      console.error("Error check stock products:", error);
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  });
+};
+
 startPreOrderCheck();
 endPreOrderCheck();
 startProductDiscount();
 endProductDiscount();
+autoCheckOutOfStock();

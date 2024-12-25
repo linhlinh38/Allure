@@ -12,7 +12,8 @@ export const GroupProductCreateSchema = z.object({
     maxBuyAmountEachPerson: z
       .number()
       .int('Max buy amount each person must be an integer')
-      .positive('Max buy amount each person must be a positive integer'),
+      .positive('Max buy amount each person must be a positive integer')
+      .optional(),
     productIds: z
       .array(z.string().uuid('Product ID must be a valid string'))
       .nonempty('Product IDs cannot be empty'),
