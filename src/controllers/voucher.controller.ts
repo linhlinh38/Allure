@@ -3,10 +3,41 @@ import { plainToInstance } from 'class-transformer';
 import { createBadResponse, createNormalResponse } from '../utils/response';
 import { AuthRequest } from '../middleware/authentication';
 import { voucherService } from '../services/voucher.service';
-import { CheckoutItemRequest, GetBestPlatformVouchersRequest, GetBestShopVouchersRequest, VoucherRequest } from '../dtos/request/voucher.request';
+import {
+  CanApplyVoucherRequest,
+  CheckoutItemRequest,
+  GetBestPlatformVouchersRequest,
+  GetBestShopVouchersRequest,
+  VoucherRequest,
+} from '../dtos/request/voucher.request';
 import { Voucher } from '../entities/voucher.entity';
 
 export default class VoucherController {
+  static async canApplyVoucher(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const canApplyVoucherRequest = plainToInstance(
+        CanApplyVoucherRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      if (
+        await voucherService.canApplyVoucher(
+          canApplyVoucherRequest,
+          req.loginUser
+        )
+      )
+        return createNormalResponse(res, 'Can apply voucher', true);
+      return createNormalResponse(res, 'Can not apply voucher', false);
+    } catch (err) {
+      next(err);
+    }
+  }
   static async categorizePlatformVouchersWhenCheckout(
     req: AuthRequest,
     res: Response,

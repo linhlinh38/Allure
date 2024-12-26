@@ -31,8 +31,8 @@ class OrderService extends BaseService<Order> {
       relations: {
         account: true,
         orderDetails: {
-          productClassification: { product: { brand: true } },
-          productClassificationPreOrder: { product: { brand: true } },
+          productClassification: { product: { brand: true, images: true } },
+          productClassificationPreOrder: { product: { brand: true, images: true } },
         },
         voucher: true,
       },
@@ -124,8 +124,8 @@ class OrderService extends BaseService<Order> {
       relations: {
         account: true,
         orderDetails: {
-          productClassification: { product: true },
-          productClassificationPreOrder: { product: true },
+          productClassification: { product: true, images: true },
+          productClassificationPreOrder: { product: true, images: true },
         },
         voucher: true,
       },
@@ -164,8 +164,10 @@ class OrderService extends BaseService<Order> {
         account: true,
         children: {
           orderDetails: {
-            productClassification: { product: { brand: true } },
-            productClassificationPreOrder: { product: { brand: true } },
+            productClassification: { product: { brand: true, images: true } },
+            productClassificationPreOrder: {
+              product: { brand: true, images: true },
+            },
           },
           voucher: true,
         },

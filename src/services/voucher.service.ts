@@ -20,6 +20,7 @@ import {
 import { Order } from '../entities/order.entity';
 import { orderRepository } from '../repositories/order.repository';
 import {
+  CanApplyVoucherRequest,
   CheckoutItem,
   CheckoutItemRequest,
   GetBestPlatformVouchersRequest,
@@ -34,6 +35,129 @@ import { productClassificationRepository } from '../repositories/productClassifi
 import { ProductClassification } from '../entities/productClassification.entity';
 
 class VoucherService extends BaseService<Voucher> {
+  async canApplyVoucher(
+    canApplyVoucherRequest: CanApplyVoucherRequest,
+    loginUser: string
+  ) {
+    const checkoutItems = canApplyVoucherRequest.checkoutItems;
+    const quantityMap = this.getQuantityMap(checkoutItems);
+    const classificationIds = checkoutItems.map(
+      (item) => item.classificationId
+    );
+    let classifications = await this.getClassificationFromListId(
+      classificationIds
+    );
+    if (canApplyVoucherRequest.brandId) {
+      const brand = await brandRepository.findOne({
+        where: {
+          id: canApplyVoucherRequest.brandId,
+        },
+      });
+      if (!brand) return false;
+      classifications = classifications.filter((classification) => {
+        if (classification.preOrderProduct)
+          return classification.preOrderProduct.product.brand.id == brand.id;
+        if (classification.productDiscount)
+          return classification.productDiscount.product.brand.id == brand.id;
+        return classification.product.brand.id == brand.id;
+      });
+    }
+    let totalPrice = this.getTotalPrice(classifications, quantityMap);
+
+    const voucher = await voucherRepository.findOne({
+      where: {
+        id: canApplyVoucherRequest.voucherId,
+      },
+      relations: {
+        applyProducts: true,
+        brand: true,
+      },
+    });
+    if (!voucher) return false;
+    if (
+      new Date(voucher.startTime) > new Date() ||
+      new Date(voucher.endTime) < new Date()
+    ) {
+      return false;
+    }
+    if (
+      voucher.visibility == VoucherVisibilityEnum.PUBLIC &&
+      voucher.amount == 0
+    )
+      return false;
+    if (voucher.visibility == VoucherVisibilityEnum.WALLET) {
+      const voucherWallet = await voucherWalletRepository.findOne({
+        where: {
+          owner: { id: loginUser },
+          voucher: { id: canApplyVoucherRequest.voucherId },
+        },
+      });
+      if (!voucherWallet) return false;
+      if (voucherWallet.status == VoucherWalletStatus.USED) return false;
+    }
+    if ((voucher.applyType = VoucherApplyTypeEnum.SPECIFIC)) {
+      const applyProducts = voucher.applyProducts;
+      const applyProductIds = applyProducts.map((productId) => productId.id);
+      classifications = this.getApplyClassifications(
+        classifications,
+        applyProductIds
+      );
+      totalPrice = this.getTotalPrice(classifications, quantityMap);
+    }
+    if (voucher.minOrderValue && totalPrice < voucher.minOrderValue)
+      return false;
+    return true;
+  }
+
+  getTotalPrice(
+    classifications: ProductClassification[],
+    quantityMap: Map<string, number>
+  ) {
+    return classifications.reduce((total, classification) => {
+      const quantity = quantityMap.get(classification.id) || 0;
+      let price = classification.price || 0;
+      if (classification.productDiscount) {
+        price *= classification.productDiscount.discount;
+      }
+      return total + price * quantity;
+    }, 0);
+  }
+
+  getApplyClassifications(
+    originalClassifications: ProductClassification[],
+    applyProductIds: string[]
+  ) {
+    return originalClassifications.filter((classification) => {
+      if (classification.productDiscount) {
+        return applyProductIds.includes(
+          classification.productDiscount.product.id
+        );
+      }
+      if (classification.preOrderProduct) {
+        return applyProductIds.includes(
+          classification.preOrderProduct.product.id
+        );
+      }
+      return applyProductIds.includes(classification.product.id);
+    });
+  }
+
+  getQuantityMap(checkoutItems: CheckoutItem[]) {
+    return new Map(
+      checkoutItems.map((item) => [item.classificationId, item.quantity])
+    );
+  }
+
+  async getClassificationFromListId(listId: string[]) {
+    return await productClassificationRepository.find({
+      where: { id: In(listId) },
+      relations: {
+        product: { brand: true },
+        productDiscount: { product: true },
+        preOrderProduct: { product: true },
+      },
+    });
+  }
   async categorizePlatformVouchersWhenCheckout(
     getBestPlatformVouchersRequest: GetBestPlatformVouchersRequest,
     loginUser: string
@@ -42,27 +166,14 @@ class VoucherService extends BaseService<Voucher> {
     const classificationIds = checkoutItems.map(
       (item) => item.classificationId
     );
-    const originalClassifications = await productClassificationRepository.find({
-      where: { id: In(classificationIds) },
-      relations: {
-        product: { brand: true },
-        productDiscount: { product: true },
-        preOrderProduct: { product: true },
-      },
-    });
+    let originalClassifications = await this.getClassificationFromListId(
+      classificationIds
+    );
+
     // Tạo map từ classificationId sang quantity
-    const quantityMap = new Map(
-      checkoutItems.map((item) => [item.classificationId, item.quantity])
-    );
+    const quantityMap = this.getQuantityMap(checkoutItems);
     // Tính tổng amount
-    const totalAmount = originalClassifications.reduce(
-      (total, classification) => {
-        const quantity = quantityMap.get(classification.id) || 0; // Lấy quantity tương ứng, mặc định là 0 nếu không có
-        const price = classification.price || 0; // Đảm bảo price không bị null
-        return total + price * quantity;
-      },
-      0
-    );
+    let totalPrice = this.getTotalPrice(originalClassifications, quantityMap);
 
     // logic to get unclaimedVouchers
     const walletVouchers = await voucherWalletRepository.find({
@@ -126,7 +237,7 @@ class VoucherService extends BaseService<Voucher> {
             id: Not(In(allPlatformVoucherIdsInWallet)),
           },
           relations: {
-            applyProducts: true ,
+            applyProducts: true,
           },
         })
       );
@@ -140,38 +251,20 @@ class VoucherService extends BaseService<Voucher> {
         const applyProductIds = voucher.applyProducts.map(
           (product) => product.id
         );
-        const applyClassifications = originalClassifications.filter(
-          (classification) => {
-            if (classification.productDiscount) {
-              return applyProductIds.includes(
-                classification.productDiscount.product.id
-              );
-            }
-            if (classification.preOrderProduct) {
-              return applyProductIds.includes(
-                classification.preOrderProduct.product.id
-              );
-            }
-            return applyProductIds.includes(classification.product.id);
-          }
+        const applyClassifications = this.getApplyClassifications(
+          originalClassifications,
+          applyProductIds
         );
         if (applyClassifications.length == 0) {
           unAvailableVouchers.push(voucher);
         } else {
-          const totalAmount = applyClassifications.reduce(
-            (total, classification) => {
-              const quantity = quantityMap.get(classification.id) || 0;
-              const price = classification.price || 0;
-              return total + price * quantity;
-            },
-            0
-          );
-          if (!voucher.minOrderValue || totalAmount >= voucher.minOrderValue) {
+          totalPrice = this.getTotalPrice(applyClassifications, quantityMap);
+          if (!voucher.minOrderValue || totalPrice >= voucher.minOrderValue) {
             availableVouchers.push(voucher);
           } else unAvailableVouchers.push(voucher);
         }
       } else {
-        if (!voucher.minOrderValue || totalAmount >= voucher.minOrderValue) {
+        if (!voucher.minOrderValue || totalPrice >= voucher.minOrderValue) {
           availableVouchers.push(voucher);
         } else unAvailableVouchers.push(voucher);
       }
@@ -182,6 +275,7 @@ class VoucherService extends BaseService<Voucher> {
       unAvailableVouchers,
     };
   }
+
   async categorizeShopVouchersWhenCheckout(
     checkoutItemRequest: CheckoutItemRequest,
     loginUser: string
@@ -348,6 +442,7 @@ class VoucherService extends BaseService<Voucher> {
       relations: {
         product: { brand: true },
         productDiscount: { product: true },
+        preOrderProduct: { product: true },
       },
     });
     let availableVouchersInWallet = (

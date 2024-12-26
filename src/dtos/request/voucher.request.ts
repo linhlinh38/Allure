@@ -117,6 +117,32 @@ export const GetBestPlatformVouchersSchema = z.object({
   }),
 });
 
+export const CanApplyVoucherSchema = z.object({
+  body: z.object({
+    checkoutItems: z
+      .array(
+        z.object({
+          classificationId: z.string(),
+          quantity: z.number().int().positive(),
+        })
+      )
+      .nonempty(),
+    brandId: z.string().uuid().optional().nullable(),
+    voucherId: z.string().uuid(),
+  }),
+});
+
+export class CanApplyVoucherRequest {
+  @Expose()
+  checkoutItems: CheckoutItem[];
+
+  @Expose()
+  brandId?: string;
+
+  @Expose()
+  voucherId: string;
+}
+
 export class GetBestPlatformVouchersRequest {
   @Expose()
   checkoutItems: CheckoutItem[];

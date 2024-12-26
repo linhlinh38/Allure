@@ -3,6 +3,7 @@ import validate from '../utils/validate';
 import authentication from '../middleware/authentication';
 import VoucherController from '../controllers/voucher.controller';
 import {
+  CanApplyVoucherSchema,
   CheckoutItemSchema,
   GetBestPlatformVouchersSchema,
   GetBestShopVouchersSchema,
@@ -59,5 +60,10 @@ voucherRouter.post(
   '/get-best-platform-vouchers-for-products',
   validate(GetBestPlatformVouchersSchema),
   VoucherController.getBestPlatformVouchersForProducts
+);
+voucherRouter.post(
+  '/can-apply-voucher',
+  validate(CanApplyVoucherSchema),
+  VoucherController.canApplyVoucher
 );
 export default voucherRouter;
