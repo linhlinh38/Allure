@@ -5,6 +5,8 @@ import { ProductImage } from "../entities/productImage.entity";
 import { BaseService } from "./base.service";
 import { StatusEnum } from "../utils/enum";
 import { BadRequestError } from "../errors/error";
+import { productService } from "./product.service";
+import { productRepository } from "../repositories/product.repository";
 
 const repository = AppDataSource.getRepository(ProductClassification);
 class ProductClassificationService extends BaseService<ProductClassification> {
@@ -14,9 +16,19 @@ class ProductClassificationService extends BaseService<ProductClassification> {
 
   async beforeCreate(body: any) {
     if (body.sku && body.sku !== "" && body.product) {
+      const product = await productRepository.findOne({
+        where: { id: body.product },
+        relations: ["brand"],
+      });
+      if (!product) {
+        throw new BadRequestError("Product not found");
+      }
+
       const checkSku = await this.repository.find({
         where: {
-          product: { id: body.product },
+          product: {
+            brand: { id: product.brand.id },
+          },
           sku: body.sku,
           status: Not(In([StatusEnum.INACTIVE, StatusEnum.BANNED])),
         },

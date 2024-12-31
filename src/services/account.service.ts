@@ -10,7 +10,22 @@ import { Address } from "../entities/address.entity";
 import { File } from "../entities/file.entity";
 import { roleService } from "./role.service";
 import { Brand } from "../entities/brand.entity";
+import { StatusTracking } from "../entities/statusTracking.entity";
+import { AccountUpdateStatusType } from "../dtos/request/account.request";
 const repository = AppDataSource.getRepository(Account);
+
+interface FilterOptions {
+  username?: string;
+  email?: string;
+  role?: string;
+  brand?: string;
+  status?: StatusEnum;
+  sortBy?: string;
+  order?: string;
+  limit?: number;
+  page?: number;
+}
+
 class AccountService extends BaseService<Account> {
   constructor() {
     super(repository);
@@ -56,6 +71,78 @@ class AccountService extends BaseService<Account> {
     }));
   }
 
+  async filterAccounts(options: FilterOptions) {
+    const { username, email, role, brand, status, sortBy, order, limit, page } =
+      options;
+
+    const queryBuilder = this.repository
+      .createQueryBuilder("account")
+      .leftJoinAndSelect("account.brands", "brand")
+      .leftJoinAndSelect("account.role", "role")
+      .leftJoinAndSelect("account.addresses", "addresses");
+
+    if (username) {
+      queryBuilder.andWhere("account.username LIKE :username", {
+        username: `%${username}%`,
+      });
+    }
+
+    if (email) {
+      queryBuilder.andWhere("account.email LIKE :email", {
+        email: `%${email}%`,
+      });
+    }
+
+    if (role) {
+      queryBuilder.andWhere("role.role = :role", { role });
+    }
+
+    if (brand) {
+      queryBuilder.andWhere("brand.name = :brand", { brand });
+    }
+
+    if (status) {
+      queryBuilder.andWhere("account.status = :status", { status });
+    }
+
+    queryBuilder
+      .orderBy(`account.${sortBy}`, order.toUpperCase() as "ASC" | "DESC")
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const [accounts, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      items: accounts,
+      total,
+      page,
+      limit,
+    };
+  }
+
+  async getStaffByBrandAndStatus(brandId: string, status?: StatusEnum) {
+    const queryBuilder = this.repository
+      .createQueryBuilder("account")
+      .innerJoinAndSelect("account.brands", "brand", "brand.id = :brandId", {
+        brandId,
+      })
+      .innerJoinAndSelect("account.role", "role", "role.role = :role", {
+        role: RoleEnum.STAFF,
+      })
+      .leftJoinAndSelect("account.addresses", "addresses");
+
+    if (status) {
+      queryBuilder.andWhere("account.status = :status", { status });
+    }
+
+    const accounts = await queryBuilder.getMany();
+
+    return (await accounts).map((account) => ({
+      ...account,
+      role: account.role ? account.role.role : null,
+    }));
+  }
+
   async createAccount(accountData: Account): Promise<Account> {
     const queryRunner = AppDataSource.createQueryRunner();
 
@@ -82,7 +169,6 @@ class AccountService extends BaseService<Account> {
         role.role === RoleEnum.OPERATOR ||
         role.role === RoleEnum.CONSULTANT
       ) {
-        accountData.status = StatusEnum.ACTIVE;
         accountData.isEmailVerify = true;
       } else {
         accountData.status = StatusEnum.PENDING;
@@ -206,6 +292,49 @@ class AccountService extends BaseService<Account> {
         break;
       default:
         throw new Error("Invalid role provided");
+    }
+  }
+
+  async updateAccountStatus(
+    updatedBy: string,
+    updateData: AccountUpdateStatusType
+  ) {
+    const queryRunner = AppDataSource.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const account = await repository.findOneBy({
+        id: updateData.accountId,
+      });
+
+      if (!account) {
+        throw new Error("Account not found");
+      }
+
+      const updatedByAccount = await repository.findOneBy({ id: updatedBy });
+      if (!updatedByAccount) {
+        throw new Error("Updated by account not found");
+      }
+
+      await queryRunner.manager.update(Account, updateData.accountId, {
+        status: updateData.status,
+      });
+
+      const statusTracking = new StatusTracking();
+      statusTracking.reason = updateData.reason;
+      statusTracking.status = updateData.status;
+      statusTracking.updatedBy = updatedByAccount;
+      statusTracking.account = account;
+      await queryRunner.manager.save(StatusTracking, statusTracking);
+
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
   }
 }

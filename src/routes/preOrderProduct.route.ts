@@ -17,8 +17,16 @@ preOrderProductRouter.post(
 
 preOrderProductRouter.get("/get-by-id/:id", PreOrderProductController.getById);
 preOrderProductRouter.get(
-  "/get-pre-order-product-of-brand/:brandId",
+  "/get-pre-order-product-active-of-brand/:brandId",
   PreOrderProductController.getPreOrderProductActiveOfBrand
+);
+preOrderProductRouter.get(
+  "/get-pre-order-product-of-brand/:brandId",
+  PreOrderProductController.getPreOrderProductOfBrand
+);
+preOrderProductRouter.get(
+  "/get-pre-order-product-of-product/:productId",
+  PreOrderProductController.getPreOrderProductOfProduct
 );
 preOrderProductRouter.get("/", PreOrderProductController.getAll);
 preOrderProductRouter.put(

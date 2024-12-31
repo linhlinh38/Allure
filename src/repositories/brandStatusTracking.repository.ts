@@ -1,4 +1,5 @@
-import { AppDataSource } from '../dataSource';
-import { BrandStatusTracking } from '../entities/brandStatusTracking.entity';
+import { AppDataSource } from "../dataSource";
+import { StatusTracking } from "../entities/statusTracking.entity";
 
-export const brandStatusTrackingRepository = AppDataSource.getRepository(BrandStatusTracking);
+export const brandStatusTrackingRepository =
+  AppDataSource.getRepository(StatusTracking);

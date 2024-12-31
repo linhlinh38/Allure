@@ -32,7 +32,6 @@ class OrderService extends BaseService<Order> {
         account: true,
         orderDetails: {
           productClassification: { product: { brand: true, images: true } },
-          productClassificationPreOrder: { product: { brand: true, images: true } },
         },
         voucher: true,
       },
@@ -81,29 +80,11 @@ class OrderService extends BaseService<Order> {
           },
         },
       },
-      // Tìm theo productClassificationPreOrder product name
-      {
-        ...commonConditions.where,
-        orderDetails: {
-          productClassificationPreOrder: {
-            product: { name: ILike(`%${search}%`) },
-          },
-        },
-      },
       // Tìm theo brand name
       {
         ...commonConditions.where,
         orderDetails: {
           productClassification: {
-            product: { brand: { name: ILike(`%${search}%`) } },
-          },
-        },
-      },
-      // Tìm theo brand name
-      {
-        ...commonConditions.where,
-        orderDetails: {
-          productClassificationPreOrder: {
             product: { brand: { name: ILike(`%${search}%`) } },
           },
         },
@@ -125,7 +106,6 @@ class OrderService extends BaseService<Order> {
         account: true,
         orderDetails: {
           productClassification: { product: true, images: true },
-          productClassificationPreOrder: { product: true, images: true },
         },
         voucher: true,
       },
@@ -134,16 +114,6 @@ class OrderService extends BaseService<Order> {
           parent: Not(IsNull()),
           orderDetails: {
             productClassification: {
-              product: {
-                brand: { id: brandId },
-              },
-            },
-          },
-        },
-        {
-          parent: Not(IsNull()),
-          orderDetails: {
-            productClassificationPreOrder: {
               product: {
                 brand: { id: brandId },
               },
@@ -165,9 +135,6 @@ class OrderService extends BaseService<Order> {
         children: {
           orderDetails: {
             productClassification: { product: { brand: true, images: true } },
-            productClassificationPreOrder: {
-              product: { brand: true, images: true },
-            },
           },
           voucher: true,
         },
@@ -335,7 +302,7 @@ class OrderService extends BaseService<Order> {
         //create shop order
         const childOrder: Order = new Order();
         Object.assign(childOrder, orderNormalBody);
-        
+
         childOrder.shippingAddress = address.fullAddress;
         childOrder.phone = address.phone;
         childOrder.notes = address.notes;
@@ -357,45 +324,59 @@ class OrderService extends BaseService<Order> {
           const productClassification =
             await productClassificationRepository.findOne({
               where: { id: item.productClassificationId },
-              relations: { product: true },
+              relations: {
+                product: true,
+                productDiscount: true,
+                preOrderProduct: true,
+              },
             });
           if (!productClassification)
             throw new BadRequestError('Product not found');
           if (item.quantity > productClassification.quantity) {
             throw new BadRequestError('Product is out of stock');
           }
-          let price = productClassification.price;
           //create order detail
           const orderDetail = new OrderDetail();
+          orderDetail.unitPriceBeforeDiscount = productClassification.price;
+          orderDetail.unitPriceAfterDiscount = productClassification.price;
           orderDetail.type = OrderEnum.NORMAL;
           //check product discount event
-          const productDiscountEvent = await productDiscountRepository.findOne({
-            where: {
-              product: { id: productClassification.product.id }, // Lọc theo productId
-              startTime: LessThanOrEqual(now.toISOString()), // startTime <= now
-              endTime: MoreThanOrEqual(now.toISOString()), // endTime >= now
-            },
-          });
-          if (productDiscountEvent) {
-            const productClassificationFlashSale =
-              await productClassificationRepository.findOne({
-                where: {
-                  productDiscount: { id: productDiscountEvent.id },
-                },
-                relations: { productDiscount: true },
-              });
-            if (
-              productClassificationFlashSale &&
-              productClassificationFlashSale.quantity >= item.quantity
-            ) {
-              price = productClassificationFlashSale.price;
-              orderDetail.productDiscount = productDiscountEvent;
-              orderDetail.type = OrderEnum.FLASH_SALE;
-            }
+          if (productClassification.productDiscount) {
+            orderDetail.unitPriceAfterDiscount =
+              productClassification.price *
+              productClassification.productDiscount.discount;
+            orderDetail.type = OrderEnum.FLASH_SALE;
+            orderDetail.productDiscount = productClassification.productDiscount;
+          } else if (productClassification.preOrderProduct) {
+            orderDetail.type = OrderEnum.PRE_ORDER;
           }
-          orderDetail.subTotal = price;
+          // const productDiscountEvent = await productDiscountRepository.findOne({
+          //   where: {
+          //     product: { id: productClassification.product.id }, // Lọc theo productId
+          //     startTime: LessThanOrEqual(now.toISOString()), // startTime <= now
+          //     endTime: MoreThanOrEqual(now.toISOString()), // endTime >= now
+          //   },
+          // });
+          // if (productDiscountEvent) {
+          //   const productClassificationFlashSale =
+          //     await productClassificationRepository.findOne({
+          //       where: {
+          //         productDiscount: { id: productDiscountEvent.id },
+          //       },
+          //       relations: { productDiscount: true },
+          //     });
+          //   if (
+          //     productClassificationFlashSale &&
+          //     productClassificationFlashSale.quantity >= item.quantity
+          //   ) {
+          //     price = productClassificationFlashSale.price;
+          //     orderDetail.productDiscount = productDiscountEvent;
+          //     orderDetail.type = OrderEnum.FLASH_SALE;
+          //   }
+          // }
+          orderDetail.subTotal = item.quantity * orderDetail.unitPriceAfterDiscount;
+          orderDetail.totalPrice = orderDetail.subTotal;
           orderDetail.quantity = item.quantity;
-          orderDetail.totalPrice = price;
           orderDetail.productClassification = productClassification;
           //update quantity of product classification
           productClassification.quantity -= item.quantity;

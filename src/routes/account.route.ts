@@ -5,6 +5,7 @@ import validate from "../utils/validate";
 import {
   AccountCreateSchema,
   AccountUpdateSchema,
+  AccountUpdateStatusSchema,
 } from "../dtos/request/account.request";
 
 const accountRouter = express.Router();
@@ -19,12 +20,6 @@ accountRouter.put(
   "/set-password/:id",
   validate(AccountUpdateSchema),
   accountController.setPassword
-);
-
-accountRouter.put(
-  "/update-account-status/:id",
-  validate(AccountUpdateSchema),
-  accountController.updateAccountStatus
 );
 
 accountRouter.put(
@@ -52,9 +47,16 @@ accountRouter.post(
   validate(AccountUpdateSchema),
   accountController.requestCreateAccount
 );
+accountRouter.post(
+  "/update-account-status",
+  validate(AccountUpdateStatusSchema),
+  accountController.updateAccountStatus
+);
+accountRouter.post("/brand-staff", accountController.getStaffByBrandAndStatus);
 accountRouter.get("/", accountController.getAllAccount);
 accountRouter.get("/me", accountController.getMyProfile);
 accountRouter.get("/get/:option/:value", accountController.getAccountBy);
+accountRouter.get("/filter-account", accountController.filterAccounts);
 accountRouter.put(
   "/",
   validate(AccountUpdateSchema),

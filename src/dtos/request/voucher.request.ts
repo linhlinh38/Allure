@@ -72,7 +72,7 @@ export const VoucherUpdateStatusSchema = z.object({
 
 export const CheckoutItemSchema = z.object({
   body: z.object({
-    checkoutItems: z
+    brandItems: z
       .array(
         z.object({
           classificationId: z.string(),

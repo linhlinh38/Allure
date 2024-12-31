@@ -1,5 +1,11 @@
-import { In, IsNull, LessThanOrEqual, MoreThan, Not } from 'typeorm';
-import { AppDataSource } from '../dataSource';
+import {
+  In,
+  IsNull,
+  LessThanOrEqual,
+  MoreThan,
+  MoreThanOrEqual,
+  Not,
+} from 'typeorm';
 
 import { BaseService } from './base.service';
 
@@ -15,7 +21,8 @@ import {
   ShippingStatusEnum,
   VoucherVisibilityEnum,
   VoucherWalletStatus,
-  ClassificationTypeEnum,
+  VoucherUnavailableReasonEnum,
+  OrderEnum,
 } from '../utils/enum';
 import { Order } from '../entities/order.entity';
 import { orderRepository } from '../repositories/order.repository';
@@ -33,6 +40,7 @@ import { voucherWalletRepository } from '../repositories/voucherWallet.reposiror
 import { VoucherWallet } from '../entities/voucherWallet.entity';
 import { productClassificationRepository } from '../repositories/productClassification.repository';
 import { ProductClassification } from '../entities/productClassification.entity';
+import { Account } from '../entities/account.entity';
 
 class VoucherService extends BaseService<Voucher> {
   async canApplyVoucher(
@@ -170,9 +178,8 @@ class VoucherService extends BaseService<Voucher> {
       classificationIds
     );
 
-    // Tạo map từ classificationId sang quantity
     const quantityMap = this.getQuantityMap(checkoutItems);
-    // Tính tổng amount
+
     let totalPrice = this.getTotalPrice(originalClassifications, quantityMap);
 
     // logic to get unclaimedVouchers
@@ -202,7 +209,7 @@ class VoucherService extends BaseService<Voucher> {
           owner: { id: loginUser },
           status: VoucherWalletStatus.NOT_USED,
           voucher: {
-            endTime: MoreThan(new Date()),
+            endTime: MoreThanOrEqual(new Date()),
             brand: IsNull(),
           },
         },
@@ -231,7 +238,7 @@ class VoucherService extends BaseService<Voucher> {
         await voucherRepository.find({
           where: {
             amount: MoreThan(0),
-            endTime: MoreThan(new Date()),
+            endTime: MoreThanOrEqual(new Date()),
             brand: IsNull(),
             visibility: VoucherVisibilityEnum.PUBLIC,
             id: Not(In(allPlatformVoucherIdsInWallet)),
@@ -241,34 +248,19 @@ class VoucherService extends BaseService<Voucher> {
           },
         })
       );
-    const availableVouchers: Voucher[] = [];
-    const unAvailableVouchers: Voucher[] = [];
+    console.log(bothAvailableAndUnavailableVouchers);
 
-    bothAvailableAndUnavailableVouchers.forEach((voucher) => {
-      if (new Date(voucher.startTime) > new Date()) {
-        unAvailableVouchers.push(voucher);
-      } else if ((voucher.applyType = VoucherApplyTypeEnum.SPECIFIC)) {
-        const applyProductIds = voucher.applyProducts.map(
-          (product) => product.id
-        );
-        const applyClassifications = this.getApplyClassifications(
-          originalClassifications,
-          applyProductIds
-        );
-        if (applyClassifications.length == 0) {
-          unAvailableVouchers.push(voucher);
-        } else {
-          totalPrice = this.getTotalPrice(applyClassifications, quantityMap);
-          if (!voucher.minOrderValue || totalPrice >= voucher.minOrderValue) {
-            availableVouchers.push(voucher);
-          } else unAvailableVouchers.push(voucher);
-        }
-      } else {
-        if (!voucher.minOrderValue || totalPrice >= voucher.minOrderValue) {
-          availableVouchers.push(voucher);
-        } else unAvailableVouchers.push(voucher);
-      }
-    });
+    const availableVouchers = [];
+    const unAvailableVouchers = [];
+
+    await this.categorizeAvaiAndUnavaiVouchers(
+      bothAvailableAndUnavailableVouchers,
+      originalClassifications,
+      unAvailableVouchers,
+      totalPrice,
+      quantityMap,
+      availableVouchers
+    );
     return {
       unclaimedVouchers,
       availableVouchers,
@@ -283,30 +275,16 @@ class VoucherService extends BaseService<Voucher> {
     const classificationIds = checkoutItemRequest.brandItems.map(
       (item) => item.classificationId
     );
-    const originalClassifications = await productClassificationRepository.find({
-      where: { id: In(classificationIds) },
-      relations: {
-        product: { brand: true },
-        productDiscount: { product: true },
-        preOrderProduct: { product: true },
-      },
-    });
+    const originalClassifications = await this.getClassificationFromListId(
+      classificationIds
+    );
 
     // Tạo map từ classificationId sang quantity
-    const quantityMap = new Map(
-      checkoutItemRequest.brandItems.map((item) => [
-        item.classificationId,
-        item.quantity,
-      ])
-    );
+    const quantityMap = this.getQuantityMap(checkoutItemRequest.brandItems);
     // Tính tổng amount
-    const totalAmount = originalClassifications.reduce(
-      (total, classification) => {
-        const quantity = quantityMap.get(classification.id) || 0; // Lấy quantity tương ứng, mặc định là 0 nếu không có
-        const price = classification.price || 0; // Đảm bảo price không bị null
-        return total + price * quantity;
-      },
-      0
+    const totalAmount = this.getTotalPrice(
+      originalClassifications,
+      quantityMap
     );
 
     // logic to get unclaimedVouchers
@@ -335,7 +313,7 @@ class VoucherService extends BaseService<Voucher> {
           owner: { id: loginUser },
           status: VoucherWalletStatus.NOT_USED,
           voucher: {
-            endTime: MoreThan(new Date()),
+            endTime: MoreThanOrEqual(new Date()),
             brand: { id: checkoutItemRequest.brandId },
           },
         },
@@ -364,7 +342,7 @@ class VoucherService extends BaseService<Voucher> {
         await voucherRepository.find({
           where: {
             amount: MoreThan(0),
-            endTime: MoreThan(new Date()),
+            endTime: MoreThanOrEqual(new Date()),
             brand: { id: checkoutItemRequest.brandId },
             visibility: VoucherVisibilityEnum.PUBLIC,
             id: Not(In(allVoucherIdsInWalletOfTheBrand)),
@@ -374,58 +352,95 @@ class VoucherService extends BaseService<Voucher> {
           },
         })
       );
-    const availableVouchers: Voucher[] = [];
-    const unAvailableVouchers: Voucher[] = [];
+    const availableVouchers = [];
+    const unAvailableVouchers = [];
 
-    bothAvailableAndUnavailableVouchers.forEach((voucher) => {
-      if (new Date(voucher.startTime) > new Date()) {
-        unAvailableVouchers.push(voucher);
-      } else if ((voucher.applyType = VoucherApplyTypeEnum.SPECIFIC)) {
-        const applyProductIds = voucher.applyProducts.map(
-          (product) => product.id
-        );
-        const applyClassifications = originalClassifications.filter(
-          (classification) => {
-            if (classification.productDiscount) {
-              return applyProductIds.includes(
-                classification.productDiscount.product.id
-              );
-            }
-            if (classification.preOrderProduct) {
-              return applyProductIds.includes(
-                classification.preOrderProduct.product.id
-              );
-            }
-            return applyProductIds.includes(classification.product.id);
-          }
-        );
-        if (applyClassifications.length == 0) {
-          unAvailableVouchers.push(voucher);
-        } else {
-          const totalAmount = applyClassifications.reduce(
-            (total, classification) => {
-              const quantity = quantityMap.get(classification.id) || 0;
-              const price = classification.price || 0;
-              return total + price * quantity;
-            },
-            0
-          );
-          if (!voucher.minOrderValue || totalAmount >= voucher.minOrderValue) {
-            availableVouchers.push(voucher);
-          } else unAvailableVouchers.push(voucher);
-        }
-      } else {
-        if (!voucher.minOrderValue || totalAmount >= voucher.minOrderValue) {
-          availableVouchers.push(voucher);
-        } else unAvailableVouchers.push(voucher);
-      }
-    });
+    await this.categorizeAvaiAndUnavaiVouchers(
+      bothAvailableAndUnavailableVouchers,
+      originalClassifications,
+      unAvailableVouchers,
+      totalAmount,
+      quantityMap,
+      availableVouchers
+    );
     return {
       unclaimedVouchers,
       availableVouchers,
       unAvailableVouchers,
     };
   }
+
+  async categorizeAvaiAndUnavaiVouchers(
+    bothAvailableAndUnavailableVouchers: Voucher[],
+    originalClassifications: ProductClassification[],
+    unAvailableVouchers: any[],
+    totalPrice: number,
+    quantityMap: Map<string, number>,
+    availableVouchers: any[]
+  ) {
+    for (const voucher of bothAvailableAndUnavailableVouchers) {
+      let discount = this.calculateDiscountVoucherForProductClassifications(
+        originalClassifications,
+        quantityMap,
+        voucher
+      );
+      if (new Date(voucher.startTime) > new Date()) {
+        unAvailableVouchers.push({
+          ...voucher,
+          reason: VoucherUnavailableReasonEnum.NOT_START_YET,
+          used: await this.getPercentageUsedOfVoucher(voucher),
+        });
+      } else if ((voucher.applyType = VoucherApplyTypeEnum.SPECIFIC)) {
+        const applyProductIds = voucher.applyProducts.map(
+          (product) => product.id
+        );
+        const applyClassifications = this.getApplyClassifications(
+          originalClassifications,
+          applyProductIds
+        );
+        if (applyClassifications.length == 0) {
+          unAvailableVouchers.push({
+            ...voucher,
+            reason: VoucherUnavailableReasonEnum.NOT_APPLICABLE,
+            used: await this.getPercentageUsedOfVoucher(voucher),
+          });
+        } else {
+          discount = this.calculateDiscountVoucherForProductClassifications(
+            applyClassifications,
+            quantityMap,
+            voucher
+          );
+          totalPrice = this.getTotalPrice(applyClassifications, quantityMap);
+          if (!voucher.minOrderValue || totalPrice >= voucher.minOrderValue) {
+            availableVouchers.push({
+              ...voucher,
+              used: await this.getPercentageUsedOfVoucher(voucher),
+              discount,
+            });
+          } else
+            unAvailableVouchers.push({
+              ...voucher,
+              reason: VoucherUnavailableReasonEnum.MINIMUM_ORDER_NOT_MET,
+              used: await this.getPercentageUsedOfVoucher(voucher),
+            });
+        }
+      } else {
+        if (!voucher.minOrderValue || totalPrice >= voucher.minOrderValue) {
+          availableVouchers.push({
+            ...voucher,
+            used: await this.getPercentageUsedOfVoucher(voucher),
+            discount,
+          });
+        } else
+          unAvailableVouchers.push({
+            ...voucher,
+            reason: VoucherUnavailableReasonEnum.MINIMUM_ORDER_NOT_MET,
+            used: await this.getPercentageUsedOfVoucher(voucher),
+          });
+      }
+    }
+  }
+
   async getBestPlatformVouchersForProducts(
     getBestPlatformVouchersRequest: GetBestPlatformVouchersRequest,
     loginUser: string
@@ -603,6 +618,21 @@ class VoucherService extends BaseService<Voucher> {
     return response;
   }
 
+  async getPercentageUsedOfVoucher(voucher: Voucher) {
+    if (voucher.visibility == VoucherVisibilityEnum.WALLET) {
+      return 0;
+    }
+    if (voucher.visibility == VoucherVisibilityEnum.PUBLIC) {
+      const usedVouchers = await voucherWalletRepository.count({
+        where: {
+          voucher: { id: voucher.id },
+          status: VoucherWalletStatus.USED,
+        },
+      });
+      return (usedVouchers / (usedVouchers + voucher.amount)).toFixed(2);
+    }
+  }
+
   calculateDiscountVoucherForProductClassifications(
     classifications: ProductClassification[],
     quantityMap: Map<string, number>,
@@ -620,13 +650,15 @@ class VoucherService extends BaseService<Voucher> {
       const applyClassifications = classifications.filter((classification) => {
         if (classification.productDiscount) {
           return applyProductIds.includes(
-            classification.productDiscount.product.id
+            classification.productDiscount.product?.id
           );
         }
         if (classification.preOrderProduct) {
-          return applyProductIds.includes(classification.preOrderProduct.id);
+          return applyProductIds.includes(
+            classification.preOrderProduct.product?.id
+          );
         }
-        return applyProductIds.includes(classification.product.id);
+        return applyProductIds.includes(classification.product?.id);
       });
       if (applyClassifications.length == 0) return 0;
       totalAmount = applyClassifications.reduce((total, classification) => {
@@ -663,7 +695,7 @@ class VoucherService extends BaseService<Voucher> {
     if (voucher.visibility != VoucherVisibilityEnum.WALLET) {
       throw new BadRequestError('This voucher is not collectable');
     }
-    const voucherWallet = voucherWalletRepository.findOne({
+    const voucherWallet = await voucherWalletRepository.findOne({
       where: {
         voucher: { id: voucherId },
       },
@@ -672,6 +704,7 @@ class VoucherService extends BaseService<Voucher> {
       throw new BadRequestError('Voucher has already been collected');
     const createdVoucherWallet = new VoucherWallet();
     createdVoucherWallet.voucher = voucher;
+    createdVoucherWallet.owner = new Account();
     createdVoucherWallet.owner.id = loginUser;
     await voucherWalletRepository.save(createdVoucherWallet);
   }
@@ -785,114 +818,221 @@ class VoucherService extends BaseService<Voucher> {
 
   applyShopVoucher(childOrder: Order) {
     const voucher = childOrder.voucher;
-    console.log(voucher);
 
-    let sumPrice = childOrder.orderDetails.reduce(
-      (sum, orderDetail) => sum + orderDetail.subTotal,
-      0
+    let sumPrice = childOrder.orderDetails.reduce((total, orderDetail) => {
+      return total + orderDetail.subTotal;
+    }, 0);
+    let applyOrderDetails = childOrder.orderDetails;
+    let applyProductClassificationIds = applyOrderDetails.map(
+      (orderDetail) => orderDetail.productClassification.id
     );
+    if (voucher.applyType == VoucherApplyTypeEnum.SPECIFIC) {
+      const applyProductIds = voucher.applyProducts.map(
+        (product) => product.id
+      );
+      applyProductClassificationIds = childOrder.orderDetails
+        .filter((orderDetail) => {
+          if (orderDetail.type == OrderEnum.FLASH_SALE) {
+            return applyProductIds.includes(
+              orderDetail.productClassification.productDiscount.product?.id
+            );
+          }
+          if (orderDetail.type == OrderEnum.PRE_ORDER) {
+            return applyProductIds.includes(
+              orderDetail.productClassification.preOrderProduct.product?.id
+            );
+          }
+          return applyProductIds.includes(
+            orderDetail.productClassification.product?.id
+          );
+        })
+        .map((orderDetail) => orderDetail.productClassification.id);
+      sumPrice = applyOrderDetails.reduce((total, orderDetail) => {
+        return total + orderDetail.subTotal;
+      }, 0);
+    }
     if (voucher.minOrderValue) {
       if (sumPrice < voucher.minOrderValue) {
         throw new BadRequestError(`Minimum order value is not enough`);
       }
     }
-    if (voucher.discountType == DiscountTypeEnum.AMOUNT.toString()) {
-      childOrder.orderDetails.forEach((orderDetail) => {
-        orderDetail.shopVoucherDiscount = Math.round(
-          Math.min(
-            (orderDetail.subTotal / sumPrice) * voucher.discountValue,
-            orderDetail.subTotal
+    let discount = 0;
+    if (voucher.discountType == DiscountTypeEnum.AMOUNT) {
+      discount = voucher.maxDiscount
+        ? Math.min(sumPrice, voucher.discountValue, voucher.maxDiscount)
+        : Math.min(sumPrice, voucher.discountValue);
+    } else if (voucher.discountType == DiscountTypeEnum.PERCENTAGE) {
+      discount = voucher.maxDiscount
+        ? Math.min(
+            sumPrice,
+            sumPrice * voucher.discountValue,
+            voucher.maxDiscount
           )
-        );
+        : Math.min(sumPrice, sumPrice * voucher.discountValue);
+    }
+    applyOrderDetails.forEach((orderDetail) => {
+      if (
+        applyProductClassificationIds.includes(
+          orderDetail.productClassification.id
+        )
+      ) {
         orderDetail.shopVoucherDiscount = Math.round(
-          Math.min(
-            (orderDetail.subTotal / sumPrice) * voucher.discountValue,
-            orderDetail.subTotal
-          )
+          (orderDetail.subTotal / sumPrice) * discount
         );
         orderDetail.totalPrice =
           orderDetail.subTotal - orderDetail.shopVoucherDiscount;
-      });
-    } else if (voucher.discountType == DiscountTypeEnum.PERCENTAGE.toString()) {
-      let discountValueToAmount = Math.round(sumPrice * voucher.discountValue);
-      if (voucher.maxDiscount)
-        discountValueToAmount = Math.min(
-          discountValueToAmount,
-          voucher.maxDiscount
-        );
+      }
+    });
+    // if (voucher.discountType == DiscountTypeEnum.AMOUNT.toString()) {
+    //   childOrder.orderDetails.forEach((orderDetail) => {
+    //     orderDetail.shopVoucherDiscount = Math.round(
+    //       Math.min(
+    //         (orderDetail.subTotal / sumPrice) * voucher.discountValue,
+    //         orderDetail.subTotal
+    //       )
+    //     );
+    //     orderDetail.shopVoucherDiscount = Math.round(
+    //       Math.min(
+    //         (orderDetail.subTotal / sumPrice) * voucher.discountValue,
+    //         orderDetail.subTotal
+    //       )
+    //     );
+    //     orderDetail.totalPrice =
+    //       orderDetail.subTotal - orderDetail.shopVoucherDiscount;
+    //   });
+    // } else if (voucher.discountType == DiscountTypeEnum.PERCENTAGE.toString()) {
+    //   let discountValueToAmount = Math.round(sumPrice * voucher.discountValue);
+    //   if (voucher.maxDiscount)
+    //     discountValueToAmount = Math.min(
+    //       discountValueToAmount,
+    //       voucher.maxDiscount
+    //     );
 
-      childOrder.orderDetails.forEach((orderDetail) => {
-        orderDetail.shopVoucherDiscount = Math.round(
-          Math.min(
-            (orderDetail.subTotal / sumPrice) * discountValueToAmount,
-            orderDetail.subTotal
-          )
-        );
-        orderDetail.shopVoucherDiscount = Math.round(
-          Math.min(
-            (orderDetail.subTotal / sumPrice) * discountValueToAmount,
-            orderDetail.subTotal
-          )
-        );
-        orderDetail.totalPrice =
-          orderDetail.subTotal - orderDetail.shopVoucherDiscount;
-      });
-    } else throw new BadRequestError(`Discount type voucher is not supported`);
+    //   childOrder.orderDetails.forEach((orderDetail) => {
+    //     orderDetail.shopVoucherDiscount = Math.round(
+    //       Math.min(
+    //         (orderDetail.subTotal / sumPrice) * discountValueToAmount,
+    //         orderDetail.subTotal
+    //       )
+    //     );
+    //     orderDetail.shopVoucherDiscount = Math.round(
+    //       Math.min(
+    //         (orderDetail.subTotal / sumPrice) * discountValueToAmount,
+    //         orderDetail.subTotal
+    //       )
+    //     );
+    //     orderDetail.totalPrice =
+    //       orderDetail.subTotal - orderDetail.shopVoucherDiscount;
+    //   });
+    // }
   }
 
   applyPlatformVoucher(totalOrder: Order) {
     const voucher = totalOrder.voucher;
-    const allOrderDetails = totalOrder.children.flatMap(
+    let applyOrderDetails = totalOrder.children.flatMap(
       (order) => order.orderDetails
     );
-    let sumPrice = allOrderDetails.reduce(
-      (sum, orderDetail) => sum + orderDetail.totalPrice,
-      0
+    let sumPrice = applyOrderDetails.reduce((total, orderDetail) => {
+      return total + orderDetail.totalPrice;
+    }, 0);
+    let applyProductClassificationIds = applyOrderDetails.map(
+      (orderDetail) => orderDetail.productClassification.id
     );
+    if (voucher.applyType == VoucherApplyTypeEnum.SPECIFIC) {
+      const applyProductIds = voucher.applyProducts.map(
+        (product) => product.id
+      );
+      applyProductClassificationIds = applyOrderDetails
+        .filter((orderDetail) => {
+          if (orderDetail.type == OrderEnum.FLASH_SALE) {
+            return applyProductIds.includes(
+              orderDetail.productClassification.productDiscount.product?.id
+            );
+          }
+          if (orderDetail.type == OrderEnum.PRE_ORDER) {
+            return applyProductIds.includes(
+              orderDetail.productClassification.preOrderProduct.product?.id
+            );
+          }
+          return applyProductIds.includes(
+            orderDetail.productClassification.product?.id
+          );
+        })
+        .map((orderDetail) => orderDetail.productClassification.id);
+      sumPrice = applyOrderDetails.reduce((total, orderDetail) => {
+        return total + orderDetail.subTotal;
+      }, 0);
+    }
     if (voucher.minOrderValue) {
       if (sumPrice < voucher.minOrderValue) {
         throw new BadRequestError(`Minimum order value is not enough`);
       }
     }
-    if (voucher.discountType == DiscountTypeEnum.AMOUNT.toString()) {
-      allOrderDetails.forEach((orderDetail) => {
-        orderDetail.platformVoucherDiscount = Math.round(
-          Math.min(
-            (orderDetail.totalPrice / sumPrice) * voucher.discountValue,
-            orderDetail.totalPrice
+    let discount = 0;
+    if (voucher.discountType == DiscountTypeEnum.AMOUNT) {
+      discount = voucher.maxDiscount
+        ? Math.min(sumPrice, voucher.discountValue, voucher.maxDiscount)
+        : Math.min(sumPrice, voucher.discountValue);
+    } else if (voucher.discountType == DiscountTypeEnum.PERCENTAGE) {
+      discount = voucher.maxDiscount
+        ? Math.min(
+            sumPrice,
+            sumPrice * voucher.discountValue,
+            voucher.maxDiscount
           )
-        );
+        : Math.min(sumPrice, sumPrice * voucher.discountValue);
+    }
+    applyOrderDetails.forEach((orderDetail) => {
+      if (
+        applyProductClassificationIds.includes(
+          orderDetail.productClassification.id
+        )
+      ) {
         orderDetail.platformVoucherDiscount = Math.round(
-          Math.min(
-            (orderDetail.totalPrice / sumPrice) * voucher.discountValue,
-            orderDetail.totalPrice
-          )
+          (orderDetail.subTotal / sumPrice) * discount
         );
         orderDetail.totalPrice -= orderDetail.platformVoucherDiscount;
-      });
-    } else if (voucher.discountType == DiscountTypeEnum.PERCENTAGE.toString()) {
-      let discountValueToAmount = Math.round(sumPrice * voucher.discountValue);
-      if (voucher.maxDiscount)
-        discountValueToAmount = Math.min(
-          discountValueToAmount,
-          voucher.maxDiscount
-        );
-      allOrderDetails.forEach((orderDetail) => {
-        orderDetail.platformVoucherDiscount = Math.round(
-          Math.min(
-            (orderDetail.totalPrice / sumPrice) * discountValueToAmount,
-            orderDetail.totalPrice
-          )
-        );
-        orderDetail.platformVoucherDiscount = Math.round(
-          Math.min(
-            (orderDetail.totalPrice / sumPrice) * discountValueToAmount,
-            orderDetail.totalPrice
-          )
-        );
-        orderDetail.totalPrice -= orderDetail.platformVoucherDiscount;
-      });
-    } else throw new BadRequestError(`Discount type voucher is not supported`);
+      }
+    });
+    // if (voucher.discountType == DiscountTypeEnum.AMOUNT.toString()) {
+    //   allOrderDetails.forEach((orderDetail) => {
+    //     orderDetail.platformVoucherDiscount = Math.round(
+    //       Math.min(
+    //         (orderDetail.totalPrice / sumPrice) * voucher.discountValue,
+    //         orderDetail.totalPrice
+    //       )
+    //     );
+    //     orderDetail.platformVoucherDiscount = Math.round(
+    //       Math.min(
+    //         (orderDetail.totalPrice / sumPrice) * voucher.discountValue,
+    //         orderDetail.totalPrice
+    //       )
+    //     );
+    //     orderDetail.totalPrice -= orderDetail.platformVoucherDiscount;
+    //   });
+    // } else if (voucher.discountType == DiscountTypeEnum.PERCENTAGE.toString()) {
+    //   let discountValueToAmount = Math.round(sumPrice * voucher.discountValue);
+    //   if (voucher.maxDiscount)
+    //     discountValueToAmount = Math.min(
+    //       discountValueToAmount,
+    //       voucher.maxDiscount
+    //     );
+    //   allOrderDetails.forEach((orderDetail) => {
+    //     orderDetail.platformVoucherDiscount = Math.round(
+    //       Math.min(
+    //         (orderDetail.totalPrice / sumPrice) * discountValueToAmount,
+    //         orderDetail.totalPrice
+    //       )
+    //     );
+    //     orderDetail.platformVoucherDiscount = Math.round(
+    //       Math.min(
+    //         (orderDetail.totalPrice / sumPrice) * discountValueToAmount,
+    //         orderDetail.totalPrice
+    //       )
+    //     );
+    //     orderDetail.totalPrice -= orderDetail.platformVoucherDiscount;
+    //   });
+    // } else throw new BadRequestError(`Discount type voucher is not supported`);
   }
 
   calculateOrderPrice(totalOrder: Order) {

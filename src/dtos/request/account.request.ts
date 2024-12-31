@@ -62,3 +62,15 @@ export const AccountCreateSchema = z.object({
 export const AccountUpdateSchema = z.object({
   body: AccountCreateSchema.partial(),
 });
+
+export const AccountUpdateStatusSchema = z.object({
+  body: z.object({
+    accountId: z.string(),
+    reason: z.string(),
+    status: z.nativeEnum(StatusEnum),
+  }),
+});
+
+export type AccountUpdateStatusType = z.infer<
+  typeof AccountUpdateStatusSchema.shape.body
+>;

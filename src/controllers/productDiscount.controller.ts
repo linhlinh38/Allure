@@ -36,6 +36,46 @@ export default class ProductDiscountController {
     }
   }
 
+  static async getProductDiscountOfBrand(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const PreOrderProducts =
+        await productDiscountService.getProductDiscountOfBrand(
+          req.params.brandId
+        );
+      return createNormalResponse(
+        res,
+        "Get all Product Discount success",
+        PreOrderProducts
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async getProductDiscountOfProduct(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const PreOrderProducts =
+        await productDiscountService.getProductDiscountOfProduct(
+          req.params.productId
+        );
+      return createNormalResponse(
+        res,
+        "Get all Product Discount success",
+        PreOrderProducts
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async getById(req: Request, res: Response, next: NextFunction) {
     try {
       const productDiscount = await productDiscountService.findById(

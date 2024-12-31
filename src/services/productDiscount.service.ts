@@ -25,6 +25,10 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
   ): Promise<ProductDiscount[]> {
     const products = await repository
       .createQueryBuilder("productDiscount")
+      .leftJoinAndSelect(
+        "productDiscount.productClassifications",
+        "productDiscountClassifications"
+      )
       .leftJoinAndSelect("productDiscount.product", "product")
       .leftJoinAndSelect(
         "product.productClassifications",
@@ -45,6 +49,10 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
   async getProductDiscountOfBrand(brandId: string): Promise<ProductDiscount[]> {
     const products = await repository
       .createQueryBuilder("productDiscount")
+      .leftJoinAndSelect(
+        "productDiscount.productClassifications",
+        "productDiscountClassifications"
+      )
       .leftJoinAndSelect("productDiscount.product", "product")
       .leftJoinAndSelect(
         "product.productClassifications",
@@ -66,6 +74,10 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
   ): Promise<ProductDiscount[]> {
     const products = await repository
       .createQueryBuilder("productDiscount")
+      .leftJoinAndSelect(
+        "productDiscount.productClassifications",
+        "productDiscountClassifications"
+      )
       .leftJoinAndSelect("productDiscount.product", "product")
       .leftJoinAndSelect(
         "product.productClassifications",

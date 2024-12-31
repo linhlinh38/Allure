@@ -1,5 +1,9 @@
 import { Account } from "../entities/account.entity";
-import { EmailAlreadyExistError, NotFoundError } from "../errors/error";
+import {
+  BadRequestError,
+  EmailAlreadyExistError,
+  NotFoundError,
+} from "../errors/error";
 import { accountService } from "../services/account.service";
 import { NextFunction, Request, Response } from "express";
 import { encryptedPassword } from "../utils/jwt";
@@ -7,13 +11,15 @@ import { RoleEnum, StatusEnum } from "../utils/enum";
 import { AccountResponse } from "../dtos/response/account.response";
 import { instanceToPlain, plainToClass } from "class-transformer";
 import { AuthRequest } from "../middleware/authentication";
-import moment from "moment";
+import bcrypt from "bcrypt";
 import {
   sendRegisterAccountEmail,
   sendRequestCreateAccountEmail,
   sendResetPasswordEmail,
 } from "../services/mail.service";
 import { roleService } from "../services/role.service";
+import { AccountUpdateStatusType } from "../dtos/request/account.request";
+import { createNormalResponse } from "../utils/response";
 
 async function getAllAccount(req: Request, res: Response, next: NextFunction) {
   try {
@@ -42,6 +48,53 @@ async function getAccountBy(req: Request, res: Response, next: NextFunction) {
     return res
       .status(200)
       .send({ message: "Get all account success", data: responseData });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function filterAccounts(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { username, email, role, brand, status, sortBy, order, limit, page } =
+      req.query;
+
+    const filter = {
+      username: username?.toString(),
+      email: email?.toString(),
+      role: role?.toString(),
+      brand: brand?.toString(),
+      status: status ? (status as StatusEnum) : undefined,
+      sortBy: sortBy?.toString() ?? "id",
+      order: order?.toString() ?? "ASC",
+      page: page ? Number(page) : 1,
+      limit: limit ? Number(limit) : 10,
+    };
+
+    const accounts = await accountService.filterAccounts(filter);
+    return createNormalResponse(res, "Get accounts success", accounts);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getStaffByBrandAndStatus(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const accounts = await accountService.getStaffByBrandAndStatus(
+      req.body.brandId,
+      req.body.status
+    );
+
+    const responseData = accounts.map((acc) =>
+      plainToClass(AccountResponse, acc)
+    );
+    return res.status(200).send({
+      message: "Get all account of brand success",
+      data: responseData,
+    });
   } catch (error) {
     next(error);
   }
@@ -124,9 +177,10 @@ async function updateAccountStatus(
   next: NextFunction
 ) {
   try {
-    await accountService.update(req.params.id, {
-      status: req.body.status,
-    });
+    await accountService.updateAccountStatus(
+      req.loginUser,
+      req.body as AccountUpdateStatusType
+    );
     return res.status(200).send({ message: "Update account success" });
   } catch (error) {
     next(error);
@@ -202,6 +256,15 @@ async function modifyPassword(
     if (!checkAccount || checkAccount.status !== StatusEnum.ACTIVE) {
       throw new NotFoundError("Account invalid!");
     }
+    if (checkAccount.password) {
+      const isMatch = await bcrypt.compare(
+        req.body.currentPassword,
+        checkAccount.password
+      );
+      if (!isMatch) {
+        throw new BadRequestError("Invalid current password");
+      }
+    }
     const updateData: Partial<Account> = {
       password: await encryptedPassword(req.body.password),
     };
@@ -238,4 +301,6 @@ export const accountController = {
   requestResetPassword,
   requestCreateAccount,
   verifyAccount,
+  getStaffByBrandAndStatus,
+  filterAccounts,
 };

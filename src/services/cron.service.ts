@@ -223,7 +223,7 @@ const endProductDiscount = () => {
           });
 
           console.log(
-            `PreOrderProduct ${discount.id} marked as SOLD_OUT and Product ${discount.product.id} marked as OFFICIAL.`
+            `ProductDiscount ${discount.id} marked as SOLD_OUT and Product ${discount.product.id} marked as OFFICIAL.`
           );
         }
 
@@ -237,7 +237,7 @@ const endProductDiscount = () => {
           });
 
           console.log(
-            `PreOrderProduct ${discount.id} marked as INACTIVE and Product ${discount.product.id} marked as OFFICIAL.`
+            `ProductDiscount ${discount.id} marked as INACTIVE and Product ${discount.product.id} marked as OFFICIAL.`
           );
         }
       }

@@ -8,7 +8,13 @@ import { Feedback } from './feedback.entity';
 
 @Entity('order_details')
 export class OrderDetail extends BaseEntity {
-  @Column({ type: 'double precision'})
+  @Column({ type: 'double precision', nullable: true })
+  unitPriceBeforeDiscount: number;
+
+  @Column({ type: 'double precision', nullable: true })
+  unitPriceAfterDiscount: number;
+
+  @Column({ type: 'double precision' })
   subTotal: number;
 
   @Column({ type: 'double precision' })
@@ -41,11 +47,11 @@ export class OrderDetail extends BaseEntity {
   @JoinColumn({ name: 'product_classification_id' })
   productClassification: ProductClassification;
 
-  @ManyToOne(() => ProductClassification, {
-    nullable: true,
-  })
-  @JoinColumn({ name: 'product_classification_pre_order_id' })
-  productClassificationPreOrder: ProductClassification;
+  // @ManyToOne(() => ProductClassification, {
+  //   nullable: true,
+  // })
+  // @JoinColumn({ name: 'product_classification_pre_order_id' })
+  // productClassificationPreOrder: ProductClassification;
 
   @ManyToOne(() => LiveStream, (livestream) => livestream.orders, {
     nullable: true,

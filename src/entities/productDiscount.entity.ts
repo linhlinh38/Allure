@@ -19,7 +19,7 @@ export class ProductDiscount extends BaseEntity {
   @Column({ type: "varchar" })
   endTime: string;
 
-  @Column({ type: "int" })
+  @Column({ type: "double precision" })
   discount: number;
 
   @OneToMany(
