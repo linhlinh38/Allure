@@ -9,7 +9,34 @@ import {
 import { AuthRequest } from '../middleware/authentication';
 
 export default class OrderController {
-  static async createGroupOrder(req: AuthRequest, res: Response, next: NextFunction) {
+  static async gerById(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get order successfully',
+        await orderService.gerById(req.params.orderId)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async updateStatus(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      await orderService.updateStatus(req.body.status, req.params.orderId);
+      return createNormalResponse(res, 'Update order status successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async createGroupOrder(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const preOrderBody = plainToInstance(PreOrderRequest, req.body, {
         excludeExtraneousValues: true,
@@ -20,7 +47,7 @@ export default class OrderController {
       next(err);
     }
   }
-  
+
   static async createPreOrder(
     req: AuthRequest,
     res: Response,
@@ -86,8 +113,11 @@ export default class OrderController {
       const orderNormalBody = plainToInstance(OrderNormalRequest, req.body, {
         excludeExtraneousValues: true,
       });
-      await orderService.createNormal(orderNormalBody, req.loginUser);
-      return createNormalResponse(res, 'Create order successfully');
+      return createNormalResponse(
+        res,
+        'Create order successfully',
+        await orderService.createNormal(orderNormalBody, req.loginUser)
+      );
     } catch (err) {
       next(err);
     }

@@ -145,7 +145,7 @@ export default class VoucherController {
     next: NextFunction
   ) {
     try {
-      await voucherService.collectVoucher(req.params.voucherId, req.loginUser);
+      await voucherService.collectVoucher(req.params.code, req.loginUser);
       return createNormalResponse(res, 'Collect voucher success');
     } catch (err) {
       next(err);

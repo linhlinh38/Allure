@@ -12,7 +12,7 @@ export class GroupBuyingCriteria extends BaseEntity {
   groupBuying: GroupBuying;
 
   @ManyToOne(() => GroupProduct, (groupProduct) => groupProduct.criterias, {
-    nullable: false,
+    nullable: true,
   })
   groupProduct: GroupProduct;
 

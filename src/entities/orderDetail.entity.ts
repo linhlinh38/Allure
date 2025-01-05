@@ -5,6 +5,7 @@ import { ProductClassification } from './productClassification.entity';
 import { ProductDiscount } from './productDiscount.entity';
 import { Order } from './order.entity';
 import { Feedback } from './feedback.entity';
+import { OrderEnum } from '../utils/enum';
 
 @Entity('order_details')
 export class OrderDetail extends BaseEntity {
@@ -29,8 +30,12 @@ export class OrderDetail extends BaseEntity {
   @Column({ type: 'integer', nullable: false })
   quantity: number;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  type: string;
+  @Column({
+    type: 'enum',
+    enum: OrderEnum,
+    default: OrderEnum.NORMAL,
+  })
+  type: OrderEnum;
 
   @Column({ type: 'boolean', default: false })
   isFeedback: boolean;

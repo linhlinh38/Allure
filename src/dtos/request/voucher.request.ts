@@ -45,13 +45,15 @@ export const VoucherCreateSchema = z.object({
       .transform((str) => (str ? new Date(str) : undefined))
       .refine((date) => !date || date > new Date(), {
         message: 'Start Time must be greater than the current time.',
-      }),
+      })
+      .optional(),
     endTime: z
       .string()
       .transform((str) => (str ? new Date(str) : undefined))
       .refine((date) => !date || date > new Date(), {
         message: 'End Time must be greater than the current time.',
-      }),
+      })
+      .optional(),
     applyType: z.nativeEnum(VoucherApplyTypeEnum),
     visibility: z.nativeEnum(VoucherVisibilityEnum),
     applyProductIds: z.array(z.string()).optional().nullable(),

@@ -2,10 +2,45 @@ import { NextFunction, Request, Response } from 'express';
 import { createNormalResponse } from '../utils/response';
 import { groupProductService } from '../services/groupProduct.service';
 import { plainToInstance } from 'class-transformer';
-import { GroupProductRequest } from '../dtos/request/groupProduct.request';
+import {
+  GroupProductCreateRequest,
+  GroupProductUpdateRequest,
+} from '../dtos/request/groupProduct.request';
 import { AuthRequest } from '../middleware/authentication';
 import { GroupBuyingRequest } from '../dtos/request/groupBuying.request';
+import { StatusEnum } from '../utils/enum';
 export default class GroupProductController {
+  static async getById(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get group success',
+        await groupProductService.getById(req.params.groupProductId)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async toggleStatus(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const statusAfterUpdate = await groupProductService.toggleStatus(
+        req.params.groupProductId
+      );
+      return createNormalResponse(
+        res,
+        statusAfterUpdate == StatusEnum.ACTIVE
+          ? 'Status is active'
+          : 'Status is inactive'
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async startEvent(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const groupBuyingBody = plainToInstance(GroupBuyingRequest, req.body, {
@@ -34,13 +69,20 @@ export default class GroupProductController {
     }
   }
 
-  static async updateProducts(req: Request, res: Response, next: NextFunction) {
+  static async update(req: Request, res: Response, next: NextFunction) {
     try {
-      await groupProductService.updateProducts(
-        req.body.productIds as string[],
-        req.body.groupProductId
+      const groupProductUpdateBody = plainToInstance(
+        GroupProductUpdateRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
       );
-      return createNormalResponse(res, 'Update products success');
+      await groupProductService.updateGroup(
+        groupProductUpdateBody,
+        req.params.groupProductId
+      );
+      return createNormalResponse(res, 'Update success');
     } catch (err) {
       next(err);
     }
@@ -48,11 +90,11 @@ export default class GroupProductController {
 
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
-      const categorys = await groupProductService.getAll();
+      const groupProducts = await groupProductService.getAll();
       return createNormalResponse(
         res,
         'Get all group products success',
-        categorys
+        groupProducts
       );
     } catch (err) {
       next(err);
@@ -61,11 +103,18 @@ export default class GroupProductController {
 
   static async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const groupProductBody = plainToInstance(GroupProductRequest, req.body, {
-        excludeExtraneousValues: true,
-      });
-      await groupProductService.createGroupProduct(groupProductBody);
-      return createNormalResponse(res, 'Create group product success');
+      const groupProductBody = plainToInstance(
+        GroupProductCreateRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Create group product success',
+        await groupProductService.createGroupProduct(groupProductBody)
+      );
     } catch (err) {
       next(err);
     }

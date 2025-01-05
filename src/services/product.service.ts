@@ -444,6 +444,53 @@ class ProductService extends BaseService<Product> {
     }
   }
 
+  async updateProductStatus(
+    productId: string,
+    status: ProductEnum
+  ): Promise<Product> {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const productRepository = queryRunner.manager.getRepository(Product);
+      const preOrderProductRepository =
+        queryRunner.manager.getRepository(PreOrderProduct);
+      const productDiscountRepository =
+        queryRunner.manager.getRepository(ProductDiscount);
+      const product = await productRepository.findOne({
+        where: { id: productId },
+      });
+
+      if (!product) {
+        throw new Error(`Product with id ${productId} not found`);
+      }
+
+      product.status = status;
+      await productRepository.save(product);
+
+      if (status === ProductEnum.INACTIVE || status === ProductEnum.BANNED) {
+        await preOrderProductRepository.update(
+          { product: { id: productId } },
+          { status: PreOrderProductEnum.INACTIVE }
+        );
+
+        await productDiscountRepository.update(
+          { product: { id: productId } },
+          { status: ProductDiscountEnum.INACTIVE }
+        );
+      }
+
+      await queryRunner.commitTransaction();
+      return product;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
   async searchProductsName(searchKey: string): Promise<string[]> {
     const products = await repository.find({
       where: {

@@ -38,7 +38,7 @@ voucherRouter.put(
 );
 voucherRouter.use(authentication);
 voucherRouter.post(
-  '/collect-voucher/:voucherId',
+  '/collect-voucher/:code',
   VoucherController.collectVoucher
 );
 voucherRouter.post(

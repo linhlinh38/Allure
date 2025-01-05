@@ -685,10 +685,10 @@ class VoucherService extends BaseService<Voucher> {
     }
   }
 
-  async collectVoucher(voucherId: string, loginUser: string) {
+  async collectVoucher(code: string, loginUser: string) {
     const voucher = await voucherRepository.findOne({
       where: {
-        id: voucherId,
+        code,
       },
     });
     if (!voucher) throw new BadRequestError('Voucher not found');
@@ -697,7 +697,7 @@ class VoucherService extends BaseService<Voucher> {
     }
     const voucherWallet = await voucherWalletRepository.findOne({
       where: {
-        voucher: { id: voucherId },
+        voucher: { code },
       },
     });
     if (voucherWallet)

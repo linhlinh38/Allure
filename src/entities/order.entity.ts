@@ -52,7 +52,7 @@ export class Order extends BaseEntity {
   @Column({
     type: 'enum',
     enum: ShippingStatusEnum,
-    default: ShippingStatusEnum.TO_SHIP,
+    default: ShippingStatusEnum.WAIT_FOR_SHOP_CONFIRM,
   })
   status: ShippingStatusEnum;
 

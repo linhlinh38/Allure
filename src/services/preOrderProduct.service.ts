@@ -14,6 +14,17 @@ import { BaseService } from "./base.service";
 import { productService } from "./product.service";
 
 const repository = AppDataSource.getRepository(PreOrderProduct);
+interface FilterOptions {
+  startTime?: Date;
+  endTime?: Date;
+  productId?: string;
+  brandId?: string;
+  status?: PreOrderProductEnum;
+  sortBy?: string;
+  order?: string;
+  limit?: number;
+  page?: number;
+}
 class PreOrderProductService extends BaseService<PreOrderProduct> {
   constructor() {
     super(repository);
@@ -81,6 +92,68 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
       .getMany();
 
     return products;
+  }
+
+  async filterPreOrderProducts(options: FilterOptions) {
+    const {
+      startTime,
+      endTime,
+      productId,
+      brandId,
+      status,
+      sortBy,
+      order,
+      limit,
+      page,
+    } = options;
+
+    const queryBuilder = this.repository
+      .createQueryBuilder("preOrderProduct")
+      .leftJoinAndSelect("preOrderProduct.product", "product")
+      .leftJoinAndSelect("product.brand", "brand");
+
+    if (startTime) {
+      queryBuilder.andWhere(
+        'to_timestamp(preOrderProduct.startTime, \'YYYY-MM-DD"T"HH24:MI:SS"Z"\') >= to_timestamp(:startTime, \'YYYY-MM-DD"T"HH24:MI:SS"Z"\')',
+        { startTime }
+      );
+    }
+
+    if (endTime) {
+      queryBuilder.andWhere(
+        'to_timestamp(preOrderProduct.endTime, \'YYYY-MM-DD"T"HH24:MI:SS"Z"\') <= to_timestamp(:endTime, \'YYYY-MM-DD"T"HH24:MI:SS"Z"\')',
+        { endTime }
+      );
+    }
+
+    if (productId) {
+      queryBuilder.andWhere("product.id = :productId", { productId });
+    }
+
+    if (brandId) {
+      queryBuilder.andWhere("brand.id = :brandId", { brandId });
+    }
+
+    if (status) {
+      queryBuilder.andWhere("preOrderProduct.status = :status", { status });
+    }
+
+    queryBuilder
+      .orderBy(
+        `preOrderProduct.${sortBy}`,
+        order.toUpperCase() as "ASC" | "DESC"
+      )
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const [preOrderProducts, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      items: preOrderProducts,
+      total,
+      page,
+      limit,
+    };
   }
 
   async beforeCreate(data: PreOrderProduct) {

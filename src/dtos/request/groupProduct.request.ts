@@ -32,7 +32,38 @@ export const GroupProductCreateSchema = z.object({
   }),
 });
 
-export class GroupProductRequest {
+export const GroupProductUpdateSchema = z.object({
+  body: z.object({
+    name: z.string().min(1, 'Name is required'),
+    description: z
+      .string()
+      .max(255, 'Description cannot exceed 255 characters')
+      .optional(),
+    maxBuyAmountEachPerson: z
+      .number()
+      .int('Max buy amount each person must be an integer')
+      .positive('Max buy amount each person must be a positive integer')
+      .optional(),
+    productIds: z
+      .array(z.string().uuid('Product ID must be a valid string'))
+      .nonempty('Product IDs cannot be empty'),
+    criterias: z
+      .array(
+        z.object({
+          threshold: z
+            .number()
+            .int('Threshold must be an integer')
+            .positive('Threshold must be a positive integer'),
+          id: z.string().uuid('Criteria ID must be a valid string').optional(),
+          voucher: VoucherCreateSchema.shape.body.optional(),
+        })
+      )
+      .nonempty('Criterias cannot be empty'),
+    brandId: z.string().uuid('Brand ID must be a valid string'),
+  }),
+});
+
+export class GroupProductCreateRequest {
   @Expose()
   name: string;
   @Expose()
@@ -43,6 +74,25 @@ export class GroupProductRequest {
   productIds: string[];
   @Expose()
   criterias: {
+    threshold: number;
+    voucher: VoucherRequest;
+  }[];
+  @Expose()
+  brandId: string;
+}
+
+export class GroupProductUpdateRequest {
+  @Expose()
+  name: string;
+  @Expose()
+  description?: string;
+  @Expose()
+  maxBuyAmountEachPerson: number;
+  @Expose()
+  productIds: string[];
+  @Expose()
+  criterias: {
+    id: string;
     threshold: number;
     voucher: VoucherRequest;
   }[];

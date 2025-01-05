@@ -13,7 +13,7 @@ export class GroupProduct extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ type: 'integer', nullable: true})
+  @Column({ type: 'integer', nullable: true })
   maxBuyAmountEachPerson: number;
 
   @OneToMany(() => GroupBuyingCriteria, (criteria) => criteria.groupProduct, {
@@ -24,11 +24,13 @@ export class GroupProduct extends BaseEntity {
   @Column({
     type: 'enum',
     enum: StatusEnum,
-    default: StatusEnum.ACTIVE,
+    default: StatusEnum.INACTIVE,
   })
   status: StatusEnum;
 
-  @ManyToMany(() => Product, (product) => product.groupProducts)
+  @ManyToMany(() => Product, (product) => product.groupProducts, {
+    cascade: true,
+  })
   @JoinTable({
     name: 'group_product_to_product', // Tên bảng trung gian
     joinColumn: {

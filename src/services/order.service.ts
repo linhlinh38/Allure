@@ -1,4 +1,11 @@
-import { ILike, IsNull, LessThanOrEqual, MoreThanOrEqual, Not } from 'typeorm';
+import {
+  ILike,
+  In,
+  IsNull,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+  Not,
+} from 'typeorm';
 import { AppDataSource } from '../dataSource';
 import { BadRequestError } from '../errors/error';
 import { BaseService } from './base.service';
@@ -16,12 +23,36 @@ import { OrderDetail } from '../entities/orderDetail.entity';
 import { ProductClassification } from '../entities/productClassification.entity';
 import { accountRepository } from '../repositories/account.repository';
 import { brandRepository } from '../repositories/brand.repository';
-import { OrderEnum, ShippingStatusEnum } from '../utils/enum';
+import { OrderEnum, ShippingStatusEnum, StatusEnum } from '../utils/enum';
 import { validate as isUUID } from 'uuid';
 import { addressRepository } from '../repositories/address.repository';
+import { orderRepository } from '../repositories/order.repository';
+import { cartRepository } from '../repositories/cart.repository';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
+  async gerById(orderId: string) {
+    const order = await orderRepository.findOne({
+      where: { id: orderId },
+      relations: {
+        orderDetails: {
+          productClassification: { images: true },
+        },
+      },
+    });
+    if (!order) throw new BadRequestError(`Order not found`);
+    return order;
+  }
+  async updateStatus(status: ShippingStatusEnum, orderId: string) {
+    const order = await orderRepository.findOne({
+      where: { id: orderId },
+    });
+    if (!order) {
+      throw new BadRequestError(`Order not found`);
+    }
+    order.status = status;
+    await order.save();
+  }
   async getMyOrders(
     search: string,
     status: ShippingStatusEnum,
@@ -31,7 +62,10 @@ class OrderService extends BaseService<Order> {
       relations: {
         account: true,
         orderDetails: {
-          productClassification: { product: { brand: true, images: true } },
+          productClassification: {
+            images: true,
+            product: { brand: true, images: true },
+          },
         },
         voucher: true,
       },
@@ -134,7 +168,10 @@ class OrderService extends BaseService<Order> {
         account: true,
         children: {
           orderDetails: {
-            productClassification: { product: { brand: true, images: true } },
+            productClassification: {
+              images: true,
+              product: { brand: true, images: true },
+            },
           },
           voucher: true,
         },
@@ -350,31 +387,8 @@ class OrderService extends BaseService<Order> {
           } else if (productClassification.preOrderProduct) {
             orderDetail.type = OrderEnum.PRE_ORDER;
           }
-          // const productDiscountEvent = await productDiscountRepository.findOne({
-          //   where: {
-          //     product: { id: productClassification.product.id }, // Lọc theo productId
-          //     startTime: LessThanOrEqual(now.toISOString()), // startTime <= now
-          //     endTime: MoreThanOrEqual(now.toISOString()), // endTime >= now
-          //   },
-          // });
-          // if (productDiscountEvent) {
-          //   const productClassificationFlashSale =
-          //     await productClassificationRepository.findOne({
-          //       where: {
-          //         productDiscount: { id: productDiscountEvent.id },
-          //       },
-          //       relations: { productDiscount: true },
-          //     });
-          //   if (
-          //     productClassificationFlashSale &&
-          //     productClassificationFlashSale.quantity >= item.quantity
-          //   ) {
-          //     price = productClassificationFlashSale.price;
-          //     orderDetail.productDiscount = productDiscountEvent;
-          //     orderDetail.type = OrderEnum.FLASH_SALE;
-          //   }
-          // }
-          orderDetail.subTotal = item.quantity * orderDetail.unitPriceAfterDiscount;
+          orderDetail.subTotal =
+            item.quantity * orderDetail.unitPriceAfterDiscount;
           orderDetail.totalPrice = orderDetail.subTotal;
           orderDetail.quantity = item.quantity;
           orderDetail.productClassification = productClassification;
@@ -401,14 +415,41 @@ class OrderService extends BaseService<Order> {
 
       voucherService.calculateOrderPrice(parentOrder);
 
-      await queryRunner.manager.save(Order, parentOrder);
+      const createdParentOrder = await queryRunner.manager.save(
+        Order,
+        parentOrder
+      );
+
+      //remove cart items after order has been created
+      const productClassificationIds = orderNormalBody.orders.flatMap((order) =>
+        order.items.map((item) => item.productClassificationId)
+      );
+      await this.removeItemsFromCartAfterOrder(
+        productClassificationIds,
+        accountId
+      );
+      
       await queryRunner.commitTransaction();
+      return createdParentOrder;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
     } finally {
       await queryRunner.release();
     }
+  }
+
+  async removeItemsFromCartAfterOrder(
+    productClassificationIds: string[],
+    userId: string
+  ) {
+    const cartItems = await cartRepository.find({
+      where: {
+        productClassification: { id: In(productClassificationIds) },
+        account: { id: userId },
+      },
+    });
+    await cartRepository.remove(cartItems);
   }
 
   constructor() {

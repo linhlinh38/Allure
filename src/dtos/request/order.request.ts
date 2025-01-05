@@ -53,6 +53,12 @@ export const SearchOrderSchema = z.object({
   }),
 });
 
+export const UpdateOrderStatusSchema = z.object({
+  body: z.object({
+    status: z.nativeEnum(ShippingStatusEnum).optional(),
+  }),
+});
+
 export class OrderNormalRequest {
   @Expose()
   addressId: string;

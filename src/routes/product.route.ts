@@ -30,4 +30,9 @@ productRouter.put(
   validate(ProductUpdateSchema),
   ProductController.update
 );
+productRouter.put(
+  "/update-status/:id",
+  validate(ProductUpdateSchema),
+  ProductController.updateProductStatus
+);
 export default productRouter;
