@@ -52,31 +52,31 @@ export class Brand extends BaseEntity {
   address: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 100 })
+  @Column({ type: "varchar", length: 100, nullable: true })
   businessTaxCode: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 100 })
+  @Column({ type: "varchar", length: 100, nullable: true })
   businessRegistrationCode: string;
 
   @Expose()
-  @Column({ type: "date" })
+  @Column({ type: "date", nullable: true })
   establishmentDate: Date;
 
   @Expose()
-  @Column({ type: "varchar", length: 100 })
+  @Column({ type: "varchar", length: 100, nullable: true })
   province: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 100 })
+  @Column({ type: "varchar", length: 100, nullable: true })
   district: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 100 })
+  @Column({ type: "varchar", length: 100, nullable: true })
   ward: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 255 })
+  @Column({ type: "varchar", length: 255, nullable: true })
   businessRegistrationAddress: string;
 
   @Column({ type: "float", default: 0 })
