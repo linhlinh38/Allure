@@ -18,13 +18,22 @@ export class ProductClassification extends BaseEntity {
   @Column({ type: "int", nullable: false })
   quantity: number;
 
+  @Column({ type: "varchar", nullable: true })
+  color: string;
+
+  @Column({ type: "varchar", nullable: true })
+  size: string;
+
+  @Column({ type: "varchar", nullable: true })
+  other: string;
+
   @OneToMany(() => ProductImage, (image) => image.productClassification, {
     nullable: true,
   })
   @JoinColumn({ name: "product_classification_images" })
   images?: ProductImage[];
 
-  @Column({ type: "varchar", nullable: true, default: null })
+  @Column({ type: "varchar" })
   sku: string;
 
   @Column({

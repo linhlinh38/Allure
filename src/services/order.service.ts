@@ -28,6 +28,7 @@ import { validate as isUUID } from 'uuid';
 import { addressRepository } from '../repositories/address.repository';
 import { orderRepository } from '../repositories/order.repository';
 import { cartRepository } from '../repositories/cart.repository';
+import { VoucherWallet } from '../entities/voucherWallet.entity';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
@@ -111,6 +112,22 @@ class OrderService extends BaseService<Order> {
         orderDetails: {
           productClassification: {
             product: { name: ILike(`%${search}%`) },
+          },
+        },
+      },
+      {
+        ...commonConditions.where,
+        orderDetails: {
+          productClassification: {
+            productDiscount: { product: { name: ILike(`%${search}%`) } },
+          },
+        },
+      },
+      {
+        ...commonConditions.where,
+        orderDetails: {
+          productClassification: {
+            preOrderProduct: { product: { name: ILike(`%${search}%`) } },
           },
         },
       },
@@ -209,9 +226,13 @@ class OrderService extends BaseService<Order> {
           where: { id: preOrderBody.platformVoucherId },
           relations: { brand: true },
         });
-        await voucherService.validatePlatformVoucher(
+        const createdPlatformVoucherWallet = await voucherService.validatePlatformVoucher(
           preOrderBody.platformVoucherId,
           accountId
+        );
+        await queryRunner.manager.save(
+          VoucherWallet,
+          createdPlatformVoucherWallet
         );
         parentOrder.voucher = platformVoucher;
       }
@@ -320,18 +341,27 @@ class OrderService extends BaseService<Order> {
           where: { id: orderNormalBody.platformVoucherId },
           relations: { brand: true },
         });
-        await voucherService.validatePlatformVoucher(
-          orderNormalBody.platformVoucherId,
-          accountId
+        const createdPlatformVoucherWallet =
+          await voucherService.validatePlatformVoucher(
+            orderNormalBody.platformVoucherId,
+            accountId
+          );
+        await queryRunner.manager.save(
+          VoucherWallet,
+          createdPlatformVoucherWallet
         );
         parentOrder.voucher = platformVoucher;
       }
       //validate shop vouchers
       for (const order of orderNormalBody.orders) {
         if (order.shopVoucherId) {
-          await voucherService.validateShopVoucher(
+          const createdShopVoucherWalletawait = await voucherService.validateShopVoucher(
             order.shopVoucherId,
             accountId
+          );
+          await queryRunner.manager.save(
+            VoucherWallet,
+            createdShopVoucherWalletawait
           );
         }
       }
@@ -428,7 +458,7 @@ class OrderService extends BaseService<Order> {
         productClassificationIds,
         accountId
       );
-      
+
       await queryRunner.commitTransaction();
       return createdParentOrder;
     } catch (error) {

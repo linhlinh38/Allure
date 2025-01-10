@@ -44,6 +44,17 @@ class ProductService extends BaseService<Product> {
         "productClassifications.images",
         "images",
       ],
+      where: {
+        productClassifications: {
+          status: StatusEnum.ACTIVE,
+          images: {
+            status: StatusEnum.ACTIVE,
+          },
+        },
+        images: {
+          status: StatusEnum.ACTIVE,
+        },
+      },
     });
 
     return product;
@@ -55,11 +66,15 @@ class ProductService extends BaseService<Product> {
       .leftJoinAndSelect("product.brand", "brand")
       .leftJoinAndSelect(
         "product.productClassifications",
-        "productClassifications"
+        "productClassifications",
+        "productClassifications.status = :classificationStatus",
+        { classificationStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
         "productClassifications.images",
-        "classificationImages"
+        "classificationImages",
+        "classificationImages.status = :imageStatus",
+        { imageStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect("product.images", "images")
       .leftJoinAndSelect(
@@ -70,11 +85,15 @@ class ProductService extends BaseService<Product> {
       )
       .leftJoinAndSelect(
         "productDiscounts.productClassifications",
-        "productDiscount_productClassifications"
+        "productDiscount_productClassifications",
+        "productDiscount_productClassifications.status = :productDiscount_productClassifications",
+        { productDiscount_productClassifications: ProductDiscountEnum.ACTIVE }
       )
       .leftJoinAndSelect(
         "productDiscount_productClassifications.images",
-        "productDiscount_productClassifications_images"
+        "productDiscount_productClassifications_images",
+        "productDiscount_productClassifications_images.status = :productDiscount_productClassifications_images",
+        { productDiscount_productClassifications_images: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
         "product.preOrderProducts",
@@ -84,11 +103,15 @@ class ProductService extends BaseService<Product> {
       )
       .leftJoinAndSelect(
         "preOrderProducts.productClassifications",
-        "preOrderProduct_productClassifications"
+        "preOrderProduct_productClassifications",
+        "preOrderProduct_productClassifications.status = :preOrderProduct_productClassifications",
+        { preOrderProduct_productClassifications: PreOrderProductEnum.ACTIVE }
       )
       .leftJoinAndSelect(
         "preOrderProduct_productClassifications.images",
-        "preOrderProduct_productClassifications_images"
+        "preOrderProduct_productClassifications_images",
+        "preOrderProduct_productClassifications_images.status = :preOrderProduct_productClassifications_images",
+        { preOrderProduct_productClassifications_images: StatusEnum.ACTIVE }
       )
       .where("product.id = :id", { id })
       .getOne();
@@ -98,7 +121,19 @@ class ProductService extends BaseService<Product> {
 
   async getByBrand(id: string) {
     const product = await repository.find({
-      where: { brand: { id } },
+      where: {
+        brand: { id },
+
+        productClassifications: {
+          status: StatusEnum.ACTIVE,
+          images: {
+            status: StatusEnum.ACTIVE,
+          },
+        },
+        images: {
+          status: StatusEnum.ACTIVE,
+        },
+      },
       relations: [
         "category",
         "brand",
@@ -113,7 +148,18 @@ class ProductService extends BaseService<Product> {
 
   async getByCategory(id: string) {
     const product = await repository.find({
-      where: { category: { id } },
+      where: {
+        category: { id },
+        productClassifications: {
+          status: StatusEnum.ACTIVE,
+          images: {
+            status: StatusEnum.ACTIVE,
+          },
+        },
+        images: {
+          status: StatusEnum.ACTIVE,
+        },
+      },
       relations: [
         "category",
         "brand",
@@ -137,13 +183,22 @@ class ProductService extends BaseService<Product> {
       .leftJoinAndSelect("product.category", "category")
       .leftJoinAndSelect(
         "product.productClassifications",
-        "productClassifications"
+        "productClassifications",
+        "productClassifications.status = :classificationStatus",
+        { classificationStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
         "productClassifications.images",
-        "classification_images"
+        "classification_images",
+        "classification_images.status = :imageStatus",
+        { imageStatus: StatusEnum.ACTIVE }
       )
-      .leftJoinAndSelect("product.images", "product_images");
+      .leftJoinAndSelect(
+        "product.images",
+        "product_images",
+        "product_images.status = :status",
+        { status: StatusEnum.ACTIVE }
+      );
 
     if (filter.search) {
       queryBuilder.andWhere(

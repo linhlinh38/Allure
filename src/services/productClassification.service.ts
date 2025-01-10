@@ -3,7 +3,7 @@ import { AppDataSource } from "../dataSource";
 import { ProductClassification } from "../entities/productClassification.entity";
 import { ProductImage } from "../entities/productImage.entity";
 import { BaseService } from "./base.service";
-import { StatusEnum } from "../utils/enum";
+import { PreOrderProductEnum, ProductEnum, StatusEnum } from "../utils/enum";
 import { BadRequestError } from "../errors/error";
 import { productService } from "./product.service";
 import { productRepository } from "../repositories/product.repository";
@@ -25,13 +25,29 @@ class ProductClassificationService extends BaseService<ProductClassification> {
       }
 
       const checkSku = await this.repository.find({
-        where: {
-          product: {
-            brand: { id: product.brand.id },
+        where: [
+          {
+            product: {
+              brand: { id: product.brand.id },
+              status: Not(In([ProductEnum.INACTIVE, ProductEnum.BANNED])),
+            },
+            sku: body.sku,
+            status: Not(In([StatusEnum.INACTIVE, StatusEnum.BANNED])),
           },
-          sku: body.sku,
-          status: Not(In([StatusEnum.INACTIVE, StatusEnum.BANNED])),
-        },
+          {
+            preOrderProduct: {
+              product: { brand: { id: product.brand.id } },
+              status: Not(
+                In([
+                  PreOrderProductEnum.INACTIVE,
+                  PreOrderProductEnum.CANCELLED,
+                ])
+              ),
+            },
+            sku: body.sku,
+            status: Not(In([StatusEnum.INACTIVE, StatusEnum.BANNED])),
+          },
+        ],
       });
 
       if (checkSku.length !== 0)

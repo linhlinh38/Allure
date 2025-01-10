@@ -134,7 +134,19 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
     const queryBuilder = this.repository
       .createQueryBuilder("productDiscount")
       .leftJoinAndSelect("productDiscount.product", "product")
-      .leftJoinAndSelect("product.brand", "brand");
+      .leftJoinAndSelect("product.brand", "brand")
+      .leftJoinAndSelect(
+        "productDiscount.productClassifications",
+        "productClassifications",
+        "productClassifications.status = :status",
+        { status: StatusEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
+        "productClassifications.images",
+        "images",
+        "images.status = :imageStatus",
+        { imageStatus: StatusEnum.ACTIVE }
+      );
 
     if (startTime) {
       queryBuilder.andWhere(

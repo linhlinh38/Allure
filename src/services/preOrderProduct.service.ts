@@ -110,7 +110,19 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
     const queryBuilder = this.repository
       .createQueryBuilder("preOrderProduct")
       .leftJoinAndSelect("preOrderProduct.product", "product")
-      .leftJoinAndSelect("product.brand", "brand");
+      .leftJoinAndSelect("product.brand", "brand")
+      .leftJoinAndSelect(
+        "preOrderProduct.productClassifications",
+        "productClassifications",
+        "productClassifications.status = :status",
+        { status: StatusEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
+        "productClassifications.images",
+        "images",
+        "images.status = :imageStatus",
+        { imageStatus: StatusEnum.ACTIVE }
+      );
 
     if (startTime) {
       queryBuilder.andWhere(
