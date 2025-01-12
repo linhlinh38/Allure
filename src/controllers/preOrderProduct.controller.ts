@@ -6,7 +6,7 @@ import { PreOrderProductEnum } from "../utils/enum";
 export default class PreOrderProductController {
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
-      const PreOrderProducts = await preOrderProductService.findAll();
+      const PreOrderProducts = await preOrderProductService.getAll();
       return createNormalResponse(
         res,
         "Get all PreOrderProducts success",
@@ -121,7 +121,7 @@ export default class PreOrderProductController {
 
   static async getById(req: Request, res: Response, next: NextFunction) {
     try {
-      const PreOrderProduct = await preOrderProductService.findById(
+      const PreOrderProduct = await preOrderProductService.getById(
         req.params.id
       );
       if (!PreOrderProduct)

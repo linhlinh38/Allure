@@ -36,28 +36,31 @@ class ProductService extends BaseService<Product> {
   }
 
   async getAll() {
-    const product = await repository.find({
-      relations: [
-        "category",
-        "brand",
+    const products = await this.repository
+      .createQueryBuilder("product")
+      .leftJoinAndSelect("product.category", "category")
+      .leftJoinAndSelect("product.brand", "brand")
+      .leftJoinAndSelect(
+        "product.productClassifications",
         "productClassifications",
+        "productClassifications.status = :classificationStatus",
+        { classificationStatus: StatusEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
         "productClassifications.images",
+        "classificationImages",
+        "classificationImages.status = :imageStatus",
+        { imageStatus: StatusEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
+        "product.images",
         "images",
-      ],
-      where: {
-        productClassifications: {
-          status: StatusEnum.ACTIVE,
-          images: {
-            status: StatusEnum.ACTIVE,
-          },
-        },
-        images: {
-          status: StatusEnum.ACTIVE,
-        },
-      },
-    });
+        "images.status = :productImageStatus",
+        { productImageStatus: StatusEnum.ACTIVE }
+      )
+      .getMany();
 
-    return product;
+    return products;
   }
   async getById(id: string) {
     const product = await repository
@@ -120,56 +123,61 @@ class ProductService extends BaseService<Product> {
   }
 
   async getByBrand(id: string) {
-    const product = await repository.find({
-      where: {
-        brand: { id },
-
-        productClassifications: {
-          status: StatusEnum.ACTIVE,
-          images: {
-            status: StatusEnum.ACTIVE,
-          },
-        },
-        images: {
-          status: StatusEnum.ACTIVE,
-        },
-      },
-      relations: [
-        "category",
-        "brand",
+    const products = await this.repository
+      .createQueryBuilder("product")
+      .leftJoinAndSelect("product.category", "category")
+      .leftJoinAndSelect("product.brand", "brand")
+      .leftJoinAndSelect(
+        "product.productClassifications",
         "productClassifications",
+        "productClassifications.status = :classificationStatus",
+        { classificationStatus: StatusEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
         "productClassifications.images",
+        "classificationImages",
+        "classificationImages.status = :imageStatus",
+        { imageStatus: StatusEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
+        "product.images",
         "images",
-      ],
-    });
+        "images.status = :productImageStatus",
+        { productImageStatus: StatusEnum.ACTIVE }
+      )
+      .where("product.brand = :id", { id })
+      .getMany();
 
-    return product;
+    return products;
   }
 
   async getByCategory(id: string) {
-    const product = await repository.find({
-      where: {
-        category: { id },
-        productClassifications: {
-          status: StatusEnum.ACTIVE,
-          images: {
-            status: StatusEnum.ACTIVE,
-          },
-        },
-        images: {
-          status: StatusEnum.ACTIVE,
-        },
-      },
-      relations: [
-        "category",
-        "brand",
+    const products = await this.repository
+      .createQueryBuilder("product")
+      .leftJoinAndSelect("product.category", "category")
+      .leftJoinAndSelect("product.brand", "brand")
+      .leftJoinAndSelect(
+        "product.productClassifications",
         "productClassifications",
+        "productClassifications.status = :classificationStatus",
+        { classificationStatus: StatusEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
         "productClassifications.images",
+        "classificationImages",
+        "classificationImages.status = :imageStatus",
+        { imageStatus: StatusEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
+        "product.images",
         "images",
-      ],
-    });
+        "images.status = :productImageStatus",
+        { productImageStatus: StatusEnum.ACTIVE }
+      )
+      .where("product.category = :id", { id })
+      .getMany();
 
-    return product;
+    return products;
   }
 
   async filteredProducts(filter: ProductFilter): Promise<{
