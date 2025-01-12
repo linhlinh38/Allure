@@ -26,7 +26,19 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
   }
   async getAll() {
     const productDiscount = repository.find({
-      relations: ["product"],
+      relations: [
+        "product",
+        "productClassifications",
+        "productClassifications.images",
+      ],
+      where: {
+        productClassifications: {
+          status: StatusEnum.ACTIVE,
+          images: {
+            status: StatusEnum.ACTIVE,
+          },
+        },
+      },
     });
 
     return productDiscount;
@@ -36,6 +48,12 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
     const productDiscount = repository.find({
       where: {
         id,
+        productClassifications: {
+          status: StatusEnum.ACTIVE,
+          images: {
+            status: StatusEnum.ACTIVE,
+          },
+        },
       },
       relations: [
         "product",

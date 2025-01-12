@@ -411,7 +411,7 @@ class OrderService extends BaseService<Order> {
           if (productClassification.productDiscount) {
             orderDetail.unitPriceAfterDiscount =
               productClassification.price *
-              productClassification.productDiscount.discount;
+              (1- productClassification.productDiscount.discount);
             orderDetail.type = OrderEnum.FLASH_SALE;
             orderDetail.productDiscount = productClassification.productDiscount;
           } else if (productClassification.preOrderProduct) {
