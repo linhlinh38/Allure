@@ -624,7 +624,7 @@ class VoucherService extends BaseService<Voucher> {
         status: VoucherWalletStatus.USED,
       },
     });
-    return (usedVouchers / (usedVouchers + voucher.amount)).toFixed(2);
+    return Math.floor(usedVouchers / (usedVouchers + voucher.amount));
   }
 
   calculateDiscountVoucherForProductClassifications(

@@ -7,62 +7,62 @@ import { CartItem } from "./cartItem.entity";
 import { ProductImage } from "./productImage.entity";
 import { ProductDiscount } from "./productDiscount.entity";
 
-@Entity("product_classifications")
+@Entity('product_classifications')
 export class ProductClassification extends BaseEntity {
-  @Column({ type: "varchar" })
+  @Column({ type: 'varchar' })
   title: string;
 
-  @Column({ type: "int", nullable: false })
+  @Column({ type: 'int', nullable: false })
   price: number;
 
-  @Column({ type: "int", nullable: false })
+  @Column({ type: 'int', nullable: false })
   quantity: number;
 
-  @Column({ type: "varchar", nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   color: string;
 
-  @Column({ type: "varchar", nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   size: string;
 
-  @Column({ type: "varchar", nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   other: string;
 
   @OneToMany(() => ProductImage, (image) => image.productClassification, {
     nullable: true,
   })
-  @JoinColumn({ name: "product_classification_images" })
+  @JoinColumn({ name: 'product_classification_images' })
   images?: ProductImage[];
 
-  @Column({ type: "varchar" })
+  @Column({ type: 'varchar'})
   sku: string;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: ClassificationTypeEnum,
     nullable: true,
   })
   type: ClassificationTypeEnum;
 
   @ManyToOne(() => Product, { nullable: true })
-  @JoinColumn({ name: "product_id" })
+  @JoinColumn({ name: 'product_id' })
   product: Product;
 
   @ManyToOne(() => PreOrderProduct, { nullable: true })
-  @JoinColumn({ name: "pre_order_product_id" })
+  @JoinColumn({ name: 'pre_order_product_id' })
   preOrderProduct: PreOrderProduct;
 
   @ManyToOne(() => ProductDiscount, { nullable: true })
-  @JoinColumn({ name: "product_discount_id" })
+  @JoinColumn({ name: 'product_discount_id' })
   productDiscount: ProductDiscount;
 
   @OneToMany(() => CartItem, (cartItem) => cartItem.productClassification, {
     nullable: true,
   })
-  @JoinColumn({ name: "cart_items" })
+  @JoinColumn({ name: 'cart_items' })
   cartItems?: CartItem[];
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: StatusEnum,
     default: StatusEnum.ACTIVE,
   })

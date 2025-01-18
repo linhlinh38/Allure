@@ -6,7 +6,6 @@ import {
   ManyToMany,
   ManyToOne,
   OneToMany,
-  PrimaryGeneratedColumn,
 } from "typeorm";
 import { BaseEntity } from "./base.entity";
 import { GenderEnum, RoleEnum, StatusEnum } from "../utils/enum";

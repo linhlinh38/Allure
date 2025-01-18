@@ -21,6 +21,33 @@ export const GroupBuyingCreateSchema = z.object({
   }),
 });
 
+export const GroupBuyingJoinEventSchema = z.object({
+  body: z.object({
+    items: z
+      .array(
+        z.object({
+          productClassificationId: z
+            .string()
+            .min(1, 'Product Classification ID is required'),
+          quantity: z
+            .number()
+            .int()
+            .positive('Quantity must be a positive integer'),
+        })
+      )
+      .min(1, 'Orders cannot be empty'),
+    addressId: z.string().min(1, 'Address id is required'),
+  }),
+});
+
+export class GroupBuyingJoinEventRequest {
+  items: {
+    productClassificationId: string;
+    quantity: number;
+  }[];
+  addressId: string
+}
+
 export class GroupBuyingRequest {
   @Expose()
   startTime: Date;

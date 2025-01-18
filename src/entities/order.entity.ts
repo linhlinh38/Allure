@@ -1,10 +1,4 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  OneToMany,
-} from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { OrderEnum, ShippingStatusEnum, StatusEnum } from '../utils/enum';
 import { GroupBuying } from './groupBuying.entity';
@@ -12,6 +6,8 @@ import { LiveStream } from './livestream.entity';
 import { Voucher } from './voucher.entity';
 import { Account } from './account.entity';
 import { OrderDetail } from './orderDetail.entity';
+import { StatusTracking } from './statusTracking.entity';
+import { CancelOrderRequest } from './cancelOrderRequest.entity';
 
 @Entity('orders')
 export class Order extends BaseEntity {
@@ -52,7 +48,7 @@ export class Order extends BaseEntity {
   @Column({
     type: 'enum',
     enum: ShippingStatusEnum,
-    default: ShippingStatusEnum.WAIT_FOR_SHOP_CONFIRM,
+    default: ShippingStatusEnum.WAIT_FOR_CONFIRMATION,
   })
   status: ShippingStatusEnum;
 
@@ -90,4 +86,13 @@ export class Order extends BaseEntity {
     cascade: true,
   })
   orderDetails: OrderDetail[];
+
+  @OneToMany(() => StatusTracking, (statusTracking) => statusTracking.brand)
+  statusTrackings: StatusTracking[];
+
+  @OneToOne(
+    () => CancelOrderRequest,
+    (cancelOrderRequest) => cancelOrderRequest.order
+  )
+  cancelOrderRequest: CancelOrderRequest;
 }

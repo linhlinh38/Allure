@@ -18,7 +18,6 @@ import { GroupBuyingRequest } from '../dtos/request/groupBuying.request';
 import { GroupBuying } from '../entities/groupBuying.entity';
 import { accountRepository } from '../repositories/account.repository';
 import { VoucherRequest } from '../dtos/request/voucher.request';
-import { group } from 'console';
 import { criteriaRepository } from '../repositories/criteria.repository';
 
 const repository = AppDataSource.getRepository(GroupProduct);

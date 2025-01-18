@@ -1,17 +1,14 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
   Column,
   ManyToOne,
-  CreateDateColumn,
-  UpdateDateColumn,
   OneToMany,
   JoinColumn,
   ManyToMany,
 } from "typeorm";
 import { Category } from "./category.entity";
 import { Brand } from "./brand.entity";
-import { ProductEnum, StatusEnum } from "../utils/enum";
+import { ProductEnum } from "../utils/enum";
 import { ProductClassification } from "./productClassification.entity";
 import { ProductImage } from "./productImage.entity";
 import { BaseEntity } from "./base.entity";
