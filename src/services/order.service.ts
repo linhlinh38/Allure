@@ -204,13 +204,19 @@ class OrderService extends BaseService<Order> {
     if (isAllOrdersCancelled) await this.refundVoucher(order.parent);
   }
 
-  async gerById(orderId: string) {
+  async getById(orderId: string) {
     const order = await orderRepository.findOne({
       where: { id: orderId },
       relations: {
         orderDetails: {
-          productClassification: { images: true },
+          productClassification: {
+            images: true,
+            product: { brand: true, images: true },
+            productDiscount: { product: { brand: true, images: true } },
+            preOrderProduct: { product: { brand: true, images: true } },
+          },
         },
+        voucher: true,
       },
     });
     if (!order) throw new BadRequestError(`Order not found`);
@@ -689,6 +695,7 @@ class OrderService extends BaseService<Order> {
       parentOrder.shippingAddress = address.fullAddress;
       parentOrder.phone = address.phone;
       parentOrder.notes = address.notes;
+      parentOrder.recipientName = address.fullName;
 
       parentOrder.children = [];
       parentOrder.account = account;
@@ -766,6 +773,11 @@ class OrderService extends BaseService<Order> {
           orderDetail.unitPriceBeforeDiscount = productClassification.price;
           orderDetail.unitPriceAfterDiscount = productClassification.price;
           orderDetail.type = OrderEnum.NORMAL;
+          orderDetail.classificationName = productClassification.title;
+          orderDetail.productName =
+            productClassification.product?.name ??
+            productClassification.preOrderProduct?.product?.name ??
+            productClassification.productDiscount?.product?.name;
           //check product discount event
           if (productClassification.productDiscount) {
             orderDetail.unitPriceAfterDiscount =

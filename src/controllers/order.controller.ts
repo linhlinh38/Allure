@@ -76,12 +76,12 @@ export default class OrderController {
     }
   }
 
-  static async gerById(req: AuthRequest, res: Response, next: NextFunction) {
+  static async getById(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       return createNormalResponse(
         res,
         'Get order successfully',
-        await orderService.gerById(req.params.orderId)
+        await orderService.getById(req.params.orderId)
       );
     } catch (err) {
       next(err);

@@ -29,6 +29,9 @@ export class Order extends BaseEntity {
   @Column({ type: 'varchar', length: 15, nullable: false })
   phone: string;
 
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  recipientName: string;
+
   @Column({ type: 'varchar', length: 50, nullable: false })
   paymentMethod: string;
 

@@ -30,6 +30,12 @@ export class OrderDetail extends BaseEntity {
   @Column({ type: 'integer', nullable: false })
   quantity: number;
 
+  @Column({ type: 'varchar', nullable: true })
+  productName: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  classificationName: string;
+
   @Column({
     type: 'enum',
     enum: OrderEnum,
