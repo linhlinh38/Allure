@@ -1,6 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne } from 'typeorm';
 import { BaseEntity } from './base.entity';
-import { OrderEnum, ShippingStatusEnum, StatusEnum } from '../utils/enum';
+import { OrderEnum, PaymentMethodEnum, ShippingStatusEnum, StatusEnum } from '../utils/enum';
 import { GroupBuying } from './groupBuying.entity';
 import { LiveStream } from './livestream.entity';
 import { Voucher } from './voucher.entity';
@@ -32,8 +32,12 @@ export class Order extends BaseEntity {
   @Column({ type: 'varchar', length: 100, nullable: true })
   recipientName: string;
 
-  @Column({ type: 'varchar', length: 50, nullable: false })
-  paymentMethod: string;
+  @Column({
+    type: 'enum',
+    enum: PaymentMethodEnum,
+    default: PaymentMethodEnum.BANK_TRANSFER,
+  })
+  paymentMethod: PaymentMethodEnum;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   notes: string;

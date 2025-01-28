@@ -18,6 +18,7 @@ import groupBuyingRouter from "./groupBuying.route";
 import consultantServiceRouter from "./consultantService.route";
 import paymentRouter from "./payment.route";
 import systemServiceRouter from "./systemService.route";
+import walletRouter from "./wallet.route";
 
 const router = express.Router();
 router.use("/accounts", accountRouter);
@@ -39,4 +40,5 @@ router.use("/group-buyings", groupBuyingRouter);
 router.use("/consultant-services", consultantServiceRouter);
 router.use("/system-services", systemServiceRouter);
 router.use("/payments", paymentRouter);
+router.use("/wallets", walletRouter);
 export default router;

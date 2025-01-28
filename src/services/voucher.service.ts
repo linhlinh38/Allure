@@ -1035,7 +1035,7 @@ class VoucherService extends BaseService<Voucher> {
         (orderDetail) => orderDetail.productClassification.id
       );
       sumPrice = filterApplyOrderDetails.reduce((total, orderDetail) => {
-        return total + orderDetail.subTotal;
+        return total + orderDetail.totalPrice;
       }, 0);
     }
     if (voucher.minOrderValue) {
@@ -1064,7 +1064,7 @@ class VoucherService extends BaseService<Voucher> {
         )
       ) {
         orderDetail.platformVoucherDiscount = Math.round(
-          (orderDetail.subTotal / sumPrice) * discount
+          (orderDetail.totalPrice / sumPrice) * discount
         );
         orderDetail.totalPrice -= orderDetail.platformVoucherDiscount;
       }

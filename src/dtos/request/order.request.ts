@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import { CancelOrderRequestStatusEnum, ShippingStatusEnum, StatusEnum } from '../../utils/enum';
+import { CancelOrderRequestStatusEnum, PaymentMethodEnum, ShippingStatusEnum, StatusEnum } from '../../utils/enum';
 import { Expose } from 'class-transformer';
 
 export const OrderNormalCreateSchema = z.object({
   body: z.object({
     addressId: z.string().min(1, 'Address id is required'),
-    paymentMethod: z.string().min(1, 'Payment Method is required'),
+    paymentMethod: z.nativeEnum(PaymentMethodEnum),
     notes: z
       .string()
       .min(1, 'Notes is required')
@@ -76,7 +76,7 @@ export class OrderNormalRequest {
   addressId: string;
 
   @Expose()
-  paymentMethod: string;
+  paymentMethod: PaymentMethodEnum;
 
   @Expose()
   notes: string;

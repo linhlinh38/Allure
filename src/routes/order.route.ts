@@ -53,11 +53,6 @@ orderRouter.post(
   OrderController.makeDecisionOnRequest
 );
 orderRouter.post(
-  '/make-decision-on-request/:requestId',
-  validate(CancelOrderStatusSchema),
-  OrderController.makeDecisionOnRequest
-);
-orderRouter.post(
   '/get-cancel-request-of-brand/:brandId',
   validate(CancelOrderStatusSchema),
   OrderController.getCancelRequestOfBrand

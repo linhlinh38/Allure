@@ -134,16 +134,6 @@ class GroupBuyingService extends BaseService<GroupBuying> {
         orderDetail.unitPriceBeforeDiscount = productClassification.price;
         orderDetail.unitPriceAfterDiscount = productClassification.price;
         orderDetail.type = OrderEnum.GROUP_BUYING;
-        // //check product discount event
-        // if (productClassification.productDiscount) {
-        //   orderDetail.unitPriceAfterDiscount =
-        //     productClassification.price *
-        //     (1 - productClassification.productDiscount.discount);
-        //   orderDetail.type = OrderEnum.FLASH_SALE;
-        //   orderDetail.productDiscount = productClassification.productDiscount;
-        // } else if (productClassification.preOrderProduct) {
-        //   orderDetail.type = OrderEnum.PRE_ORDER;
-        // }
         orderDetail.subTotal =
           item.quantity * orderDetail.unitPriceAfterDiscount;
         orderDetail.totalPrice = orderDetail.subTotal;
@@ -173,6 +163,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       await queryRunner.release();
     }
   }
+  
   async getById(groupBuyingId: string) {
     const groupBuying = await repository.findOne({
       where: { id: groupBuyingId },

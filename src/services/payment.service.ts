@@ -18,7 +18,6 @@ class PaymentService {
       ).checkoutUrl
     };
   }
-
 }
 
 export const paymentService = new PaymentService();
