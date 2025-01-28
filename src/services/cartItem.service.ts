@@ -4,7 +4,7 @@ import { PreOrderProduct } from "../entities/preOrderProduct.entity";
 import { Product } from "../entities/product.entity";
 import { ProductDiscount } from "../entities/productDiscount.entity";
 import { BadRequestError } from "../errors/error";
-import { ProductDiscountEnum } from "../utils/enum";
+import { ProductDiscountEnum, StatusEnum } from "../utils/enum";
 import { BaseService } from "./base.service";
 import { productClassificationService } from "./productClassification.service";
 
@@ -21,6 +21,17 @@ class CartItemService extends BaseService<CartItem> {
       );
       if (!checkClassification)
         throw new BadRequestError("Classification not found");
+
+      if (
+        checkClassification.quantity <= 0 ||
+        checkClassification.status !== StatusEnum.ACTIVE
+      ) {
+        throw new BadRequestError("Can not add invalid Product");
+      }
+
+      if (checkClassification.quantity < body.quantity) {
+        throw new BadRequestError("Quantity is not enough");
+      }
     }
   }
 
