@@ -128,3 +128,15 @@ export enum CancelOrderRequestStatusEnum {
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
 }
+
+export enum TransactionEnum {
+  ORDER = 'ORDER',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}
+
+export enum PaymentMethodEnum {
+  CASH = 'CASH',
+  BANK_TRANSFER = 'BANK_TRANSFER',
+  WALLET = 'WALLET',
+}

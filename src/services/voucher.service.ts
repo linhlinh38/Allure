@@ -96,8 +96,12 @@ class VoucherService extends BaseService<Voucher> {
     if (voucher.visibility == VoucherVisibilityEnum.WALLET) {
       const voucherWallet = await voucherWalletRepository.findOne({
         where: {
-          owner: { id: loginUser },
-          voucher: { id: canApplyVoucherRequest.voucherId },
+          owner: {
+            id: loginUser,
+          },
+          voucher: {
+            id: canApplyVoucherRequest.voucherId,
+          },
         },
       });
       if (!voucherWallet) return false;
@@ -158,11 +162,19 @@ class VoucherService extends BaseService<Voucher> {
 
   async getClassificationFromListId(listId: string[]) {
     return await productClassificationRepository.find({
-      where: { id: In(listId) },
+      where: {
+        id: In(listId),
+      },
       relations: {
-        product: { brand: true },
-        productDiscount: { product: true },
-        preOrderProduct: { product: true },
+        product: {
+          brand: true,
+        },
+        productDiscount: {
+          product: true,
+        },
+        preOrderProduct: {
+          product: true,
+        },
       },
     });
   }
@@ -185,7 +197,9 @@ class VoucherService extends BaseService<Voucher> {
     // logic to get unclaimedVouchers
     const walletVouchers = await voucherWalletRepository.find({
       where: {
-        owner: { id: loginUser },
+        owner: {
+          id: loginUser,
+        },
       },
       relations: {
         voucher: true,
@@ -206,7 +220,9 @@ class VoucherService extends BaseService<Voucher> {
     let bothAvailableAndUnavailableVouchers = (
       await voucherWalletRepository.find({
         where: {
-          owner: { id: loginUser },
+          owner: {
+            id: loginUser,
+          },
           status: VoucherWalletStatus.NOT_USED,
           voucher: {
             endTime: MoreThanOrEqual(new Date()),
@@ -214,20 +230,26 @@ class VoucherService extends BaseService<Voucher> {
           },
         },
         relations: {
-          voucher: { applyProducts: true },
+          voucher: {
+            applyProducts: true,
+          },
         },
       })
     ).map((wallet) => wallet.voucher);
     const allPlatformVoucherIdsInWallet = (
       await voucherWalletRepository.find({
         where: {
-          owner: { id: loginUser },
+          owner: {
+            id: loginUser,
+          },
           voucher: {
             brand: IsNull(),
           },
         },
         relations: {
-          voucher: { applyProducts: true },
+          voucher: {
+            applyProducts: true,
+          },
         },
       })
     ).map((wallet) => wallet.voucher.id);
@@ -289,7 +311,9 @@ class VoucherService extends BaseService<Voucher> {
     // logic to get unclaimedVouchers
     const walletVouchers = await voucherWalletRepository.find({
       where: {
-        owner: { id: loginUser },
+        owner: {
+          id: loginUser,
+        },
       },
       relations: {
         voucher: true,
@@ -301,7 +325,9 @@ class VoucherService extends BaseService<Voucher> {
         id: Not(In(claimedVoucherIds)),
         visibility: VoucherVisibilityEnum.WALLET,
         endTime: MoreThan(new Date()),
-        brand: { id: checkoutItemRequest.brandId },
+        brand: {
+          id: checkoutItemRequest.brandId,
+        },
       },
     });
     //logic to get both available and unavailable vouchers
@@ -309,28 +335,40 @@ class VoucherService extends BaseService<Voucher> {
     let bothAvailableAndUnavailableVouchers = (
       await voucherWalletRepository.find({
         where: {
-          owner: { id: loginUser },
+          owner: {
+            id: loginUser,
+          },
           status: VoucherWalletStatus.NOT_USED,
           voucher: {
             endTime: MoreThanOrEqual(new Date()),
-            brand: { id: checkoutItemRequest.brandId },
+            brand: {
+              id: checkoutItemRequest.brandId,
+            },
           },
         },
         relations: {
-          voucher: { applyProducts: true },
+          voucher: {
+            applyProducts: true,
+          },
         },
       })
     ).map((wallet) => wallet.voucher);
     const allVoucherIdsInWalletOfTheBrand = (
       await voucherWalletRepository.find({
         where: {
-          owner: { id: loginUser },
+          owner: {
+            id: loginUser,
+          },
           voucher: {
-            brand: { id: checkoutItemRequest.brandId },
+            brand: {
+              id: checkoutItemRequest.brandId,
+            },
           },
         },
         relations: {
-          voucher: { applyProducts: true },
+          voucher: {
+            applyProducts: true,
+          },
         },
       })
     ).map((wallet) => wallet.voucher.id);
@@ -342,7 +380,9 @@ class VoucherService extends BaseService<Voucher> {
           where: {
             amount: MoreThan(0),
             endTime: MoreThanOrEqual(new Date()),
-            brand: { id: checkoutItemRequest.brandId },
+            brand: {
+              id: checkoutItemRequest.brandId,
+            },
             visibility: VoucherVisibilityEnum.PUBLIC,
             id: Not(In(allVoucherIdsInWalletOfTheBrand)),
           },
@@ -452,17 +492,27 @@ class VoucherService extends BaseService<Voucher> {
       (item) => item.classificationId
     );
     const classifications = await productClassificationRepository.find({
-      where: { id: In(classificationIds) },
+      where: {
+        id: In(classificationIds),
+      },
       relations: {
-        product: { brand: true },
-        productDiscount: { product: true },
-        preOrderProduct: { product: true },
+        product: {
+          brand: true,
+        },
+        productDiscount: {
+          product: true,
+        },
+        preOrderProduct: {
+          product: true,
+        },
       },
     });
     let availableVouchersInWallet = (
       await voucherWalletRepository.find({
         where: {
-          owner: { id: loginUser },
+          owner: {
+            id: loginUser,
+          },
           status: VoucherWalletStatus.NOT_USED,
           voucher: {
             startTime: LessThanOrEqual(new Date()),
@@ -471,7 +521,10 @@ class VoucherService extends BaseService<Voucher> {
           },
         },
         relations: {
-          voucher: { applyProducts: true, brand: true },
+          voucher: {
+            applyProducts: true,
+            brand: true,
+          },
         },
       })
     ).map((wallet) => wallet.voucher);
@@ -479,13 +532,17 @@ class VoucherService extends BaseService<Voucher> {
     const allPlatformVoucherIdsInWallet = (
       await voucherWalletRepository.find({
         where: {
-          owner: { id: loginUser },
+          owner: {
+            id: loginUser,
+          },
           voucher: {
             brand: IsNull(),
           },
         },
         relations: {
-          voucher: { applyProducts: true },
+          voucher: {
+            applyProducts: true,
+          },
         },
       })
     ).map((wallet) => wallet.voucher.id);
@@ -542,38 +599,56 @@ class VoucherService extends BaseService<Voucher> {
         (item) => item.classificationId
       );
       const classifications = await productClassificationRepository.find({
-        where: { id: In(classificationIds) },
+        where: {
+          id: In(classificationIds),
+        },
         relations: {
-          product: { brand: true },
-          productDiscount: { product: true },
+          product: {
+            brand: true,
+          },
+          productDiscount: {
+            product: true,
+          },
         },
       });
       let availableVouchersInWallet = (
         await voucherWalletRepository.find({
           where: {
-            owner: { id: loginUser },
+            owner: {
+              id: loginUser,
+            },
             status: VoucherWalletStatus.NOT_USED,
             voucher: {
               startTime: LessThanOrEqual(new Date()),
               endTime: MoreThan(new Date()),
-              brand: { id: checkoutItem.brandId },
+              brand: {
+                id: checkoutItem.brandId,
+              },
             },
           },
           relations: {
-            voucher: { applyProducts: true },
+            voucher: {
+              applyProducts: true,
+            },
           },
         })
       ).map((wallet) => wallet.voucher);
       const allVoucherIdsInWalletOfTheBrand = (
         await voucherWalletRepository.find({
           where: {
-            owner: { id: loginUser },
+            owner: {
+              id: loginUser,
+            },
             voucher: {
-              brand: { id: checkoutItem.brandId },
+              brand: {
+                id: checkoutItem.brandId,
+              },
             },
           },
           relations: {
-            voucher: { applyProducts: true },
+            voucher: {
+              applyProducts: true,
+            },
           },
         })
       ).map((wallet) => wallet.voucher.id);
@@ -584,7 +659,9 @@ class VoucherService extends BaseService<Voucher> {
             amount: MoreThan(0),
             startTime: LessThanOrEqual(new Date()),
             endTime: MoreThan(new Date()),
-            brand: { id: checkoutItem.brandId },
+            brand: {
+              id: checkoutItem.brandId,
+            },
             visibility: VoucherVisibilityEnum.PUBLIC,
             id: Not(In(allVoucherIdsInWalletOfTheBrand)),
           },
@@ -620,7 +697,9 @@ class VoucherService extends BaseService<Voucher> {
   async getPercentageUsedOfVoucher(voucher: Voucher) {
     const usedVouchers = await voucherWalletRepository.count({
       where: {
-        voucher: { id: voucher.id },
+        voucher: {
+          id: voucher.id,
+        },
         status: VoucherWalletStatus.USED,
       },
     });
@@ -691,7 +770,9 @@ class VoucherService extends BaseService<Voucher> {
     }
     const voucherWallet = await voucherWalletRepository.findOne({
       where: {
-        voucher: { code },
+        voucher: {
+          code,
+        },
       },
     });
     if (voucherWallet)
@@ -704,16 +785,26 @@ class VoucherService extends BaseService<Voucher> {
   }
   async getPlatformVouchers() {
     const vouchers = await voucherRepository.find({
-      where: { brand: null },
+      where: {
+        brand: null,
+      },
       relations: ['applyProducts'],
     });
     return vouchers;
   }
   async getByBrand(brandId: string) {
-    const brand = await brandRepository.findOne({ where: { id: brandId } });
+    const brand = await brandRepository.findOne({
+      where: {
+        id: brandId,
+      },
+    });
     if (!brand) throw new BadRequestError('Brand not found');
     const vouchers = await voucherRepository.find({
-      where: { brand: { id: brandId } },
+      where: {
+        brand: {
+          id: brandId,
+        },
+      },
       relations: ['applyProducts'],
     });
     return vouchers;
@@ -725,7 +816,9 @@ class VoucherService extends BaseService<Voucher> {
 
   async validateShopVoucher(voucherId: string, accountId: string) {
     const shopVoucher = await voucherRepository.findOne({
-      where: { id: voucherId },
+      where: {
+        id: voucherId,
+      },
       relations: {
         brand: true,
       },
@@ -748,8 +841,12 @@ class VoucherService extends BaseService<Voucher> {
     }
     const voucherWallet = await voucherWalletRepository.findOne({
       where: {
-        owner: { id: accountId },
-        voucher: { id: voucherId },
+        owner: {
+          id: accountId,
+        },
+        voucher: {
+          id: voucherId,
+        },
       },
     });
     if (shopVoucher.visibility == VoucherVisibilityEnum.WALLET) {
@@ -763,8 +860,12 @@ class VoucherService extends BaseService<Voucher> {
       voucherWallet.status == VoucherWalletStatus.NOT_USED
     ) {
       return voucherWalletRepository.create({
-        owner: { id: accountId },
-        voucher: { id: voucherId },
+        owner: {
+          id: accountId,
+        },
+        voucher: {
+          id: voucherId,
+        },
         status: VoucherWalletStatus.USED,
       });
     }
@@ -772,8 +873,12 @@ class VoucherService extends BaseService<Voucher> {
 
   async validatePlatformVoucher(voucherId: string, accountId: string) {
     const platformVoucher = await voucherRepository.findOne({
-      where: { id: voucherId },
-      relations: { brand: true },
+      where: {
+        id: voucherId,
+      },
+      relations: {
+        brand: true,
+      },
     });
     if (!platformVoucher)
       throw new BadRequestError('Platform voucher not found');
@@ -796,8 +901,12 @@ class VoucherService extends BaseService<Voucher> {
     }
     const voucherWallet = await voucherWalletRepository.findOne({
       where: {
-        owner: { id: accountId },
-        voucher: { id: voucherId },
+        owner: {
+          id: accountId,
+        },
+        voucher: {
+          id: voucherId,
+        },
       },
     });
     if (platformVoucher.visibility == VoucherVisibilityEnum.WALLET) {
@@ -808,8 +917,12 @@ class VoucherService extends BaseService<Voucher> {
       throw new BadRequestError('Platform voucher has already been used');
     if (!voucherWallet) {
       return voucherWalletRepository.create({
-        owner: { id: accountId },
-        voucher: { id: voucherId },
+        owner: {
+          id: accountId,
+        },
+        voucher: {
+          id: voucherId,
+        },
         status: VoucherWalletStatus.USED,
       });
     }
@@ -821,11 +934,10 @@ class VoucherService extends BaseService<Voucher> {
 
   applyShopVoucher(childOrder: Order) {
     const voucher = childOrder.voucher;
-
-    let sumPrice = childOrder.orderDetails.reduce((total, orderDetail) => {
+    let applyOrderDetails = childOrder.orderDetails;
+    let sumPrice = applyOrderDetails.reduce((total, orderDetail) => {
       return total + orderDetail.subTotal;
     }, 0);
-    let applyOrderDetails = childOrder.orderDetails;
     let applyProductClassificationIds = applyOrderDetails.map(
       (orderDetail) => orderDetail.productClassification.id
     );
@@ -833,24 +945,25 @@ class VoucherService extends BaseService<Voucher> {
       const applyProductIds = voucher.applyProducts.map(
         (product) => product.id
       );
-      applyProductClassificationIds = childOrder.orderDetails
-        .filter((orderDetail) => {
-          if (orderDetail.type == OrderEnum.FLASH_SALE) {
-            return applyProductIds.includes(
-              orderDetail.productClassification.productDiscount.product?.id
-            );
-          }
-          if (orderDetail.type == OrderEnum.PRE_ORDER) {
-            return applyProductIds.includes(
-              orderDetail.productClassification.preOrderProduct.product?.id
-            );
-          }
+      let filterApplyOrderDetails = applyOrderDetails.filter((orderDetail) => {
+        if (orderDetail.type == OrderEnum.FLASH_SALE) {
           return applyProductIds.includes(
-            orderDetail.productClassification.product?.id
+            orderDetail.productClassification.productDiscount.product?.id
           );
-        })
-        .map((orderDetail) => orderDetail.productClassification.id);
-      sumPrice = applyOrderDetails.reduce((total, orderDetail) => {
+        }
+        if (orderDetail.type == OrderEnum.PRE_ORDER) {
+          return applyProductIds.includes(
+            orderDetail.productClassification.preOrderProduct.product?.id
+          );
+        }
+        return applyProductIds.includes(
+          orderDetail.productClassification.product?.id
+        );
+      });
+      applyProductClassificationIds = filterApplyOrderDetails.map(
+        (orderDetail) => orderDetail.productClassification.id
+      );
+      sumPrice = filterApplyOrderDetails.reduce((total, orderDetail) => {
         return total + orderDetail.subTotal;
       }, 0);
     }
@@ -886,48 +999,6 @@ class VoucherService extends BaseService<Voucher> {
           orderDetail.subTotal - orderDetail.shopVoucherDiscount;
       }
     });
-    // if (voucher.discountType == DiscountTypeEnum.AMOUNT.toString()) {
-    //   childOrder.orderDetails.forEach((orderDetail) => {
-    //     orderDetail.shopVoucherDiscount = Math.round(
-    //       Math.min(
-    //         (orderDetail.subTotal / sumPrice) * voucher.discountValue,
-    //         orderDetail.subTotal
-    //       )
-    //     );
-    //     orderDetail.shopVoucherDiscount = Math.round(
-    //       Math.min(
-    //         (orderDetail.subTotal / sumPrice) * voucher.discountValue,
-    //         orderDetail.subTotal
-    //       )
-    //     );
-    //     orderDetail.totalPrice =
-    //       orderDetail.subTotal - orderDetail.shopVoucherDiscount;
-    //   });
-    // } else if (voucher.discountType == DiscountTypeEnum.PERCENTAGE.toString()) {
-    //   let discountValueToAmount = Math.round(sumPrice * voucher.discountValue);
-    //   if (voucher.maxDiscount)
-    //     discountValueToAmount = Math.min(
-    //       discountValueToAmount,
-    //       voucher.maxDiscount
-    //     );
-
-    //   childOrder.orderDetails.forEach((orderDetail) => {
-    //     orderDetail.shopVoucherDiscount = Math.round(
-    //       Math.min(
-    //         (orderDetail.subTotal / sumPrice) * discountValueToAmount,
-    //         orderDetail.subTotal
-    //       )
-    //     );
-    //     orderDetail.shopVoucherDiscount = Math.round(
-    //       Math.min(
-    //         (orderDetail.subTotal / sumPrice) * discountValueToAmount,
-    //         orderDetail.subTotal
-    //       )
-    //     );
-    //     orderDetail.totalPrice =
-    //       orderDetail.subTotal - orderDetail.shopVoucherDiscount;
-    //   });
-    // }
   }
 
   applyPlatformVoucher(totalOrder: Order) {
@@ -945,25 +1016,26 @@ class VoucherService extends BaseService<Voucher> {
       const applyProductIds = voucher.applyProducts.map(
         (product) => product.id
       );
-      applyProductClassificationIds = applyOrderDetails
-        .filter((orderDetail) => {
-          if (orderDetail.type == OrderEnum.FLASH_SALE) {
-            return applyProductIds.includes(
-              orderDetail.productClassification.productDiscount.product?.id
-            );
-          }
-          if (orderDetail.type == OrderEnum.PRE_ORDER) {
-            return applyProductIds.includes(
-              orderDetail.productClassification.preOrderProduct.product?.id
-            );
-          }
+      let filterApplyOrderDetails = applyOrderDetails.filter((orderDetail) => {
+        if (orderDetail.type == OrderEnum.FLASH_SALE) {
           return applyProductIds.includes(
-            orderDetail.productClassification.product?.id
+            orderDetail.productClassification.productDiscount.product?.id
           );
-        })
-        .map((orderDetail) => orderDetail.productClassification.id);
-      sumPrice = applyOrderDetails.reduce((total, orderDetail) => {
-        return total + orderDetail.subTotal;
+        }
+        if (orderDetail.type == OrderEnum.PRE_ORDER) {
+          return applyProductIds.includes(
+            orderDetail.productClassification.preOrderProduct.product?.id
+          );
+        }
+        return applyProductIds.includes(
+          orderDetail.productClassification.product?.id
+        );
+      });
+      applyProductClassificationIds = filterApplyOrderDetails.map(
+        (orderDetail) => orderDetail.productClassification.id
+      );
+      sumPrice = filterApplyOrderDetails.reduce((total, orderDetail) => {
+        return total + orderDetail.totalPrice;
       }, 0);
     }
     if (voucher.minOrderValue) {
@@ -992,50 +1064,11 @@ class VoucherService extends BaseService<Voucher> {
         )
       ) {
         orderDetail.platformVoucherDiscount = Math.round(
-          (orderDetail.subTotal / sumPrice) * discount
+          (orderDetail.totalPrice / sumPrice) * discount
         );
         orderDetail.totalPrice -= orderDetail.platformVoucherDiscount;
       }
     });
-    // if (voucher.discountType == DiscountTypeEnum.AMOUNT.toString()) {
-    //   allOrderDetails.forEach((orderDetail) => {
-    //     orderDetail.platformVoucherDiscount = Math.round(
-    //       Math.min(
-    //         (orderDetail.totalPrice / sumPrice) * voucher.discountValue,
-    //         orderDetail.totalPrice
-    //       )
-    //     );
-    //     orderDetail.platformVoucherDiscount = Math.round(
-    //       Math.min(
-    //         (orderDetail.totalPrice / sumPrice) * voucher.discountValue,
-    //         orderDetail.totalPrice
-    //       )
-    //     );
-    //     orderDetail.totalPrice -= orderDetail.platformVoucherDiscount;
-    //   });
-    // } else if (voucher.discountType == DiscountTypeEnum.PERCENTAGE.toString()) {
-    //   let discountValueToAmount = Math.round(sumPrice * voucher.discountValue);
-    //   if (voucher.maxDiscount)
-    //     discountValueToAmount = Math.min(
-    //       discountValueToAmount,
-    //       voucher.maxDiscount
-    //     );
-    //   allOrderDetails.forEach((orderDetail) => {
-    //     orderDetail.platformVoucherDiscount = Math.round(
-    //       Math.min(
-    //         (orderDetail.totalPrice / sumPrice) * discountValueToAmount,
-    //         orderDetail.totalPrice
-    //       )
-    //     );
-    //     orderDetail.platformVoucherDiscount = Math.round(
-    //       Math.min(
-    //         (orderDetail.totalPrice / sumPrice) * discountValueToAmount,
-    //         orderDetail.totalPrice
-    //       )
-    //     );
-    //     orderDetail.totalPrice -= orderDetail.platformVoucherDiscount;
-    //   });
-    // } else throw new BadRequestError(`Discount type voucher is not supported`);
   }
 
   calculateOrderPrice(totalOrder: Order) {
@@ -1067,10 +1100,14 @@ class VoucherService extends BaseService<Voucher> {
 
       switch (option) {
         case 'name':
-          query.andWhere('voucher.name ILIKE :name', { name: `%${value}%` });
+          query.andWhere('voucher.name ILIKE :name', {
+            name: `%${value}%`,
+          });
           break;
         case 'code':
-          query.andWhere('voucher.code ILIKE :code', { code: `%${value}%` });
+          query.andWhere('voucher.code ILIKE :code', {
+            code: `%${value}%`,
+          });
           break;
         case 'status':
           query.andWhere('voucher.status = :status', {
@@ -1113,7 +1150,9 @@ class VoucherService extends BaseService<Voucher> {
     Object.assign(voucherBody, voucherRequest);
     if (voucherRequest.brandId) {
       const brand = await brandRepository.findOne({
-        where: { id: voucherRequest.brandId },
+        where: {
+          id: voucherRequest.brandId,
+        },
       });
       if (!brand) throw new BadRequestError('Brand not found');
       voucherBody.brand = brand;
@@ -1126,7 +1165,9 @@ class VoucherService extends BaseService<Voucher> {
         throw new BadRequestError('Apply product ids must not be empty');
       }
       const applyProducts = await productRepository.find({
-        where: { id: In(voucherRequest.applyProductIds) },
+        where: {
+          id: In(voucherRequest.applyProductIds),
+        },
       });
       voucherBody.applyProducts = applyProducts;
     }
@@ -1165,7 +1206,9 @@ class VoucherService extends BaseService<Voucher> {
     Object.assign(voucher, voucherRequest);
     if (voucherRequest.brandId) {
       const brand = await brandRepository.findOne({
-        where: { id: voucherRequest.brandId },
+        where: {
+          id: voucherRequest.brandId,
+        },
       });
       if (!brand) throw new BadRequestError('Brand not found');
       voucher.brand = brand;
@@ -1185,7 +1228,9 @@ class VoucherService extends BaseService<Voucher> {
 
   async getById(id: string) {
     const voucher = await voucherRepository.findOne({
-      where: { id },
+      where: {
+        id,
+      },
       relations: {
         brand: true,
       },
