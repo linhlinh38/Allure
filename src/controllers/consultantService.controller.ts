@@ -1,11 +1,12 @@
 import { NextFunction, Request, Response } from "express";
-import { serviceService } from "../services/service.service";
+import { consultantServiceService } from "../services/consultantService.service";
 import { createNormalResponse } from "../utils/response";
 import { NotFoundError } from "../errors/error";
-export default class ServiceController {
+import { AuthRequest } from "../middleware/authentication";
+export default class ConsultantServiceController {
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
-      const services = await serviceService.findAll();
+      const services = await consultantServiceService.findAll();
       return createNormalResponse(res, "Get all services success", services);
     } catch (err) {
       next(err);
@@ -14,7 +15,7 @@ export default class ServiceController {
 
   static async getById(req: Request, res: Response, next: NextFunction) {
     try {
-      const service = await serviceService.findById(req.params.id);
+      const service = await consultantServiceService.findById(req.params.id);
       if (!service) throw new NotFoundError("service not found");
       return createNormalResponse(res, "Get service success", service);
     } catch (err) {
@@ -24,16 +25,18 @@ export default class ServiceController {
 
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
-      await serviceService.update(req.params.id, req.body);
+      await consultantServiceService.update(req.params.id, req.body);
       return createNormalResponse(res, "Update service success");
     } catch (err) {
       next(err);
     }
   }
 
-  static async create(req: Request, res: Response, next: NextFunction) {
+  static async create(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      await serviceService.create(req.body);
+      const data = req.body;
+      data.account = req.loginUser;
+      await consultantServiceService.create(data);
       return createNormalResponse(res, "Create service success");
     } catch (err) {
       next(err);

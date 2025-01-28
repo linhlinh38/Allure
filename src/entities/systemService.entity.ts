@@ -5,16 +5,18 @@ import { BaseEntity } from "./base.entity";
 import { PreOrderProduct } from "./preOrderProduct.entity";
 import { CartItem } from "./cartItem.entity";
 import { Category } from "./category.entity";
+import { ConsultantService } from "./consultantService.entity";
+import { ResultSheet } from "./resultSheet.entity";
 
-@Entity("services")
-export class Service extends BaseEntity {
+@Entity("system_services")
+export class SystemService extends BaseEntity {
   @Column({ type: "varchar" })
   name: string;
 
   @Column({ type: "varchar", nullable: true })
   description: string;
 
-  @Column({ type: "varchar", length: 100, nullable: true })
+  @Column({ type: "varchar", nullable: true })
   image: string;
 
   @ManyToOne(() => Category, { nullable: true })
@@ -26,6 +28,13 @@ export class Service extends BaseEntity {
     enum: ServiceTypeEnum,
   })
   type: ServiceTypeEnum;
+
+  @OneToMany(() => ConsultantService, (service) => service.systemService)
+  consultantServices?: ConsultantService[];
+
+  @ManyToOne(() => ResultSheet, (result) => result.systemServices)
+  @JoinColumn({ name: "result_sheet_id" })
+  resultSheet: ResultSheet;
 
   @Column({
     type: "enum",
