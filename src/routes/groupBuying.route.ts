@@ -1,9 +1,5 @@
 import express from 'express';
 import authentication from '../middleware/authentication';
-import {
-  GroupProductCreateSchema,
-  GroupProductUpdateSchema,
-} from '../dtos/request/groupProduct.request';
 import validate from '../utils/validate';
 import GroupBuyingController from '../controllers/groupBuying.controller';
 import { GroupBuyingJoinEventSchema } from '../dtos/request/groupBuying.request';
