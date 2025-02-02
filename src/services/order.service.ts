@@ -916,8 +916,7 @@ class OrderService extends BaseService<Order> {
         Order,
         parentOrder
       );
-
-      await queryRunner.manager.save(statusTrackings);
+      await queryRunner.manager.save(StatusTracking , statusTrackings);
 
       //remove cart items after order has been created
       const productClassificationIds = orderNormalBody.orders.flatMap((order) =>
