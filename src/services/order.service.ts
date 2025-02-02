@@ -852,6 +852,7 @@ class OrderService extends BaseService<Order> {
         childOrder.shippingAddress = address.fullAddress;
         childOrder.phone = address.phone;
         childOrder.notes = address.notes;
+        childOrder.recipientName = address.fullName;
 
         childOrder.message = order.message;
         childOrder.orderDetails = [];
