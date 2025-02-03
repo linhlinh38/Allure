@@ -10,6 +10,16 @@ const consultantServiceRouter = express.Router();
 
 consultantServiceRouter.get("/", consultantServiceController.getAll);
 
+consultantServiceRouter.get(
+  "/get-by-id/:id",
+  consultantServiceController.getById
+);
+
+consultantServiceRouter.get(
+  "/get-by-consultant/:id",
+  consultantServiceController.getByConsultant
+);
+
 consultantServiceRouter.use(authentication);
 
 consultantServiceRouter.post(

@@ -12,6 +12,53 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
     super(repository);
   }
 
+  async getAll() {
+    const services = await this.repository
+      .createQueryBuilder("consultantService")
+      .leftJoinAndSelect("consultantService.systemService", "systemService")
+      .leftJoinAndSelect("systemService.category", "category")
+      .leftJoinAndSelect(
+        "consultantService.serviceBookingForm",
+        "serviceBookingForm"
+      )
+      .leftJoinAndSelect("serviceBookingForm.questions", "questions")
+      .getMany();
+
+    return services;
+  }
+
+  async getAllServiceOfConsultant(account: string) {
+    const services = await this.repository
+      .createQueryBuilder("consultantService")
+      .leftJoinAndSelect("consultantService.systemService", "systemService")
+      .leftJoinAndSelect("systemService.category", "category")
+      .leftJoinAndSelect(
+        "consultantService.serviceBookingForm",
+        "serviceBookingForm"
+      )
+      .leftJoinAndSelect("serviceBookingForm.questions", "questions")
+      .where("consultantService.account = :account", { account })
+      .getMany();
+
+    return services;
+  }
+
+  async getById(id: string) {
+    const services = await this.repository
+      .createQueryBuilder("consultantService")
+      .leftJoinAndSelect("consultantService.systemService", "systemService")
+      .leftJoinAndSelect("systemService.category", "category")
+      .leftJoinAndSelect(
+        "consultantService.serviceBookingForm",
+        "serviceBookingForm"
+      )
+      .leftJoinAndSelect("serviceBookingForm.questions", "questions")
+      .where("consultantService.id = :id", { id })
+      .getMany();
+
+    return services;
+  }
+
   async create(data: any): Promise<ConsultantService> {
     let service;
     const queryRunner = AppDataSource.createQueryRunner();
