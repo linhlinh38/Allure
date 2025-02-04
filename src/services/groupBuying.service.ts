@@ -19,6 +19,48 @@ import { orderService } from './order.service';
 
 const repository = AppDataSource.getRepository(GroupBuying);
 class GroupBuyingService extends BaseService<GroupBuying> {
+  async getByBrand(brandId: string, status: StatusEnum) {
+    if (!status)
+      return await repository.find({
+        where: {
+          groupProduct: { products: { brand: { id: brandId } } },
+        },
+        relations: {
+          groupProduct: {
+            criterias: { voucher: true },
+            products: {
+              images: true,
+              productClassifications: { images: true },
+            },
+          },
+          criteria: { voucher: true },
+          creator: true,
+        },
+        order: {
+          createdAt: 'DESC',
+        },
+      });
+    return await repository.find({
+      where: {
+        status,
+        groupProduct: { products: { brand: { id: brandId } } },
+      },
+      relations: {
+        groupProduct: {
+          criterias: { voucher: true },
+          products: {
+            images: true,
+            productClassifications: { images: true },
+          },
+        },
+        criteria: { voucher: true },
+        creator: true,
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+  }
   async getAll() {
     return await repository.find({
       relations: {
@@ -39,8 +81,6 @@ class GroupBuyingService extends BaseService<GroupBuying> {
   }
 
   async getByStatus(status: StatusEnum) {
-    console.log(status);
-
     if (!status)
       return await repository.find({
         relations: {
