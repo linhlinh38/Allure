@@ -6,6 +6,8 @@ import validate from '../utils/validate';
 
 const groupProductRouter = express.Router();
 groupProductRouter.get('/', GroupProductController.getAll);
+groupProductRouter.get('/get-by-status', GroupProductController.getByStatus);
+groupProductRouter.get('/get-by-brand/:brandId', GroupProductController.getByBrand);
 groupProductRouter.get(
   '/get-by-id/:groupProductId',
   GroupProductController.getById

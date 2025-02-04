@@ -10,6 +10,33 @@ import { AuthRequest } from '../middleware/authentication';
 import { GroupBuyingRequest } from '../dtos/request/groupBuying.request';
 import { StatusEnum } from '../utils/enum';
 export default class GroupProductController {
+  static async getByBrand(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get groups by brand success',
+        await groupProductService.getByBrand(req.params.brandId, req.body.status)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async getByStatus(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get group by status success',
+        await groupProductService.getByStatus(req.body.status)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async getById(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       return createNormalResponse(

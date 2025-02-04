@@ -22,12 +22,52 @@ import { criteriaRepository } from '../repositories/criteria.repository';
 
 const repository = AppDataSource.getRepository(GroupProduct);
 class GroupProductService extends BaseService<GroupProduct> {
+  async getByBrand(brandId: string, status: StatusEnum) {
+    if (!status)
+      return await repository.find({
+        where: {
+          products: {
+            brand: { id: brandId },
+          },
+        },
+        relations: {
+          products: { images: true, productClassifications: { images: true } },
+        },
+      });
+    return await repository.find({
+      where: {
+        products: {
+          brand: { id: brandId },
+        },
+        status,
+      },
+      relations: {
+        products: { images: true, productClassifications: { images: true } },
+      },
+    });
+  }
+
+  async getByStatus(status: StatusEnum) {
+    if (!status)
+      return await repository.find({
+        relations: {
+          products: { images: true, productClassifications: { images: true } },
+        },
+      });
+    return await repository.find({
+      where: { status: status },
+      relations: {
+        products: { images: true, productClassifications: { images: true } },
+      },
+    });
+  }
+
   async getById(groupProductId: string) {
     const groupProduct = await repository.findOne({
       where: { id: groupProductId },
       relations: {
         criterias: { voucher: true },
-        products: true,
+        products: { images: true, productClassifications: { images: true } },
       },
     });
     if (!groupProduct) throw new BadRequestError('Group product not found');
@@ -45,7 +85,7 @@ class GroupProductService extends BaseService<GroupProduct> {
     await groupProduct.save();
     return groupProduct.status;
   }
-  
+
   async startEvent(groupBuyingBody: GroupBuyingRequest, loginUser: string) {
     const groupProduct = await repository.findOne({
       where: { id: groupBuyingBody.groupProductId },
@@ -68,6 +108,7 @@ class GroupProductService extends BaseService<GroupProduct> {
     newGroupBuying.groupProduct = groupProduct;
     await groupBuyingRepository.save(newGroupBuying);
   }
+
   async isInAnyEvents(groupProductId: string) {
     const currentTime = new Date();
 
@@ -81,6 +122,7 @@ class GroupProductService extends BaseService<GroupProduct> {
     });
     return groupBuying !== null;
   }
+
   async updateGroup(
     groupProductUpdateBody: GroupProductUpdateRequest,
     groupProductId: string
@@ -129,8 +171,6 @@ class GroupProductService extends BaseService<GroupProduct> {
         );
       }
     }
-    console.log(groupProduct);
-
     await repository.save(groupProduct);
   }
 

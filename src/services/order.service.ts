@@ -220,7 +220,7 @@ class OrderService extends BaseService<Order> {
     }
   }
 
-  private async returnBackStockQuantity(
+  async returnBackStockQuantity(
     order: Order,
     queryRunner: QueryRunner
   ) {
@@ -1046,7 +1046,7 @@ class OrderService extends BaseService<Order> {
     }
   }
 
-  private async updateDecreaseStockQuantity(
+  async updateDecreaseStockQuantity(
     parentOrder: Order,
     queryRunner: QueryRunner
   ) {

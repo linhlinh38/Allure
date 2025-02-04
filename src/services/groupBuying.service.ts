@@ -1,23 +1,11 @@
 import { productClassificationRepository } from './../repositories/productClassification.repository';
-import { In, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import { In, IsNull, Not, QueryRunner } from 'typeorm';
 import { AppDataSource } from '../dataSource';
-import {
-  GroupProductCreateRequest,
-  GroupProductUpdateRequest,
-} from '../dtos/request/groupProduct.request';
 import { BadRequestError } from '../errors/error';
 import { BaseService } from './base.service';
 import { groupBuyingRepository } from '../repositories/groupBuying.repository';
-import {
-  OrderEnum,
-  ShippingStatusEnum,
-  StatusEnum,
-  VoucherVisibilityEnum,
-} from '../utils/enum';
-import {
-  GroupBuyingJoinEventRequest,
-  GroupBuyingRequest,
-} from '../dtos/request/groupBuying.request';
+import { OrderEnum, ShippingStatusEnum, StatusEnum } from '../utils/enum';
+import { GroupBuyingJoinEventRequest } from '../dtos/request/groupBuying.request';
 import { GroupBuying } from '../entities/groupBuying.entity';
 import { accountRepository } from '../repositories/account.repository';
 import { Order } from '../entities/order.entity';
@@ -25,10 +13,95 @@ import { addressRepository } from '../repositories/address.repository';
 import { OrderDetail } from '../entities/orderDetail.entity';
 import { ProductClassification } from '../entities/productClassification.entity';
 import { voucherService } from './voucher.service';
-import { group } from 'console';
+import { StatusTracking } from '../entities/statusTracking.entity';
+import { Account } from '../entities/account.entity';
+import { orderRepository } from '../repositories/order.repository';
+import { walletRepository } from '../repositories/wallet.reposirory';
+import { orderService } from './order.service';
 
 const repository = AppDataSource.getRepository(GroupBuying);
 class GroupBuyingService extends BaseService<GroupBuying> {
+  async getByStatus(status: StatusEnum) {
+    if (!status)
+      return await repository.find({
+        relations: {
+          groupProduct: {
+            criterias: { voucher: true },
+            products: {
+              images: true,
+              productClassifications: { images: true },
+            },
+          },
+          criteria: true,
+          creator: true,
+        },
+        order: {
+          createdAt: 'DESC',
+        },
+      });
+    return await repository.find({
+      where: {
+        status,
+      },
+      relations: {
+        groupProduct: {
+          criterias: { voucher: true },
+          products: {
+            images: true,
+            productClassifications: { images: true },
+          },
+        },
+        criteria: true,
+        creator: true,
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+  }
+  async getMyGroupBuyings(loginUser: string, status: StatusEnum) {
+    if (!status)
+      return await repository.find({
+        where: {
+          creator: { id: loginUser },
+        },
+        relations: {
+          groupProduct: {
+            criterias: { voucher: true },
+            products: {
+              images: true,
+              productClassifications: { images: true },
+            },
+          },
+          criteria: true,
+          creator: true,
+        },
+        order: {
+          createdAt: 'DESC',
+        },
+      });
+    return await repository.find({
+      where: {
+        creator: { id: loginUser },
+        status,
+      },
+      relations: {
+        groupProduct: {
+          criterias: { voucher: true },
+          products: {
+            images: true,
+            productClassifications: { images: true },
+          },
+        },
+        criteria: true,
+        creator: true,
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+  }
+
   async buy(
     groupBuyingJoinEventBody: GroupBuyingJoinEventRequest,
     groupBuyingId: string,
@@ -95,6 +168,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       parentOrder.shippingAddress = address.fullAddress;
       parentOrder.phone = address.phone;
       parentOrder.notes = address.notes;
+      parentOrder.recipientName = address.fullName;
 
       parentOrder.account = account;
       parentOrder.status = ShippingStatusEnum.JOIN_GROUP_BUYING;
@@ -109,9 +183,10 @@ class GroupBuyingService extends BaseService<GroupBuying> {
 
       childOrder.orderDetails = [];
       childOrder.account = account;
+      childOrder.recipientName = address.fullName;
       childOrder.status = ShippingStatusEnum.JOIN_GROUP_BUYING;
       parentOrder.children = [childOrder];
-      parentOrder.groupBuying = groupBuying;
+      childOrder.groupBuying = groupBuying;
 
       for (const item of groupBuyingJoinEventBody.items) {
         //find product
@@ -133,6 +208,8 @@ class GroupBuyingService extends BaseService<GroupBuying> {
         const orderDetail = new OrderDetail();
         orderDetail.unitPriceBeforeDiscount = productClassification.price;
         orderDetail.unitPriceAfterDiscount = productClassification.price;
+        orderDetail.classificationName = productClassification.title;
+        orderDetail.productName = productClassification.product?.name;
         orderDetail.type = OrderEnum.GROUP_BUYING;
         orderDetail.subTotal =
           item.quantity * orderDetail.unitPriceAfterDiscount;
@@ -141,13 +218,22 @@ class GroupBuyingService extends BaseService<GroupBuying> {
         orderDetail.productClassification = productClassification;
         //update quantity of product classification
         productClassification.quantity -= item.quantity;
-        await queryRunner.manager.save(
-          ProductClassification,
-          productClassification
-        );
+        // await queryRunner.manager.save(
+        //   ProductClassification,
+        //   productClassification
+        // );
+
         //push order detail into child order
         parentOrder.orderDetails.push(orderDetail);
       }
+
+      //create status trackings for parent and child order
+      const statusTrackings = orderService.updateOrderStatusBeforeCreation(
+        parentOrder,
+        ShippingStatusEnum.JOIN_GROUP_BUYING
+      );
+      await queryRunner.manager.save(StatusTracking, statusTrackings);
+      await orderService.updateDecreaseStockQuantity(parentOrder, queryRunner);
       voucherService.calculateOrderPrice(parentOrder);
 
       const createdParentOrder = await queryRunner.manager.save(
@@ -163,7 +249,136 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       await queryRunner.release();
     }
   }
-  
+
+  async endGroupBuying(groupBuyingId: string) {
+    let isEventEndSuccess = false;
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const groupBuying = await repository.findOne({
+        where: { id: groupBuyingId },
+        relations: {
+          criteria: { voucher: true },
+          groupProduct: {
+            criterias: { voucher: true },
+          },
+        },
+      });
+      if (!groupBuying) throw new BadRequestError('Group buying not found');
+      if (groupBuying.status != StatusEnum.ACTIVE)
+        throw new BadRequestError('Only end active group buying');
+      groupBuying.status = StatusEnum.INACTIVE;
+      const orders = await orderRepository.find({
+        where: { groupBuying: { id: groupBuyingId }, parent: Not(IsNull()) },
+        relations: {
+          parent: true,
+          orderDetails: {
+            productClassification: { product: true, images: true },
+          },
+        },
+      });
+      if (orders.length < groupBuying.criteria.threshold) {
+        await this.cancelAllOrdersInGroupbuying(orders, queryRunner);
+        isEventEndSuccess = false;
+      } else {
+        //key: orderId, value: can afford or not (boolean)
+        const orderIdCanAffordMap = {};
+        let countAffordableOrder = 0;
+
+        for (const order of orders) {
+          const wallet = await walletRepository.findOne({
+            where: {
+              owner: { id: order.account.id },
+            },
+          });
+          //apply voucher
+          order.voucher = groupBuying.criteria.voucher;
+          voucherService.applyShopVoucher(order);
+          voucherService.calculateOrderPrice(order.parent);
+
+          if (wallet && wallet.balance >= order.totalPrice) {
+            countAffordableOrder++;
+            orderIdCanAffordMap[order.id] = true;
+          } else {
+            orderIdCanAffordMap[order.id] = false;
+          }
+        }
+        if (countAffordableOrder < groupBuying.criteria.threshold) {
+          await this.cancelAllOrdersInGroupbuying(orders, queryRunner);
+          isEventEndSuccess = false;
+        } else {
+          //find most matching criteria
+          const criterias = groupBuying.groupProduct.criterias.sort(
+            (a, b) => b.threshold - a.threshold
+          );
+          const findCriteria = criterias.find(
+            (criteria) => criteria.threshold <= countAffordableOrder
+          );
+
+          for (const order of orders) {
+            const wallet = await walletRepository.findOne({
+              where: {
+                owner: { id: order.account.id },
+              },
+            });
+            //apply voucher
+            order.voucher = findCriteria.voucher;
+            voucherService.applyShopVoucher(order);
+            voucherService.calculateOrderPrice(order.parent);
+            //check if order is affordable or not
+            if (orderIdCanAffordMap[order.id]) {
+              wallet.balance -= order.totalPrice;
+              await queryRunner.manager.save(wallet);
+              //change order status
+              const statusTrackings =
+                orderService.updateOrderStatusBeforeCreation(
+                  order.parent,
+                  ShippingStatusEnum.WAIT_FOR_CONFIRMATION
+                );
+              await queryRunner.manager.save(StatusTracking, statusTrackings);
+              await queryRunner.manager.save(Order, [order, order.parent]);
+            } else {
+              await this.cancelOneOrderInGroupbuying(order, queryRunner);
+            }
+          }
+          isEventEndSuccess = true;
+        }
+      }
+      await queryRunner.manager.save(groupBuying);
+      await queryRunner.commitTransaction();
+      return isEventEndSuccess;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  private async cancelOneOrderInGroupbuying(
+    order: Order,
+    queryRunner: QueryRunner
+  ) {
+    //update status
+    const statusTrackings = orderService.updateOrderStatusBeforeCreation(
+      order.parent,
+      ShippingStatusEnum.CANCELLED
+    );
+    await queryRunner.manager.save(StatusTracking, statusTrackings);
+    await queryRunner.manager.save(Order, [order, order.parent]);
+    await orderService.returnBackStockQuantity(order, queryRunner);
+  }
+
+  private async cancelAllOrdersInGroupbuying(
+    orders: Order[],
+    queryRunner: QueryRunner
+  ) {
+    for (const order of orders) {
+      this.cancelOneOrderInGroupbuying(order, queryRunner);
+    }
+  }
+
   async getById(groupBuyingId: string) {
     const groupBuying = await repository.findOne({
       where: { id: groupBuyingId },

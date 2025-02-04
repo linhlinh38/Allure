@@ -1,9 +1,9 @@
-import { NextFunction, Request, Response } from "express";
-import { createNormalResponse } from "../utils/response";
-import { walletService } from "../services/wallet.service";
-import { AuthRequest } from "../middleware/authentication";
-import { plainToInstance } from "class-transformer";
-import { WalletCreateRequest } from "../dtos/request/wallet.request";
+import { NextFunction, Request, Response } from 'express';
+import { createNormalResponse } from '../utils/response';
+import { walletService } from '../services/wallet.service';
+import { AuthRequest } from '../middleware/authentication';
+import { plainToInstance } from 'class-transformer';
+import { WalletCreateRequest } from '../dtos/request/wallet.request';
 export default class WalletController {
   static async getWalletByAccountId(
     req: AuthRequest,
