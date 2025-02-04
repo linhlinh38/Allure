@@ -40,6 +40,21 @@ export default class GroupBuyingController {
       next(err);
     }
   }
+  static async getByBrand(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get group buyings success',
+        await groupBuyingService.getByBrand(req.params.brandId, req.body.status)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async getMyGroupBuyings(
     req: AuthRequest,
     res: Response,
