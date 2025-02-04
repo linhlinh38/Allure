@@ -1,1 +1,0 @@
-    const queryRunner = AppDataSource.createQueryRunner();
