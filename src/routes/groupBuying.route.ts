@@ -6,14 +6,23 @@ import { GroupBuyingJoinEventSchema } from '../dtos/request/groupBuying.request'
 
 const groupBuyingRouter = express.Router();
 groupBuyingRouter.get('/', GroupBuyingController.getAll);
+groupBuyingRouter.get('/get-by-status', GroupBuyingController.getByStatus);
 groupBuyingRouter.get(
-  '/get-by-id/:groupProductId',
+  '/get-by-id/:groupBuyingId',
   GroupBuyingController.getById
+);
+groupBuyingRouter.post(
+  '/end-group-buying/:groupBuyingId',
+  GroupBuyingController.endGroupBuying
 );
 groupBuyingRouter.use(authentication);
 groupBuyingRouter.post(
   '/buy/:groupProductId',
   validate(GroupBuyingJoinEventSchema),
   GroupBuyingController.buy
+);
+groupBuyingRouter.post(
+  '/get-my-group-buyings',
+  GroupBuyingController.getMyGroupBuyings
 );
 export default groupBuyingRouter;

@@ -1,5 +1,4 @@
 import { NextFunction, Request, Response } from 'express';
-import { serviceService } from '../services/service.service';
 import { createNormalResponse } from '../utils/response';
 import { walletService } from '../services/wallet.service';
 import { AuthRequest } from '../middleware/authentication';
