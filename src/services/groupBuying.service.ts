@@ -11,17 +11,36 @@ import { accountRepository } from '../repositories/account.repository';
 import { Order } from '../entities/order.entity';
 import { addressRepository } from '../repositories/address.repository';
 import { OrderDetail } from '../entities/orderDetail.entity';
-import { ProductClassification } from '../entities/productClassification.entity';
 import { voucherService } from './voucher.service';
 import { StatusTracking } from '../entities/statusTracking.entity';
-import { Account } from '../entities/account.entity';
 import { orderRepository } from '../repositories/order.repository';
 import { walletRepository } from '../repositories/wallet.reposirory';
 import { orderService } from './order.service';
 
 const repository = AppDataSource.getRepository(GroupBuying);
 class GroupBuyingService extends BaseService<GroupBuying> {
+  async getAll() {
+    return await repository.find({
+      relations: {
+        groupProduct: {
+          criterias: { voucher: true },
+          products: {
+            images: true,
+            productClassifications: { images: true },
+          },
+        },
+        criteria: { voucher: true },
+        creator: true,
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+  }
+
   async getByStatus(status: StatusEnum) {
+    console.log(status);
+
     if (!status)
       return await repository.find({
         relations: {
@@ -32,7 +51,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
               productClassifications: { images: true },
             },
           },
-          criteria: true,
+          criteria: { voucher: true },
           creator: true,
         },
         order: {
@@ -51,7 +70,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
             productClassifications: { images: true },
           },
         },
-        criteria: true,
+        criteria: { voucher: true },
         creator: true,
       },
       order: {
@@ -73,7 +92,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
               productClassifications: { images: true },
             },
           },
-          criteria: true,
+          criteria: { voucher: true },
           creator: true,
         },
         order: {
@@ -93,7 +112,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
             productClassifications: { images: true },
           },
         },
-        criteria: true,
+        criteria: { voucher: true },
         creator: true,
       },
       order: {
