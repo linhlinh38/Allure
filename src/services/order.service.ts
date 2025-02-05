@@ -220,7 +220,7 @@ class OrderService extends BaseService<Order> {
     }
   }
 
-  private async returnBackStockQuantity(
+  async returnBackStockQuantity(
     order: Order,
     queryRunner: QueryRunner
   ) {
@@ -852,6 +852,7 @@ class OrderService extends BaseService<Order> {
         childOrder.shippingAddress = address.fullAddress;
         childOrder.phone = address.phone;
         childOrder.notes = address.notes;
+        childOrder.recipientName = address.fullName;
 
         childOrder.message = order.message;
         childOrder.orderDetails = [];
@@ -916,8 +917,7 @@ class OrderService extends BaseService<Order> {
         Order,
         parentOrder
       );
-
-      await queryRunner.manager.save(statusTrackings);
+      await queryRunner.manager.save(StatusTracking , statusTrackings);
 
       //remove cart items after order has been created
       const productClassificationIds = orderNormalBody.orders.flatMap((order) =>
@@ -1046,7 +1046,7 @@ class OrderService extends BaseService<Order> {
     }
   }
 
-  private async updateDecreaseStockQuantity(
+  async updateDecreaseStockQuantity(
     parentOrder: Order,
     queryRunner: QueryRunner
   ) {

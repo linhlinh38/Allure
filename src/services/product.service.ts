@@ -521,6 +521,9 @@ class ProductService extends BaseService<Product> {
         queryRunner.manager.getRepository(PreOrderProduct);
       const productDiscountRepository =
         queryRunner.manager.getRepository(ProductDiscount);
+      const productClassificationRepository = queryRunner.manager.getRepository(
+        ProductClassification
+      );
       const product = await productRepository.findOne({
         where: { id: productId },
       });
@@ -542,6 +545,18 @@ class ProductService extends BaseService<Product> {
           { product: { id: productId } },
           { status: ProductDiscountEnum.INACTIVE }
         );
+
+        if (status === ProductEnum.BANNED) {
+          await productClassificationRepository.update(
+            { product: { id: productId } },
+            { status: StatusEnum.BANNED }
+          );
+        } else {
+          await productClassificationRepository.update(
+            { product: { id: productId } },
+            { status: StatusEnum.INACTIVE }
+          );
+        }
       }
 
       await queryRunner.commitTransaction();

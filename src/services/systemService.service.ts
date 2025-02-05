@@ -1,16 +1,16 @@
 import { AppDataSource } from "../dataSource";
-import { Service } from "../entities/service.entity";
+import { SystemService } from "../entities/systemService.entity";
 import { BadRequestError } from "../errors/error";
 import { BaseService } from "./base.service";
 import { categoryService } from "./category.service";
 
-const repository = AppDataSource.getRepository(Service);
-class ServiceService extends BaseService<Service> {
+const repository = AppDataSource.getRepository(SystemService);
+class SystemServiceService extends BaseService<SystemService> {
   constructor() {
     super(repository);
   }
 
-  async beforeCreate(body: Service) {
+  async beforeCreate(body: SystemService) {
     const checkService = await this.findBy(body.name, "name");
     if (checkService.length > 0) {
       throw new BadRequestError("Service already Existed");
@@ -22,4 +22,4 @@ class ServiceService extends BaseService<Service> {
     }
   }
 }
-export const serviceService = new ServiceService();
+export const systemServiceService = new SystemServiceService();

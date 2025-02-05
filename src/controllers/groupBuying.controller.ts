@@ -2,15 +2,78 @@ import { NextFunction, Request, Response } from 'express';
 import { createNormalResponse } from '../utils/response';
 import { groupProductService } from '../services/groupProduct.service';
 import { plainToInstance } from 'class-transformer';
-import {
-  GroupProductCreateRequest,
-  GroupProductUpdateRequest,
-} from '../dtos/request/groupProduct.request';
 import { AuthRequest } from '../middleware/authentication';
-import { GroupBuyingJoinEventRequest, GroupBuyingRequest } from '../dtos/request/groupBuying.request';
-import { StatusEnum } from '../utils/enum';
+import { GroupBuyingJoinEventRequest } from '../dtos/request/groupBuying.request';
 import { groupBuyingService } from '../services/groupBuying.service';
 export default class GroupBuyingController {
+  static async endGroupBuying(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    const isEventEndSuccess = await groupBuyingService.endGroupBuying(
+      req.params.groupBuyingId
+    );
+    try {
+      return createNormalResponse(
+        res,
+        isEventEndSuccess
+          ? 'Group buyings can not meet criteria. Cancel all orders'
+          : 'End group buying success'
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async getByStatus(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get group buyings success',
+        await groupBuyingService.getByStatus(req.body.status)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async getByBrand(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get group buyings success',
+        await groupBuyingService.getByBrand(req.params.brandId, req.body.status)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async getMyGroupBuyings(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get my group buyings success',
+        await groupBuyingService.getMyGroupBuyings(
+          req.loginUser,
+          req.body.status
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async buy(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const groupBuyingJoinEventBody = plainToInstance(
@@ -23,13 +86,17 @@ export default class GroupBuyingController {
       return createNormalResponse(
         res,
         'Buy success',
-        await groupBuyingService.buy(groupBuyingJoinEventBody, req.params.groupProductId, req.loginUser)
+        await groupBuyingService.buy(
+          groupBuyingJoinEventBody,
+          req.params.groupProductId,
+          req.loginUser
+        )
       );
     } catch (err) {
       next(err);
     }
   }
-  
+
   static async getById(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       return createNormalResponse(
@@ -44,15 +111,14 @@ export default class GroupBuyingController {
 
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
-      const groupProducts = await groupProductService.getAll();
+      const groupBuyings = await groupBuyingService.getAll();
       return createNormalResponse(
         res,
         'Get all group buying success',
-        groupProducts
+        groupBuyings
       );
     } catch (err) {
       next(err);
     }
   }
-
 }

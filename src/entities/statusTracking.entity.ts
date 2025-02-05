@@ -7,13 +7,13 @@ import {
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
-} from "typeorm";
-import { BaseEntity } from "./base.entity";
-import { Account } from "./account.entity";
-import { Brand } from "./brand.entity";
-import { Order } from "./order.entity";
+} from 'typeorm';
+import { BaseEntity } from './base.entity';
+import { Account } from './account.entity';
+import { Brand } from './brand.entity';
+import { Order } from './order.entity';
 
-@Entity('status-trackings')
+@Entity('status_trackings')
 export class StatusTracking extends BaseEntity {
   @Column({ type: 'varchar', length: 255, nullable: true })
   reason: string;
@@ -21,7 +21,7 @@ export class StatusTracking extends BaseEntity {
   @Column({ type: 'varchar', length: 255, nullable: false })
   status: string;
 
-  @ManyToOne(() => Account)
+  @ManyToOne(() => Account, { nullable: true })
   @JoinColumn({ name: 'updated_by' })
   updatedBy: Account;
 

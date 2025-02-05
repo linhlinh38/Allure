@@ -2,6 +2,7 @@ import { AppDataSource } from "../dataSource";
 import { Category } from "../entities/category.entity";
 import { BadRequestError } from "../errors/error";
 import { BaseService } from "./base.service";
+import { masterConfigService } from "./masterConfig.service";
 
 const repository = AppDataSource.getRepository(Category);
 class CategoryService extends BaseService<Category> {
@@ -50,6 +51,9 @@ class CategoryService extends BaseService<Category> {
   }
   async beforeCreate(body: Category) {
     const checkCateName = await this.findBy(body.name, "name");
+    const masterConfig = await masterConfigService.findById(
+      "054dbb3b-9c39-47c2-bbc7-04839cacb7f2"
+    );
     if (checkCateName.length > 0) {
       throw new BadRequestError("Category already Existed");
     }
@@ -66,7 +70,7 @@ class CategoryService extends BaseService<Category> {
 
       const depth = await this.calculateCategoryDepth(parentCategory);
 
-      if (depth + 1 > 4) {
+      if (depth + 1 > masterConfig.maxLevelCategory) {
         throw new BadRequestError(
           "A category cannot have more than 4 levels of subcategories"
         );
@@ -91,12 +95,14 @@ class CategoryService extends BaseService<Category> {
 
       category = parentCategory;
       depth++;
-      console.log("depth ", depth);
     }
 
     return depth;
   }
   async update(id: string, updatedData: Partial<Category>): Promise<Category> {
+    const masterConfig = await masterConfigService.findById(
+      "054dbb3b-9c39-47c2-bbc7-04839cacb7f2"
+    );
     const queryRunner = AppDataSource.createQueryRunner();
 
     await queryRunner.connect();
@@ -137,9 +143,9 @@ class CategoryService extends BaseService<Category> {
         category.level = newParentCategory.level + 1;
 
         // Enforce maximum level restriction
-        if (category.level > 4) {
+        if (category.level > masterConfig.maxLevelCategory) {
           throw new Error(
-            "A category cannot have more than 3 levels of subcategories."
+            "A category cannot have more than 4 levels of subcategories."
           );
         }
       }
@@ -164,9 +170,9 @@ class CategoryService extends BaseService<Category> {
           child.level = currentParent.level + 1;
 
           // Enforce maximum level restriction
-          if (child.level > 4) {
+          if (child.level > masterConfig.maxLevelCategory) {
             throw new Error(
-              "A category cannot have more than 3 levels of subcategories."
+              "A category cannot have more than 4 levels of subcategories."
             );
           }
 
@@ -175,20 +181,14 @@ class CategoryService extends BaseService<Category> {
         }
       }
 
-      // Bulk save all updated categories
       await categoryRepository.save(categoriesToUpdate);
 
-      // Commit the transaction
       await queryRunner.commitTransaction();
-
-      // Return the updated category
       return category;
     } catch (error) {
-      // Rollback in case of any errors
       await queryRunner.rollbackTransaction();
       throw error;
     } finally {
-      // Release the query runner
       await queryRunner.release();
     }
   }
