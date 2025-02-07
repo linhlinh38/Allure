@@ -15,19 +15,19 @@ const repository = AppDataSource.getRepository(Wallet);
 class WalletService extends BaseService<Wallet> {
   async deposit(depositBody: DepositRequest) {
     const isValid = isValidData(
-      depositBody.webhookData.data,
-      depositBody.webhookData.signature,
+      depositBody.data,
+      depositBody.signature,
       config.PAYOS_CHECKSUM_KEY
     );
     if (!isValid) throw new BadRequestError(`Invalid signature`);
-    const accountId = depositBody.webhookData.data.description;
+    const accountId = depositBody.data.description;
     const wallet = await walletRepository.findOne({
       where: {
         owner: { id: accountId },
       },
     });
     if (wallet) {
-      wallet.balance += depositBody.webhookData.data.amount;
+      wallet.balance += depositBody.data.amount;
     }
     await walletRepository.save(wallet);
   }
