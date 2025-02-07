@@ -22,6 +22,14 @@ import { criteriaRepository } from '../repositories/criteria.repository';
 
 const repository = AppDataSource.getRepository(GroupProduct);
 class GroupProductService extends BaseService<GroupProduct> {
+  async getBrandsHaveGroupProducts() {
+    return await brandRepository
+      .createQueryBuilder('brand')
+      .innerJoin('brand.products', 'product') // Lấy Brand có Product
+      .innerJoin('product.groupProducts', 'groupProduct') // Lấy Product thuộc ít nhất một GroupProduct
+      .distinct(true) // Tránh trùng lặp Brand
+      .getMany();
+  }
   async getByBrand(brandId: string, status: StatusEnum) {
     if (!status)
       return await repository.find({
