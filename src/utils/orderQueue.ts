@@ -3,13 +3,14 @@ import { orderRepository } from '../repositories/order.repository';
 import { AppDataSource } from '../dataSource';
 import { ShippingStatusEnum } from './enum';
 import { orderService } from '../services/order.service';
+import { groupBuyingService } from '../services/groupBuying.service';
 
-export const orderQueue = new Queue('normalOrderQueue', {
+export const normalOrderQueue = new Queue('normalOrderQueue', {
   connection: { host: 'localhost', port: 6379 },
 });
 
 export async function addNormalOrderToQueue(orderId: string) {
-  await orderQueue.add(
+  await normalOrderQueue.add(
     'checkPayment',
     { orderId },
     { delay: 24 * 60 * 60 * 1000 }
@@ -74,4 +75,41 @@ normalOrderQueueWorker.on('completed', (job) => {
 
 normalOrderQueueWorker.on('failed', (job, err) => {
   console.log(`❌ Job ${job.data.orderId} thất bại: ${err.message}`);
+});
+
+export const groupOrderQueue = new Queue('groupOrderQueue', {
+  connection: { host: 'localhost', port: 6379 },
+});
+
+export async function addGroupOrderToQueue(
+  groupBuyingId: string,
+  time: number
+) {
+  await groupOrderQueue.add(
+    'checkEventEnd',
+    { groupBuyingId },
+    { delay: time }
+  );
+}
+
+const groupOrderQueueWorker = new Worker(
+  'groupOrderQueue',
+  async (job) => {
+    const { groupBuyingId } = job.data;
+    console.log(`⏳ Kiểm tra trạng thái groupBuying ${groupBuyingId}...`);
+    await groupBuyingService.endGroupBuying(groupBuyingId);
+  },
+  {
+    connection: { host: 'localhost', port: 6379 },
+  }
+);
+
+groupOrderQueueWorker.on('completed', (job) => {
+  console.log(
+    `✅ Job end group buying ${job.data.groupBuyingId} đã hoàn thành`
+  );
+});
+
+groupOrderQueueWorker.on('failed', (job, err) => {
+  console.log(`❌ Job ${job.data.groupBuyingId} thất bại: ${err.message}`);
 });
