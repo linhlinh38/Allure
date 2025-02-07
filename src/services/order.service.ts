@@ -37,6 +37,7 @@ import { CancelOrderRequest } from '../entities/cancelOrderRequest.entity';
 import { cancelOrderRequestRepository } from '../repositories/cancelOrderRequest.repository';
 import { walletRepository } from '../repositories/wallet.reposirory';
 import { Wallet } from '../entities/wallet.entity';
+import { addNormalOrderToQueue } from '../utils/orderQueue';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
@@ -220,10 +221,7 @@ class OrderService extends BaseService<Order> {
     }
   }
 
-  async returnBackStockQuantity(
-    order: Order,
-    queryRunner: QueryRunner
-  ) {
+  async returnBackStockQuantity(order: Order, queryRunner: QueryRunner) {
     const productClassifications = order.orderDetails.map((orderDetail) => {
       const productClassification = orderDetail.productClassification;
       if (productClassification) {
@@ -390,8 +388,10 @@ class OrderService extends BaseService<Order> {
   ) {
     let statusTracking = new StatusTracking();
     statusTracking.order = order;
-    statusTracking.updatedBy = new Account();
-    statusTracking.updatedBy.id = userId;
+    if (userId) {
+      statusTracking.updatedBy = new Account();
+      statusTracking.updatedBy.id = userId;
+    }
     statusTracking.status = status;
     statusTracking.reason = reason;
     await queryRunner.manager.save(StatusTracking, statusTracking);
@@ -471,6 +471,53 @@ class OrderService extends BaseService<Order> {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  async cancelChildOrder(order: Order, queryRunner: QueryRunner) {
+    await Promise.all([
+      //update order status and save
+      (async () => {
+        order.status = ShippingStatusEnum.CANCELLED;
+        await queryRunner.manager.save(Order, order);
+      })(),
+      //refund voucher
+      this.refundVoucher(order, queryRunner),
+      //return back stock quantity
+      this.returnBackStockQuantity(order, queryRunner),
+      //create status tracking
+      this.createStatusTracking(
+        order,
+        null,
+        ShippingStatusEnum.CANCELLED,
+        'AUTO CANCELLED',
+        queryRunner
+      ),
+    ]);
+  }
+
+  async cancelParentOrder(order: Order, queryRunner: QueryRunner) {
+    //cancel child orders
+    for (const childOrder of order.children) {
+      await this.cancelChildOrder(childOrder, queryRunner);
+    }
+    //cancel parent order
+    await Promise.all([
+      //update order status and save
+      (async () => {
+        order.status = ShippingStatusEnum.CANCELLED;
+        await queryRunner.manager.save(Order, order);
+      })(),
+      //refund voucher
+      this.refundVoucher(order, queryRunner),
+      //create status tracking
+      this.createStatusTracking(
+        order,
+        null,
+        ShippingStatusEnum.CANCELLED,
+        'AUTO CANCELLED',
+        queryRunner
+      ),
+    ]);
   }
 
   async refundVoucher(order: Order, queryRunner: QueryRunner) {
@@ -917,7 +964,10 @@ class OrderService extends BaseService<Order> {
         Order,
         parentOrder
       );
-      await queryRunner.manager.save(StatusTracking , statusTrackings);
+      if (createdParentOrder.status == ShippingStatusEnum.TO_PAY) {
+        await addNormalOrderToQueue(createdParentOrder.id);
+      }
+      await queryRunner.manager.save(StatusTracking, statusTrackings);
 
       //remove cart items after order has been created
       const productClassificationIds = orderNormalBody.orders.flatMap((order) =>
