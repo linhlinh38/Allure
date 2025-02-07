@@ -40,6 +40,7 @@ class GroupProductService extends BaseService<GroupProduct> {
         },
         relations: {
           products: { images: true, productClassifications: { images: true } },
+          criterias: { voucher: true },
         },
       });
     return await repository.find({
