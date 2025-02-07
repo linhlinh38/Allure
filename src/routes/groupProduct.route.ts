@@ -1,13 +1,23 @@
 import express from 'express';
 import authentication from '../middleware/authentication';
 import GroupProductController from '../controllers/groupProduct.controller';
-import { GroupProductCreateSchema, GroupProductUpdateSchema } from '../dtos/request/groupProduct.request';
+import {
+  GroupProductCreateSchema,
+  GroupProductUpdateSchema,
+} from '../dtos/request/groupProduct.request';
 import validate from '../utils/validate';
 
 const groupProductRouter = express.Router();
 groupProductRouter.get('/', GroupProductController.getAll);
 groupProductRouter.get('/get-by-status', GroupProductController.getByStatus);
-groupProductRouter.get('/get-by-brand/:brandId', GroupProductController.getByBrand);
+groupProductRouter.get(
+  '/get-by-brand/:brandId',
+  GroupProductController.getByBrand
+);
+groupProductRouter.get(
+  '/get-brands-have-group-products',
+  GroupProductController.getBrandsHaveGroupProducts
+);
 groupProductRouter.get(
   '/get-by-id/:groupProductId',
   GroupProductController.getById
