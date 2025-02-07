@@ -3,8 +3,23 @@ import { createNormalResponse } from '../utils/response';
 import { walletService } from '../services/wallet.service';
 import { AuthRequest } from '../middleware/authentication';
 import { plainToInstance } from 'class-transformer';
-import { WalletCreateRequest } from '../dtos/request/wallet.request';
+import {
+  DepositRequest,
+  WalletCreateRequest,
+} from '../dtos/request/wallet.request';
 export default class WalletController {
+  static async deposit(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const depositBody = plainToInstance(DepositRequest, req.body, {
+        excludeExtraneousValues: true,
+      });
+      await walletService.deposit(depositBody);
+      return createNormalResponse(res, 'Deposit success');
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async getWalletByAccountId(
     req: AuthRequest,
     res: Response,
@@ -13,7 +28,7 @@ export default class WalletController {
     try {
       return createNormalResponse(
         res,
-        "Get wallet success",
+        'Get wallet success',
         await walletService.getWalletByAccountId(req.params.accountId)
       );
     } catch (err) {
@@ -28,7 +43,7 @@ export default class WalletController {
     try {
       return createNormalResponse(
         res,
-        "Get my wallet success",
+        'Get my wallet success',
         await walletService.getMyWallet(req.loginUser)
       );
     } catch (err) {
@@ -39,7 +54,7 @@ export default class WalletController {
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
       const wallets = await walletService.findAll();
-      return createNormalResponse(res, "Get all wallets success", wallets);
+      return createNormalResponse(res, 'Get all wallets success', wallets);
     } catch (err) {
       next(err);
     }
@@ -49,7 +64,7 @@ export default class WalletController {
     try {
       return createNormalResponse(
         res,
-        "Get wallet success",
+        'Get wallet success',
         await walletService.getById(req.params.id)
       );
     } catch (err) {
@@ -63,7 +78,7 @@ export default class WalletController {
         req.body.balance as number,
         req.params.accountId
       );
-      return createNormalResponse(res, "Update wallet success");
+      return createNormalResponse(res, 'Update wallet success');
     } catch (err) {
       next(err);
     }
@@ -79,7 +94,7 @@ export default class WalletController {
         }
       );
       await walletService.createWallet(walletCreateRequest);
-      return createNormalResponse(res, "Create wallet success");
+      return createNormalResponse(res, 'Create wallet success');
     } catch (err) {
       next(err);
     }
