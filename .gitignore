@@ -1,7 +1,6 @@
 node_modules
 build
 .env
-docker-compose.yml
 package-lock.json
 migrations
 .vscode
