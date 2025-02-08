@@ -60,6 +60,7 @@ class CartItemService extends BaseService<CartItem> {
       where: { account: { id: account } },
       relations: [
         "productClassification",
+        "groupBuying",
         "productClassification.images",
         "productClassification.product",
         "productClassification.preOrderProduct",
