@@ -19,9 +19,18 @@ import { GroupBuying } from '../entities/groupBuying.entity';
 import { accountRepository } from '../repositories/account.repository';
 import { VoucherRequest } from '../dtos/request/voucher.request';
 import { criteriaRepository } from '../repositories/criteria.repository';
+import { addGroupOrderToQueue } from '../utils/orderQueue';
 
 const repository = AppDataSource.getRepository(GroupProduct);
 class GroupProductService extends BaseService<GroupProduct> {
+  async getBrandsHaveGroupProducts() {
+    return await brandRepository
+      .createQueryBuilder('brand')
+      .innerJoin('brand.products', 'product') // Lấy Brand có Product
+      .innerJoin('product.groupProducts', 'groupProduct') // Lấy Product thuộc ít nhất một GroupProduct
+      .distinct(true) // Tránh trùng lặp Brand
+      .getMany();
+  }
   async getByBrand(brandId: string, status: StatusEnum) {
     if (!status)
       return await repository.find({
@@ -32,6 +41,7 @@ class GroupProductService extends BaseService<GroupProduct> {
         },
         relations: {
           products: { images: true, productClassifications: { images: true } },
+          criterias: { voucher: true },
         },
       });
     return await repository.find({
@@ -98,15 +108,21 @@ class GroupProductService extends BaseService<GroupProduct> {
     if (!groupBuyingCriteria)
       throw new BadRequestError('Criteria not in group product');
     const newGroupBuying = new GroupBuying();
-    newGroupBuying.startTime = groupBuyingBody.startTime;
-    newGroupBuying.endTime = groupBuyingBody.endTime;
+    newGroupBuying.startTime = new Date(groupBuyingBody.startTime);
+    newGroupBuying.endTime = new Date(groupBuyingBody.endTime);
     newGroupBuying.criteria = groupBuyingCriteria;
     const creator = await accountRepository.findOne({
       where: { id: loginUser },
     });
     newGroupBuying.creator = creator;
     newGroupBuying.groupProduct = groupProduct;
-    await groupBuyingRepository.save(newGroupBuying);
+    const createdGroupBuying = await groupBuyingRepository.save(newGroupBuying);
+    await addGroupOrderToQueue(
+      createdGroupBuying.id,
+      createdGroupBuying.endTime.getTime() -
+        createdGroupBuying.startTime.getTime()
+    );
+    return createdGroupBuying;
   }
 
   async isInAnyEvents(groupProductId: string) {

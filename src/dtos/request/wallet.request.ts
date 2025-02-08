@@ -13,6 +13,60 @@ export const WalletUpdateSchema = z.object({
   }),
 });
 
+export const DepositSchema = z.object({
+  body: z.object({
+    code: z.string(),
+    desc: z.string(),
+    success: z.boolean(),
+    data: z.object({
+      orderCode: z.number(),
+      amount: z.number(),
+      description: z.string(),
+      accountNumber: z.string(),
+      reference: z.string(),
+      transactionDateTime: z.string(),
+      currency: z.string(),
+      paymentLinkId: z.string(),
+      code: z.string(),
+      desc: z.string(),
+      counterAccountBankId: z.string(),
+      counterAccountBankName: z.string(),
+      counterAccountName: z.string(),
+      counterAccountNumber: z.string(),
+      virtualAccountName: z.string(),
+      virtualAccountNumber: z.string(),
+    }),
+    signature: z.string(),
+  }),
+});
+
+export class DepositRequest {
+  code: string;
+  desc: string;
+  success: boolean;
+  data: WebhookDataDetails;
+  signature: string;
+}
+
+class WebhookDataDetails {
+  orderCode: number;
+  amount: number;
+  description: string;
+  accountNumber: string;
+  reference: string;
+  transactionDateTime: string;
+  currency: string;
+  paymentLinkId: string;
+  code: string;
+  desc: string;
+  counterAccountBankId: string;
+  counterAccountBankName: string;
+  counterAccountName: string;
+  counterAccountNumber: string;
+  virtualAccountName: string;
+  virtualAccountNumber: string;
+}
+
 export class WalletCreateRequest {
   balance: number;
   accountId: string;

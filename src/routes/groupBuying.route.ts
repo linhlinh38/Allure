@@ -6,7 +6,8 @@ import { GroupBuyingJoinEventSchema } from '../dtos/request/groupBuying.request'
 
 const groupBuyingRouter = express.Router();
 groupBuyingRouter.get('/', GroupBuyingController.getAll);
-groupBuyingRouter.get('/get-by-status', GroupBuyingController.getByStatus);
+groupBuyingRouter.post('/get-by-status', GroupBuyingController.getByStatus);
+groupBuyingRouter.post('/get-by-brand/:brandId', GroupBuyingController.getByBrand);
 groupBuyingRouter.get(
   '/get-by-id/:groupBuyingId',
   GroupBuyingController.getById

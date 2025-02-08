@@ -11,16 +11,75 @@ import { accountRepository } from '../repositories/account.repository';
 import { Order } from '../entities/order.entity';
 import { addressRepository } from '../repositories/address.repository';
 import { OrderDetail } from '../entities/orderDetail.entity';
-import { ProductClassification } from '../entities/productClassification.entity';
 import { voucherService } from './voucher.service';
 import { StatusTracking } from '../entities/statusTracking.entity';
-import { Account } from '../entities/account.entity';
 import { orderRepository } from '../repositories/order.repository';
 import { walletRepository } from '../repositories/wallet.reposirory';
 import { orderService } from './order.service';
 
 const repository = AppDataSource.getRepository(GroupBuying);
 class GroupBuyingService extends BaseService<GroupBuying> {
+  async getByBrand(brandId: string, status: StatusEnum) {
+    if (!status)
+      return await repository.find({
+        where: {
+          groupProduct: { products: { brand: { id: brandId } } },
+        },
+        relations: {
+          groupProduct: {
+            criterias: { voucher: true },
+            products: {
+              images: true,
+              productClassifications: { images: true },
+            },
+          },
+          criteria: { voucher: true },
+          creator: true,
+        },
+        order: {
+          createdAt: 'DESC',
+        },
+      });
+    return await repository.find({
+      where: {
+        status,
+        groupProduct: { products: { brand: { id: brandId } } },
+      },
+      relations: {
+        groupProduct: {
+          criterias: { voucher: true },
+          products: {
+            images: true,
+            productClassifications: { images: true },
+          },
+        },
+        criteria: { voucher: true },
+        creator: true,
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+  }
+  async getAll() {
+    return await repository.find({
+      relations: {
+        groupProduct: {
+          criterias: { voucher: true },
+          products: {
+            images: true,
+            productClassifications: { images: true },
+          },
+        },
+        criteria: { voucher: true },
+        creator: true,
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+    });
+  }
+
   async getByStatus(status: StatusEnum) {
     if (!status)
       return await repository.find({
@@ -32,7 +91,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
               productClassifications: { images: true },
             },
           },
-          criteria: true,
+          criteria: { voucher: true },
           creator: true,
         },
         order: {
@@ -51,7 +110,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
             productClassifications: { images: true },
           },
         },
-        criteria: true,
+        criteria: { voucher: true },
         creator: true,
       },
       order: {
@@ -73,7 +132,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
               productClassifications: { images: true },
             },
           },
-          criteria: true,
+          criteria: { voucher: true },
           creator: true,
         },
         order: {
@@ -93,7 +152,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
             productClassifications: { images: true },
           },
         },
-        criteria: true,
+        criteria: { voucher: true },
         creator: true,
       },
       order: {
