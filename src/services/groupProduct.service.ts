@@ -122,6 +122,7 @@ class GroupProductService extends BaseService<GroupProduct> {
       createdGroupBuying.endTime.getTime() -
         createdGroupBuying.startTime.getTime()
     );
+    return createdGroupBuying;
   }
 
   async isInAnyEvents(groupProductId: string) {
