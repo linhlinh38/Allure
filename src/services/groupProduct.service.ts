@@ -108,8 +108,8 @@ class GroupProductService extends BaseService<GroupProduct> {
     if (!groupBuyingCriteria)
       throw new BadRequestError('Criteria not in group product');
     const newGroupBuying = new GroupBuying();
-    newGroupBuying.startTime = groupBuyingBody.startTime;
-    newGroupBuying.endTime = groupBuyingBody.endTime;
+    newGroupBuying.startTime = new Date(groupBuyingBody.startTime);
+    newGroupBuying.endTime = new Date(groupBuyingBody.endTime);
     newGroupBuying.criteria = groupBuyingCriteria;
     const creator = await accountRepository.findOne({
       where: { id: loginUser },
