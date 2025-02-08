@@ -34,9 +34,9 @@ class CartItemService extends BaseService<CartItem> {
         throw new BadRequestError("Quantity is not enough");
       }
     }
-    if (body.groupBuyingId) {
+    if (body.groupBuying) {
       const checkGroupBuying = await groupBuyingService.getById(
-        body.groupBuyingId
+        body.groupBuying
       );
       if (!checkGroupBuying || checkGroupBuying.status === StatusEnum.INACTIVE)
         throw new BadRequestError("Group Buying invalid");
