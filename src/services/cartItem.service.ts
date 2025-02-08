@@ -6,6 +6,7 @@ import { ProductDiscount } from "../entities/productDiscount.entity";
 import { BadRequestError } from "../errors/error";
 import { ProductDiscountEnum, StatusEnum } from "../utils/enum";
 import { BaseService } from "./base.service";
+import { groupBuyingService } from "./groupBuying.service";
 import { productClassificationService } from "./productClassification.service";
 
 const repository = AppDataSource.getRepository(CartItem);
@@ -33,6 +34,13 @@ class CartItemService extends BaseService<CartItem> {
         throw new BadRequestError("Quantity is not enough");
       }
     }
+    if (body.groupBuying) {
+      const checkGroupBuying = await groupBuyingService.getById(
+        body.groupBuying
+      );
+      if (!checkGroupBuying || checkGroupBuying.status === StatusEnum.INACTIVE)
+        throw new BadRequestError("Group Buying invalid");
+    }
   }
 
   async beforeUpdate(id: string, body: any) {
@@ -52,6 +60,7 @@ class CartItemService extends BaseService<CartItem> {
       where: { account: { id: account } },
       relations: [
         "productClassification",
+        "groupBuying",
         "productClassification.images",
         "productClassification.product",
         "productClassification.preOrderProduct",
