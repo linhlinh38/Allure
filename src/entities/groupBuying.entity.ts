@@ -35,7 +35,7 @@ export class GroupBuying extends BaseEntity {
   @OneToMany(() => Order, (order) => order.groupBuying)
   orders: Order[];
 
-  @OneToOne(() => GroupBuyingCriteria, (criteria) => criteria.groupBuying, {
+  @ManyToOne(() => GroupBuyingCriteria, (criteria) => criteria.groupBuyings, {
     nullable: true,
   })
   @JoinColumn()
