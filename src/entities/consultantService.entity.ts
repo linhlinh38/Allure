@@ -1,10 +1,7 @@
 import { Entity, Column, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { Product } from "./product.entity";
-import { ServiceTypeEnum, StatusEnum } from "../utils/enum";
+import { StatusEnum } from "../utils/enum";
 import { BaseEntity } from "./base.entity";
-import { PreOrderProduct } from "./preOrderProduct.entity";
-import { CartItem } from "./cartItem.entity";
-import { Category } from "./category.entity";
 import { Account } from "./account.entity";
 import { SystemService } from "./systemService.entity";
 import { ServiceBookingForm } from "./serviceBookingForm.entity";
@@ -13,6 +10,9 @@ import { ServiceBookingForm } from "./serviceBookingForm.entity";
 export class ConsultantService extends BaseEntity {
   @Column({ type: "int", nullable: false })
   price: number;
+
+  // @Column({ type: "int", nullable: false, name: "daily_slot" })
+  // dailySlot: number;
 
   @ManyToOne(() => Account, (account) => account.consultantServices)
   @JoinColumn({ name: "account_id" })

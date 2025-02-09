@@ -16,6 +16,9 @@ export class Question extends BaseEntity {
   @Column({ type: "int", name: "order_index" })
   orderIndex: number;
 
+  @Column({ type: "boolean", default: false })
+  mandatory: boolean;
+
   @Column({ type: "varchar", nullable: true })
   image: string;
 
