@@ -149,13 +149,20 @@ class CartItemService extends BaseService<CartItem> {
   async checkCart(body: CartItem) {
     let isExisted = false;
     let data = body;
-    const check = await repository
+    const queryBuilder = await repository
       .createQueryBuilder("cartItem")
       .where("cartItem.account_id = :accountId", { accountId: body.account })
       .andWhere("cartItem.product_classification_id = :classification", {
         classification: body.productClassification,
-      })
-      .getMany();
+      });
+
+    if (body.groupBuying) {
+      queryBuilder.andWhere("cartItem.group_buying_id = :groupBuyingId", {
+        groupBuyingId: body.groupBuying,
+      });
+    }
+    const check = await queryBuilder.getMany();
+
     if (check.length !== 0) {
       data = check[0];
       data.quantity += body.quantity;
