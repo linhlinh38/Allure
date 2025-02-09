@@ -8,18 +8,24 @@ import { Category } from "./category.entity";
 import { ConsultantService } from "./consultantService.entity";
 import { ServiceBookingForm } from "./serviceBookingForm.entity";
 import { SystemService } from "./systemService.entity";
-import { ResultSheetSection } from "./resultSheetSection.entity";
+import { ResultSheet } from "./resultSheet.entity";
 
-@Entity("result_sheets")
-export class ResultSheet extends BaseEntity {
+@Entity("result_sheet_section")
+export class ResultSheetSection extends BaseEntity {
   @Column({ type: "varchar" })
-  title: string;
+  section: string;
 
-  @OneToMany(() => SystemService, (service) => service.resultSheet)
-  systemServices?: SystemService[];
+  @Column({ type: "varchar" })
+  description: string;
 
-  @OneToMany(() => ResultSheetSection, (section) => section.resultSheet)
-  resultSheetSections?: ResultSheetSection[];
+  @Column({ type: "boolean", default: false })
+  mandatory: boolean;
+
+  @Column({ type: "int", name: "order_index" })
+  orderIndex: number;
+
+  @ManyToOne(() => ResultSheet, (sheet) => sheet.resultSheetSections)
+  resultSheet: ResultSheet;
 
   @Column({
     type: "enum",
