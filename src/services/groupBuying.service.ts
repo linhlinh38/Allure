@@ -283,7 +283,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
         // );
 
         //push order detail into child order
-        parentOrder.orderDetails.push(orderDetail);
+        childOrder.orderDetails.push(orderDetail);
       }
 
       //create status trackings for parent and child order
