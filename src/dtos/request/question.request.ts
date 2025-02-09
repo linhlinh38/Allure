@@ -9,6 +9,7 @@ export const QuestionCreateSchema = z.object({
       .int()
       .nonnegative("Order index must be a non-negative integer"),
     image: z.string().optional(),
+    mandatory: z.boolean().optional(),
     answers: z.record(z.any()).optional(),
     type: z.nativeEnum(QuestionTypeEnum),
     serviceBookingForm: z.string().optional(),

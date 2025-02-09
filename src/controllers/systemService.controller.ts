@@ -5,7 +5,7 @@ import { NotFoundError } from "../errors/error";
 export default class SystemServiceController {
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
-      const services = await systemServiceService.findAll();
+      const services = await systemServiceService.getAll();
       return createNormalResponse(res, "Get all services success", services);
     } catch (err) {
       next(err);
@@ -14,7 +14,7 @@ export default class SystemServiceController {
 
   static async getById(req: Request, res: Response, next: NextFunction) {
     try {
-      const service = await systemServiceService.findById(req.params.id);
+      const service = await systemServiceService.getById(req.params.id);
       if (!service) throw new NotFoundError("service not found");
       return createNormalResponse(res, "Get service success", service);
     } catch (err) {
