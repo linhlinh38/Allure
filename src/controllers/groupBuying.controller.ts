@@ -1,11 +1,65 @@
 import { NextFunction, Request, Response } from 'express';
 import { createNormalResponse } from '../utils/response';
-import { groupProductService } from '../services/groupProduct.service';
 import { plainToInstance } from 'class-transformer';
 import { AuthRequest } from '../middleware/authentication';
 import { GroupBuyingJoinEventRequest } from '../dtos/request/groupBuying.request';
 import { groupBuyingService } from '../services/groupBuying.service';
 export default class GroupBuyingController {
+  static async startToEnd(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      await groupBuyingService.startToEnd(
+        req.params.groupBuyingId,
+        req.loginUser
+      );
+      return createNormalResponse(res, 'Start to end success');
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async getOrderByGroupBuyingId(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    const order = await groupBuyingService.getOrderByGroupBuyingId(
+      req.params.groupBuyingId,
+      req.loginUser
+    );
+    try {
+      return createNormalResponse(
+        res,
+        order ? 'Get order success' : 'No order yet',
+        order
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async updateOrder(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const groupBuyingJoinEventBody = plainToInstance(
+        GroupBuyingJoinEventRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Update order success',
+        await groupBuyingService.updateOrder(
+          groupBuyingJoinEventBody,
+          req.params.orderId
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async endGroupBuying(
     req: AuthRequest,
     res: Response,
@@ -40,11 +94,7 @@ export default class GroupBuyingController {
       next(err);
     }
   }
-  static async getByBrand(
-    req: AuthRequest,
-    res: Response,
-    next: NextFunction
-  ) {
+  static async getByBrand(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       return createNormalResponse(
         res,
@@ -88,7 +138,7 @@ export default class GroupBuyingController {
         'Buy success',
         await groupBuyingService.buy(
           groupBuyingJoinEventBody,
-          req.params.groupProductId,
+          req.params.groupBuyingId,
           req.loginUser
         )
       );

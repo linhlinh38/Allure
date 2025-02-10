@@ -16,9 +16,58 @@ import { StatusTracking } from '../entities/statusTracking.entity';
 import { orderRepository } from '../repositories/order.repository';
 import { walletRepository } from '../repositories/wallet.reposirory';
 import { orderService } from './order.service';
+import { ProductClassification } from '../entities/productClassification.entity';
 
 const repository = AppDataSource.getRepository(GroupBuying);
 class GroupBuyingService extends BaseService<GroupBuying> {
+  async startToEnd(groupBuyingId: string, loginUser: string) {
+    const groupBuying = await groupBuyingRepository.findOne({
+      where: {
+        id: groupBuyingId,
+      },
+      relations: {
+        creator: true,
+        orders: true,
+        criteria: true,
+      },
+    });
+    if (!groupBuying) throw new BadRequestError('GroupBuying not found');
+    if (loginUser != groupBuying.creator.id)
+      throw new BadRequestError('Only creator can start to end group buying');
+    if (groupBuying.endTime < new Date())
+      throw new BadRequestError('Group buying has ended');
+    //nhỏ hơn 15p
+    if (groupBuying.endTime.getTime() - Date.now() < 15 * 60 * 1000)
+      throw new BadRequestError(
+        'Can not start to end because there is under 15 minutes left'
+      );
+    if (groupBuying.orders.length < groupBuying.criteria.threshold)
+      throw new BadRequestError('Not enough orders to end group buying');
+    groupBuying.endTime = new Date(Date.now() + 15 * 60 * 1000);
+    await groupBuying.save();
+  }
+  async getOrderByGroupBuyingId(groupBuyingId: string, loginUser: string) {
+    const groupBuying = await groupBuyingRepository.findOne({
+      where: {
+        id: groupBuyingId,
+      },
+    });
+    if (!groupBuying) throw new BadRequestError('GroupBuying not found');
+    const order = await orderRepository.findOne({
+      where: {
+        groupBuying: { id: groupBuyingId },
+        account: { id: loginUser },
+        parent: Not(IsNull()),
+      },
+      relations: {
+        orderDetails: {
+          productClassification: { product: true, images: true },
+        },
+        voucher: true,
+      },
+    });
+    return order;
+  }
   async getByBrand(brandId: string, status: StatusEnum) {
     if (!status)
       return await repository.find({
@@ -161,6 +210,163 @@ class GroupBuyingService extends BaseService<GroupBuying> {
     });
   }
 
+  async updateOrder(
+    groupBuyingJoinEventBody: GroupBuyingJoinEventRequest,
+    orderId: string
+  ) {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const parentOrder = await orderRepository.findOne({
+        where: {
+          id: orderId,
+          parent: IsNull(),
+        },
+        relations: {
+          children: {
+            orderDetails: {
+              productClassification: { product: true, images: true },
+            },
+            voucher: true,
+          },
+          groupBuying: { groupProduct: { products: true } },
+        },
+      });
+      const groupBuying = parentOrder.groupBuying;
+      if (groupBuying.endTime < new Date())
+        throw new BadRequestError('Group buying has ended');
+      if (parentOrder.status != ShippingStatusEnum.JOIN_GROUP_BUYING)
+        throw new BadRequestError('Order status is not valid');
+      const childOrder = parentOrder.children[0];
+      const oldProductClassfications = childOrder.orderDetails.map(
+        (orderDetail) => {
+          const productClassification = orderDetail.productClassification;
+          productClassification.quantity += orderDetail.quantity;
+          return productClassification;
+        }
+      );
+      console.log(oldProductClassfications);
+
+      await this.removeAllOrderDetails(childOrder, queryRunner);
+      const totalQuantity = groupBuyingJoinEventBody.items.reduce(
+        (total, item) => total + item.quantity,
+        0
+      );
+      if (
+        groupBuying.groupProduct?.maxBuyAmountEachPerson &&
+        totalQuantity > groupBuying.groupProduct.maxBuyAmountEachPerson
+      )
+        throw new BadRequestError(
+          'Total quantity exceeds the maximum allowed per person'
+        );
+      const productClassifications = await productClassificationRepository.find(
+        {
+          where: {
+            id: In(
+              groupBuyingJoinEventBody.items.flatMap(
+                (item) => item.productClassificationId
+              )
+            ),
+          },
+          relations: {
+            product: true,
+          },
+        }
+      );
+      const allowProductIds = groupBuying.groupProduct.products.map(
+        (product) => product.id
+      );
+      for (const productClassification of productClassifications) {
+        if (!allowProductIds.includes(productClassification.product?.id)) {
+          throw new BadRequestError(
+            'Product chosen is not available in this group'
+          );
+        }
+      }
+      const address = await addressRepository.findOne({
+        where: { id: groupBuyingJoinEventBody.addressId },
+      });
+      if (!address) throw new BadRequestError(`Address not found`);
+      console.log('hehe 10');
+      //update parent order
+      parentOrder.shippingAddress = address.fullAddress;
+      parentOrder.phone = address.phone;
+      parentOrder.notes = address.notes;
+      parentOrder.recipientName = address.fullName;
+
+      //update child order
+      childOrder.shippingAddress = address.fullAddress;
+      childOrder.phone = address.phone;
+      childOrder.notes = address.notes;
+      childOrder.recipientName = address.fullName;
+
+      childOrder.orderDetails = [];
+
+      for (const item of groupBuyingJoinEventBody.items) {
+        //find product
+        const productClassification =
+          await productClassificationRepository.findOne({
+            where: { id: item.productClassificationId },
+            relations: {
+              product: true,
+            },
+          });
+        if (!productClassification)
+          throw new BadRequestError('Product not found');
+        if (item.quantity > productClassification.quantity) {
+          throw new BadRequestError('Product is out of stock');
+        }
+        //find old product classification
+        const findOldProductClassification = oldProductClassfications.find(
+          (classification) => classification.id == productClassification.id
+        );
+        if (findOldProductClassification)
+          productClassification.quantity =
+            findOldProductClassification.quantity;
+        //create order detail
+        const orderDetail = new OrderDetail();
+        orderDetail.unitPriceBeforeDiscount = productClassification.price;
+        orderDetail.unitPriceAfterDiscount = productClassification.price;
+        orderDetail.classificationName = productClassification.title;
+        orderDetail.productName = productClassification.product?.name;
+        orderDetail.type = OrderEnum.GROUP_BUYING;
+        orderDetail.subTotal =
+          item.quantity * orderDetail.unitPriceAfterDiscount;
+        orderDetail.totalPrice = orderDetail.subTotal;
+        orderDetail.quantity = item.quantity;
+        orderDetail.productClassification = productClassification;
+        //update quantity of product classification
+        productClassification.quantity -= item.quantity;
+        console.log(orderDetail);
+
+        //push order detail into child order
+        childOrder.orderDetails.push(orderDetail);
+      }
+      // update quantity of product classifications
+      await queryRunner.manager.save(
+        ProductClassification,
+        childOrder.orderDetails.map(
+          (orderDetail) => orderDetail.productClassification
+        )
+      );
+      voucherService.calculateOrderPrice(parentOrder);
+      await queryRunner.manager.save(parentOrder);
+
+      await queryRunner.commitTransaction();
+      return parentOrder;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async removeAllOrderDetails(order: Order, queryRunner: QueryRunner) {
+    await queryRunner.manager.remove(OrderDetail, order.orderDetails);
+  }
+
   async buy(
     groupBuyingJoinEventBody: GroupBuyingJoinEventRequest,
     groupBuyingId: string,
@@ -179,6 +385,19 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       if (!groupBuying) {
         throw new BadRequestError(`Group buying not found`);
       }
+      if (groupBuying.status != StatusEnum.ACTIVE)
+        throw new BadRequestError(`Group buying is not active`);
+
+      const order = await orderRepository.findOne({
+        where: {
+          groupBuying: { id: groupBuyingId },
+          account: { id: userId },
+          parent: Not(IsNull()),
+        },
+      });
+      if (order)
+        throw new BadRequestError(`Only order once in each groupBuying`);
+
       const totalQuantity = groupBuyingJoinEventBody.items.reduce(
         (total, item) => total + item.quantity,
         0
@@ -277,10 +496,6 @@ class GroupBuyingService extends BaseService<GroupBuying> {
         orderDetail.productClassification = productClassification;
         //update quantity of product classification
         productClassification.quantity -= item.quantity;
-        // await queryRunner.manager.save(
-        //   ProductClassification,
-        //   productClassification
-        // );
 
         //push order detail into child order
         childOrder.orderDetails.push(orderDetail);
