@@ -2,6 +2,7 @@ import { AppDataSource } from "../dataSource";
 import { ConsultantService } from "../entities/consultantService.entity";
 import { Question } from "../entities/question.entity";
 import { ServiceBookingForm } from "../entities/serviceBookingForm.entity";
+import { ServiceImage } from "../entities/serviceImage.entity";
 import { BadRequestError } from "../errors/error";
 import { BaseService } from "./base.service";
 import { categoryService } from "./category.service";
@@ -17,11 +18,13 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
       .createQueryBuilder("consultantService")
       .leftJoinAndSelect("consultantService.systemService", "systemService")
       .leftJoinAndSelect("systemService.category", "category")
+      .leftJoinAndSelect("consultantService.images", "images")
       .leftJoinAndSelect(
         "consultantService.serviceBookingForm",
         "serviceBookingForm"
       )
       .leftJoinAndSelect("serviceBookingForm.questions", "questions")
+      .leftJoinAndSelect("questions.images", "questionImages")
       .getMany();
 
     return services;
@@ -32,11 +35,13 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
       .createQueryBuilder("consultantService")
       .leftJoinAndSelect("consultantService.systemService", "systemService")
       .leftJoinAndSelect("systemService.category", "category")
+      .leftJoinAndSelect("consultantService.images", "images")
       .leftJoinAndSelect(
         "consultantService.serviceBookingForm",
         "serviceBookingForm"
       )
       .leftJoinAndSelect("serviceBookingForm.questions", "questions")
+      .leftJoinAndSelect("questions.images", "questionImages")
       .where("consultantService.account = :account", { account })
       .getMany();
 
@@ -48,11 +53,13 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
       .createQueryBuilder("consultantService")
       .leftJoinAndSelect("consultantService.systemService", "systemService")
       .leftJoinAndSelect("systemService.category", "category")
+      .leftJoinAndSelect("consultantService.images", "images")
       .leftJoinAndSelect(
         "consultantService.serviceBookingForm",
         "serviceBookingForm"
       )
       .leftJoinAndSelect("serviceBookingForm.questions", "questions")
+      .leftJoinAndSelect("questions.images", "questionImages")
       .where("consultantService.id = :id", { id })
       .getMany();
 
@@ -78,8 +85,21 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
         );
 
         for (const question of data.serviceBookingFormData.questions) {
-          question.serviceBookingForm = form;
-          await queryRunner.manager.save(Question, question);
+          const { images, ...questionFields } = question;
+          questionFields.serviceBookingForm = form;
+          const questionRes = await queryRunner.manager.save(
+            Question,
+            questionFields
+          );
+
+          if (question.images && question.images.length > 0) {
+            for (const image of question.images) {
+              await queryRunner.manager.save(ServiceImage, {
+                ...image,
+                question: questionRes,
+              });
+            }
+          }
         }
 
         service = await queryRunner.manager.save(ConsultantService, {
@@ -91,6 +111,15 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
           ConsultantService,
           serviceData
         );
+      }
+
+      let images: ServiceImage[] = [];
+      if (data.images && data.images.length > 0) {
+        const consultantImages = data.images.map((image) => ({
+          ...image,
+          consultantService: service,
+        }));
+        images = await queryRunner.manager.save(ServiceImage, consultantImages);
       }
 
       await queryRunner.commitTransaction();
