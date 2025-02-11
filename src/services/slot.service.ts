@@ -7,9 +7,22 @@ import {
 import { Slot } from '../entities/slot.entity';
 import { BaseService } from './base.service';
 import { accountRepository } from '../repositories/account.repository';
+import { BadRequestError } from '../errors/error';
 
 const repository = AppDataSource.getRepository(Slot);
 class SlotService extends BaseService<Slot> {
+  async getWorkingSlotsOfConsultant(accountId: string) {
+    const account = await accountRepository.findOne({
+      where: {
+        id: accountId,
+      },
+      relations: {
+        workingSlots: true,
+      },
+    });
+    if (!account) throw new BadRequestError('Account not found');
+    return account.workingSlots;
+  }
   async updateWorkingSlot(
     updateWorkingSlotRequest: UpdateWorkingSlotRequest,
     loginUser: string

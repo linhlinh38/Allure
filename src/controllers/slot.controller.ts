@@ -9,6 +9,22 @@ import {
 import { AuthRequest } from '../middleware/authentication';
 
 export default class SlotController {
+  static async getWorkingSlotsOfConsultant(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get working slots of consultant success',
+        await slotService.getWorkingSlotsOfConsultant(req.params.accountId)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async updateWorkingSlot(
     req: AuthRequest,
     res: Response,

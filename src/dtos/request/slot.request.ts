@@ -21,6 +21,7 @@ export const UpdateWokingSlotSchema = z.object({
 });
 
 export class UpdateWorkingSlotRequest {
+  @Expose()
   slotIds: string[];
 }
 
