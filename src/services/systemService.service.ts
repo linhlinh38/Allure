@@ -1,6 +1,7 @@
 import { AppDataSource } from "../dataSource";
 import { ResultSheet } from "../entities/resultSheet.entity";
 import { ResultSheetSection } from "../entities/resultSheetSection.entity";
+import { ServiceImage } from "../entities/serviceImage.entity";
 import { SystemService } from "../entities/systemService.entity";
 import { BadRequestError } from "../errors/error";
 import { BaseService } from "./base.service";
@@ -16,6 +17,7 @@ class SystemServiceService extends BaseService<SystemService> {
     const services = await this.repository
       .createQueryBuilder("systemService")
       .leftJoinAndSelect("systemService.resultSheet", "resultSheet")
+      .leftJoinAndSelect("systemService.images", "images")
       .leftJoinAndSelect("systemService.category", "category")
       .leftJoinAndSelect(
         "resultSheet.resultSheetSections",
@@ -30,6 +32,7 @@ class SystemServiceService extends BaseService<SystemService> {
     const services = await this.repository
       .createQueryBuilder("systemService")
       .leftJoinAndSelect("systemService.resultSheet", "resultSheet")
+      .leftJoinAndSelect("systemService.images", "images")
       .leftJoinAndSelect("systemService.category", "category")
       .leftJoinAndSelect(
         "resultSheet.resultSheetSections",
@@ -86,6 +89,18 @@ class SystemServiceService extends BaseService<SystemService> {
         });
       } else {
         service = await queryRunner.manager.save(SystemService, serviceData);
+      }
+
+      let images: ServiceImage[] = [];
+      if (data.images && data.images.length > 0) {
+        const systemServiceImages = data.images.map((image) => ({
+          ...image,
+          systemService: service,
+        }));
+        images = await queryRunner.manager.save(
+          ServiceImage,
+          systemServiceImages
+        );
       }
 
       await queryRunner.commitTransaction();

@@ -7,6 +7,7 @@ import { CartItem } from "./cartItem.entity";
 import { Category } from "./category.entity";
 import { ConsultantService } from "./consultantService.entity";
 import { ResultSheet } from "./resultSheet.entity";
+import { ServiceImage } from "./serviceImage.entity";
 
 @Entity("system_services")
 export class SystemService extends BaseEntity {
@@ -15,9 +16,6 @@ export class SystemService extends BaseEntity {
 
   @Column({ type: "varchar", nullable: true })
   description: string;
-
-  @Column({ type: "varchar", nullable: true })
-  image: string;
 
   @ManyToOne(() => Category, { nullable: true })
   @JoinColumn({ name: "category_id" })
@@ -35,6 +33,11 @@ export class SystemService extends BaseEntity {
   @ManyToOne(() => ResultSheet, (result) => result.systemServices)
   @JoinColumn({ name: "result_sheet_id" })
   resultSheet: ResultSheet;
+
+  @OneToMany(() => ServiceImage, (image) => image.systemService, {
+    nullable: true,
+  })
+  images?: ServiceImage[];
 
   @Column({
     type: "enum",
