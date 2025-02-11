@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { QuestionTypeEnum } from "../../utils/enum";
+import { ServiceImageCreateSchema } from "./serviceImageRequest";
 
 export const QuestionCreateSchema = z.object({
   body: z.object({
@@ -8,7 +9,7 @@ export const QuestionCreateSchema = z.object({
       .number()
       .int()
       .nonnegative("Order index must be a non-negative integer"),
-    image: z.string().optional(),
+    images: z.array(ServiceImageCreateSchema.shape.body).optional(),
     mandatory: z.boolean().optional(),
     answers: z.record(z.any()).optional(),
     type: z.nativeEnum(QuestionTypeEnum),
