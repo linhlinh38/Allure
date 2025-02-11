@@ -19,6 +19,7 @@ import consultantServiceRouter from "./consultantService.route";
 import paymentRouter from "./payment.route";
 import systemServiceRouter from "./systemService.route";
 import walletRouter from "./wallet.route";
+import slotRouter from "./slot.route";
 
 const router = express.Router();
 router.use("/accounts", accountRouter);
@@ -41,4 +42,5 @@ router.use("/consultant-services", consultantServiceRouter);
 router.use("/system-services", systemServiceRouter);
 router.use("/payments", paymentRouter);
 router.use("/wallets", walletRouter);
+router.use('/slots', slotRouter);
 export default router;
