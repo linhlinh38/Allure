@@ -15,8 +15,12 @@ slotRouter.post(
   SlotController.bulkCreate
 );
 slotRouter.post(
-  '/update-working-slot',
+  '/update-working-slots',
   validate(UpdateWokingSlotSchema),
   SlotController.updateWorkingSlot
+);
+slotRouter.get(
+  '/get-working-slots-of-consultant/:accountId',
+  SlotController.getWorkingSlotsOfConsultant
 );
 export default slotRouter;
