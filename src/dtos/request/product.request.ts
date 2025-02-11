@@ -14,6 +14,7 @@ export const ProductCreateSchema = z.object({
       .array(ProductClassificationCreateSchema.shape.body)
       .optional(),
     images: z.array(ProductImageCreateSchema.shape.body).optional(),
+    certificate: z.string(),
   }),
 });
 
