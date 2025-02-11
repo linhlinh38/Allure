@@ -7,6 +7,7 @@ import { CartItem } from "./cartItem.entity";
 import { Category } from "./category.entity";
 import { ConsultantService } from "./consultantService.entity";
 import { ServiceBookingForm } from "./serviceBookingForm.entity";
+import { ServiceImage } from "./serviceImage.entity";
 
 @Entity("questions")
 export class Question extends BaseEntity {
@@ -19,8 +20,10 @@ export class Question extends BaseEntity {
   @Column({ type: "boolean", default: false })
   mandatory: boolean;
 
-  @Column({ type: "varchar", nullable: true })
-  image: string;
+  @OneToMany(() => ServiceImage, (image) => image.question, {
+    nullable: true,
+  })
+  images?: ServiceImage[];
 
   @Column({ type: "jsonb", nullable: true })
   answers: object;
