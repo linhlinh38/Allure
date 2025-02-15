@@ -16,7 +16,7 @@ const repository = AppDataSource.getRepository(Wallet);
 class WalletService extends BaseService<Wallet> {
   async deposit(depositBody: DepositRequest, loginUser: string) {
     const paymentLink = await payos.getPaymentLinkInformation(depositBody.id);
-    if(paymentLink.status != 'PAID') {
+    if (paymentLink.status != 'PAID') {
       throw new BadRequestError('Payment not paid yet');
     }
     const wallet = await walletRepository.findOne({
@@ -45,7 +45,7 @@ class WalletService extends BaseService<Wallet> {
   async createWallet(walletCreateRequest: WalletCreateRequest) {
     const account = await accountRepository.findOne({
       where: {
-        id: walletCreateRequest.accountId,
+        id: walletCreateRequest.ownerId,
       },
     });
     if (!account) throw new BadRequestError('Account not found');

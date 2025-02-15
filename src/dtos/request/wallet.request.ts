@@ -46,5 +46,5 @@ export class DepositRequest {
 
 export class WalletCreateRequest {
   balance: number;
-  accountId: string;
+  ownerId: string;
 }
