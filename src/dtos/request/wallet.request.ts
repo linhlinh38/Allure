@@ -21,6 +21,7 @@ export const DepositSchema = z.object({
 });
 
 export class DepositRequest {
+  @Expose()
   id: string;
 }
 
