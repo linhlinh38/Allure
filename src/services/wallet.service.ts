@@ -47,8 +47,12 @@ class WalletService extends BaseService<Wallet> {
       where: {
         id: walletCreateRequest.ownerId,
       },
+      relations: {
+        wallet: true,
+      }
     });
     if (!account) throw new BadRequestError('Account not found');
+    if (account.wallet) throw new BadRequestError('Wallet already exist');
     const wallet = new Wallet();
     wallet.owner = account;
     wallet.balance = walletCreateRequest.balance;
