@@ -1,3 +1,4 @@
+import { Expose } from 'class-transformer';
 import { z } from 'zod';
 
 export const WalletCreateSchema = z.object({
@@ -45,6 +46,8 @@ export class DepositRequest {
 }
 
 export class WalletCreateRequest {
+  @Expose()
   balance: number;
+  @Expose()
   ownerId: string;
 }
