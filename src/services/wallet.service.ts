@@ -9,25 +9,23 @@ import { BadRequestError } from '../errors/error';
 import { accountRepository } from '../repositories/account.repository';
 import { walletRepository } from '../repositories/wallet.reposirory';
 import { isValidData } from '../utils/checkSignature';
+import { payos } from '../utils/payos';
 import { BaseService } from './base.service';
 
 const repository = AppDataSource.getRepository(Wallet);
 class WalletService extends BaseService<Wallet> {
-  async deposit(depositBody: DepositRequest) {
-    const isValid = isValidData(
-      depositBody.data,
-      depositBody.signature,
-      config.PAYOS_CHECKSUM_KEY
-    );
-    if (!isValid) throw new BadRequestError(`Invalid signature`);
-    const accountId = depositBody.data.description;
+  async deposit(depositBody: DepositRequest, loginUser: string) {
+    const paymentLink = await payos.getPaymentLinkInformation(depositBody.id);
+    if(paymentLink.status != 'PAID') {
+      throw new BadRequestError('Payment not paid yet');
+    }
     const wallet = await walletRepository.findOne({
       where: {
-        owner: { id: accountId },
+        owner: { id: loginUser },
       },
     });
     if (wallet) {
-      wallet.balance += depositBody.data.amount;
+      wallet.balance += paymentLink.amountPaid;
     }
     await walletRepository.save(wallet);
   }

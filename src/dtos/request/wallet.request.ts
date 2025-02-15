@@ -41,30 +41,7 @@ export const DepositSchema = z.object({
 });
 
 export class DepositRequest {
-  code: string;
-  desc: string;
-  success: boolean;
-  data: WebhookDataDetails;
-  signature: string;
-}
-
-class WebhookDataDetails {
-  orderCode: number;
-  amount: number;
-  description: string;
-  accountNumber: string;
-  reference: string;
-  transactionDateTime: string;
-  currency: string;
-  paymentLinkId: string;
-  code: string;
-  desc: string;
-  counterAccountBankId: string;
-  counterAccountBankName: string;
-  counterAccountName: string;
-  counterAccountNumber: string;
-  virtualAccountName: string;
-  virtualAccountNumber: string;
+  id: string;
 }
 
 export class WalletCreateRequest {

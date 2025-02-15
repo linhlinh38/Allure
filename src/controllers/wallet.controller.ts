@@ -13,7 +13,7 @@ export default class WalletController {
       const depositBody = plainToInstance(DepositRequest, req.body, {
         excludeExtraneousValues: true,
       });
-      await walletService.deposit(depositBody);
+      await walletService.deposit(depositBody, req.loginUser);
       return createNormalResponse(res, 'Deposit success');
     } catch (err) {
       next(err);
