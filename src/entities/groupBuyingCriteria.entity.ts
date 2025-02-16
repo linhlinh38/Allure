@@ -1,16 +1,9 @@
-import { Column, Entity, ManyToOne, OneToMany, OneToOne } from 'typeorm';
+import { Column, Entity, ManyToOne} from 'typeorm';
 import { BaseEntity } from './base.entity';
-import { GroupBuying } from './groupBuying.entity';
 import { Voucher } from './voucher.entity';
 import { GroupProduct } from './groupProduct.entity';
 @Entity('group_buying_criterias')
 export class GroupBuyingCriteria extends BaseEntity {
-  @OneToMany(() => GroupBuying, (groupBuying) => groupBuying.criteria, {
-    cascade: true,
-    nullable: true,
-  })
-  groupBuyings: GroupBuying[];
-
   @ManyToOne(() => GroupProduct, (groupProduct) => groupProduct.criterias, {
     nullable: true,
   })
