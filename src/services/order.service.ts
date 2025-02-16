@@ -90,63 +90,44 @@ class OrderService extends BaseService<Order> {
     brandId: string,
     status: CancelOrderRequestStatusEnum
   ) {
+    console.log(status);
+
     const brand = await brandRepository.findOne({
-      where: {
-        id: brandId,
-      },
+      where: { id: brandId },
     });
     if (!brand) throw new BadRequestError('Brand not found');
-    const commonConditions = [
-      {
-        order: {
-          orderDetails: {
-            productClassification: {
-              product: { brand: { id: brandId } },
-            },
-          },
-        },
-      },
-      {
-        order: {
-          orderDetails: {
-            productClassification: {
-              productDiscount: { product: { brand: { id: brandId } } },
-            },
-          },
-        },
-      },
-      {
-        order: {
-          orderDetails: {
-            productClassification: {
-              preOrderProduct: { product: { brand: { id: brandId } } },
-            },
-          },
-        },
-      },
-    ];
-    if (!status)
-      return await cancelOrderRequestRepository.find({
-        where: commonConditions,
-        relations: {
-          order: true,
-        },
-        order: {
-          updatedAt: 'DESC',
-        },
-      });
-    commonConditions.forEach((cond) => {
-      cond['status'] = status;
-    });
-    return await cancelOrderRequestRepository.find({
-      where: commonConditions,
-      relations: {
-        order: true,
-      },
-      order: {
-        updatedAt: 'DESC',
-      },
-    });
+
+    const queryBuilder = cancelOrderRequestRepository
+      .createQueryBuilder('cancelRequest')
+      .innerJoinAndSelect('cancelRequest.order', 'order')
+      .innerJoinAndSelect('order.orderDetails', 'orderDetails')
+      .innerJoinAndSelect(
+        'orderDetails.productClassification',
+        'productClassification'
+      )
+      .leftJoinAndSelect('productClassification.product', 'product')
+      .leftJoinAndSelect('productClassification.images', 'images')
+      .leftJoinAndSelect(
+        'productClassification.productDiscount',
+        'productDiscount'
+      )
+      .leftJoinAndSelect('productDiscount.product', 'discountProduct')
+      .leftJoinAndSelect(
+        'productClassification.preOrderProduct',
+        'preOrderProduct'
+      )
+      .leftJoinAndSelect('preOrderProduct.product', 'preProduct')
+      .where(
+        '(product.brand_id = :brandId OR discountProduct.brand_id = :brandId OR preProduct.brand_id = :brandId)',
+        { brandId }
+      )
+      .orderBy('cancelRequest.updatedAt', 'DESC');
+
+    if (status) {
+      queryBuilder.andWhere('cancelRequest.status = :status', { status });
+    }
+    const cancelRequests = await queryBuilder.getMany();
+    return cancelRequests;
   }
 
   async makeDecisionOnRequest(
@@ -402,6 +383,7 @@ class OrderService extends BaseService<Order> {
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
+      let cancelStatus = 0;
       const order = await orderRepository.findOne({
         where: { id: orderId },
         relations: {
@@ -455,16 +437,19 @@ class OrderService extends BaseService<Order> {
             queryRunner
           ),
         ]);
+        cancelStatus = 1;
       } else if (order.status == ShippingStatusEnum.PREPARING_ORDER) {
         const cancelOrderRequest = new CancelOrderRequest();
         cancelOrderRequest.reason = reason;
         cancelOrderRequest.order = order;
         await queryRunner.manager.save(CancelOrderRequest, cancelOrderRequest);
+        cancelStatus = 0;
       } else
         throw new BadRequestError(
           `Can not request cancel due to current status ${order.status}`
         );
       await queryRunner.commitTransaction();
+      return cancelStatus;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -547,7 +532,7 @@ class OrderService extends BaseService<Order> {
         },
       },
       relations: {
-        updatedBy: true,
+        updatedBy: { role: true },
         order: true,
       },
       order: {
