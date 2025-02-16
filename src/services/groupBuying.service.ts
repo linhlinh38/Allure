@@ -212,15 +212,23 @@ class GroupBuyingService extends BaseService<GroupBuying> {
 
   async updateOrder(
     groupBuyingJoinEventBody: GroupBuyingJoinEventRequest,
-    orderId: string
+    childOrderId: string
   ) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
+      const childOrderWithParentRelation = await orderRepository.findOne({
+        where: {
+          id: childOrderId
+        },
+        relations: {
+          parent: true
+        },
+      });
       const parentOrder = await orderRepository.findOne({
         where: {
-          id: orderId,
+          id: childOrderWithParentRelation.parent.id,
           parent: IsNull(),
         },
         relations: {
@@ -246,8 +254,6 @@ class GroupBuyingService extends BaseService<GroupBuying> {
           return productClassification;
         }
       );
-      console.log(oldProductClassfications);
-
       await this.removeAllOrderDetails(childOrder, queryRunner);
       const totalQuantity = groupBuyingJoinEventBody.items.reduce(
         (total, item) => total + item.quantity,

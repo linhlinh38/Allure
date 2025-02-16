@@ -1,10 +1,6 @@
-import { Entity, Column, ManyToOne, JoinColumn, OneToMany } from "typeorm";
-import { Product } from "./product.entity";
-import { ServiceTypeEnum, StatusEnum } from "../utils/enum";
+import { Entity, Column, OneToMany } from "typeorm";
+import { StatusEnum } from "../utils/enum";
 import { BaseEntity } from "./base.entity";
-import { PreOrderProduct } from "./preOrderProduct.entity";
-import { CartItem } from "./cartItem.entity";
-import { Category } from "./category.entity";
 import { BannerConfig } from "./bannerConfig.entity";
 
 @Entity("master_configs")
