@@ -75,8 +75,6 @@ export default class BrandController {
       );
       await brandService.updateStatus(req.loginUser, brandUpdateStatusRequest);
       const brand: Brand = await brandService.findById(req.params.id);
-      if (!brand) return createBadResponse(res, 'No brand found');
-      await brandService.update(brand.id, { status: req.body.status });
       return createNormalResponse(res, 'Update status success');
     } catch (err) {
       next(err);
