@@ -74,7 +74,6 @@ export default class BrandController {
         }
       );
       await brandService.updateStatus(req.loginUser, brandUpdateStatusRequest);
-      const brand: Brand = await brandService.findById(req.params.id);
       return createNormalResponse(res, 'Update status success');
     } catch (err) {
       next(err);
