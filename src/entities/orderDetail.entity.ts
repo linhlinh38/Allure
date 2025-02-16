@@ -71,7 +71,7 @@ export class OrderDetail extends BaseEntity {
   livestream: LiveStream;
 
   @ManyToOne(() => Order, (order) => order.orderDetails, {
-    nullable: false,
+    nullable: true,
   })
   order: Order;
 

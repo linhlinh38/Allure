@@ -8,6 +8,7 @@ import { Category } from "./category.entity";
 import { ConsultantService } from "./consultantService.entity";
 import { ServiceBookingForm } from "./serviceBookingForm.entity";
 import { SystemService } from "./systemService.entity";
+import { ResultSheetSection } from "./resultSheetSection.entity";
 
 @Entity("result_sheets")
 export class ResultSheet extends BaseEntity {
@@ -16,6 +17,9 @@ export class ResultSheet extends BaseEntity {
 
   @OneToMany(() => SystemService, (service) => service.resultSheet)
   systemServices?: SystemService[];
+
+  @OneToMany(() => ResultSheetSection, (section) => section.resultSheet)
+  resultSheetSections?: ResultSheetSection[];
 
   @Column({
     type: "enum",

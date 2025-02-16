@@ -1,3 +1,4 @@
+import { Expose } from 'class-transformer';
 import { z } from 'zod';
 
 export const WalletCreateSchema = z.object({
@@ -13,7 +14,20 @@ export const WalletUpdateSchema = z.object({
   }),
 });
 
+export const DepositSchema = z.object({
+  body: z.object({
+    id: z.string(),
+  }),
+});
+
+export class DepositRequest {
+  @Expose()
+  id: string;
+}
+
 export class WalletCreateRequest {
+  @Expose()
   balance: number;
-  accountId: string;
+  @Expose()
+  ownerId: string;
 }

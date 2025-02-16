@@ -14,6 +14,7 @@ import { Follow } from "./follow.entity";
 import { Expose } from "class-transformer";
 import { Voucher } from "./voucher.entity";
 import { StatusTracking } from "./statusTracking.entity";
+import { Product } from "./product.entity";
 
 @Entity("brands")
 export class Brand extends BaseEntity {
@@ -52,31 +53,31 @@ export class Brand extends BaseEntity {
   address: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 100, nullable: true })
+  @Column({ type: "varchar", length: 100 })
   businessTaxCode: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 100, nullable: true })
+  @Column({ type: "varchar", length: 100 })
   businessRegistrationCode: string;
 
   @Expose()
-  @Column({ type: "date", nullable: true })
+  @Column({ type: "date" })
   establishmentDate: Date;
 
   @Expose()
-  @Column({ type: "varchar", length: 100, nullable: true })
+  @Column({ type: "varchar", length: 100 })
   province: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 100, nullable: true })
+  @Column({ type: "varchar", length: 100 })
   district: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 100, nullable: true })
+  @Column({ type: "varchar", length: 100 })
   ward: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 255, nullable: true })
+  @Column({ type: "varchar", length: 255 })
   businessRegistrationAddress: string;
 
   @Column({ type: "float", default: 0 })
@@ -94,4 +95,7 @@ export class Brand extends BaseEntity {
 
   @OneToMany(() => StatusTracking, (statusTracking) => statusTracking.brand)
   statusTrackings: StatusTracking[];
+
+  @OneToMany(() => Product, (product) => product.brand)
+  products: Product[];
 }

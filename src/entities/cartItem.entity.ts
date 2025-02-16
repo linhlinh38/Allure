@@ -17,6 +17,7 @@ import {
 } from "../utils/enum";
 import { Account } from "./account.entity";
 import { ProductClassification } from "./productClassification.entity";
+import { GroupBuying } from "./groupBuying.entity";
 
 @Entity("cart_items")
 export class CartItem extends BaseEntity {
@@ -25,6 +26,10 @@ export class CartItem extends BaseEntity {
 
   @Column({ type: "varchar", length: 100, nullable: false })
   classification: string;
+
+  @ManyToOne(() => GroupBuying, { nullable: true })
+  @JoinColumn({ name: "group_buying_id" })
+  groupBuying: string;
 
   @Column({
     type: "enum",

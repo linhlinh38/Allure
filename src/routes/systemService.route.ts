@@ -9,6 +9,7 @@ import {
 const systemServiceRouter = express.Router();
 
 systemServiceRouter.get("/", systemServiceController.getAll);
+systemServiceRouter.get("/get-by-id/:id", systemServiceController.getById);
 
 systemServiceRouter.use(authentication);
 

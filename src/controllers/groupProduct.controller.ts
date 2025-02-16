@@ -15,7 +15,25 @@ export default class GroupProductController {
       return createNormalResponse(
         res,
         'Get groups by brand success',
-        await groupProductService.getByBrand(req.params.brandId, req.body.status)
+        await groupProductService.getByBrand(
+          req.params.brandId,
+          req.body.status
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async getBrandsHaveGroupProducts(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get groups by brand success',
+        await groupProductService.getBrandsHaveGroupProducts()
       );
     } catch (err) {
       next(err);

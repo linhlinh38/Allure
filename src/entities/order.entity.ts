@@ -94,7 +94,7 @@ export class Order extends BaseEntity {
   })
   orderDetails: OrderDetail[];
 
-  @OneToMany(() => StatusTracking, (statusTracking) => statusTracking.brand)
+  @OneToMany(() => StatusTracking, (statusTracking) => statusTracking.order)
   statusTrackings: StatusTracking[];
 
   @OneToOne(

@@ -1,13 +1,34 @@
+import { config } from '../configs/envConfig';
 import { AppDataSource } from '../dataSource';
-import { WalletCreateRequest } from '../dtos/request/wallet.request';
+import {
+  DepositRequest,
+  WalletCreateRequest,
+} from '../dtos/request/wallet.request';
 import { Wallet } from '../entities/wallet.entity';
 import { BadRequestError } from '../errors/error';
 import { accountRepository } from '../repositories/account.repository';
 import { walletRepository } from '../repositories/wallet.reposirory';
+import { isValidData } from '../utils/checkSignature';
+import { payos } from '../utils/payos';
 import { BaseService } from './base.service';
 
 const repository = AppDataSource.getRepository(Wallet);
 class WalletService extends BaseService<Wallet> {
+  async deposit(depositBody: DepositRequest, loginUser: string) {
+    const paymentLink = await payos.getPaymentLinkInformation(depositBody.id);
+    if (paymentLink.status != 'PAID') {
+      throw new BadRequestError('Payment not paid yet');
+    }
+    const wallet = await walletRepository.findOne({
+      where: {
+        owner: { id: loginUser },
+      },
+    });
+    if (wallet) {
+      wallet.balance += paymentLink.amountPaid;
+    }
+    await walletRepository.save(wallet);
+  }
   async getWalletByAccountId(accountId: string) {
     const account = await accountRepository.findOne({
       where: {
@@ -24,10 +45,14 @@ class WalletService extends BaseService<Wallet> {
   async createWallet(walletCreateRequest: WalletCreateRequest) {
     const account = await accountRepository.findOne({
       where: {
-        id: walletCreateRequest.accountId,
+        id: walletCreateRequest.ownerId,
       },
+      relations: {
+        wallet: true,
+      }
     });
     if (!account) throw new BadRequestError('Account not found');
+    if (account.wallet) throw new BadRequestError('Wallet already exist');
     const wallet = new Wallet();
     wallet.owner = account;
     wallet.balance = walletCreateRequest.balance;

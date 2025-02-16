@@ -1,30 +1,33 @@
-import { z } from 'zod';
-import { GenderEnum, RoleEnum, StatusEnum } from '../../utils/enum';
-import { Expose } from 'class-transformer';
+import { z } from "zod";
+import { GenderEnum, RoleEnum, StatusEnum } from "../../utils/enum";
+import { Expose } from "class-transformer";
 
 export const BrandCreateSchema = z.object({
   body: z.object({
     name: z
       .string()
-      .min(1, 'Name is required')
-      .max(100, 'Name cannot exceed 100 characters'),
-    logo: z.string().max(255, 'Logo cannot exceed 255 characters').optional(),
+      .min(1, "Name is required")
+      .max(100, "Name cannot exceed 100 characters"),
+    logo: z.string().max(255, "Logo cannot exceed 255 characters").optional(),
     document: z
       .string()
-      .min(1, 'Document is required')
-      .max(255, 'Document cannot exceed 255 characters'),
+      .min(1, "Document is required")
+      .max(255, "Document cannot exceed 255 characters"),
     description: z
       .string()
-      .max(255, 'Description cannot exceed 255 characters')
+      .max(255, "Description cannot exceed 255 characters")
       .optional(),
-    email: z.string().email('Invalid email address'),
+    email: z.string().email("Invalid email address"),
     phone: z
       .string()
-      .regex(/^[0-9]{10,15}$/, 'Phone must be a string with 10 to 15 digits')
+      .regex(
+        /^([+]?[\s0-9]+)?(\d{3}|[(]?[0-9]+[)])?([-]?[\s]?[0-9])+$/,
+        "Phone must be a string with 10 to 15 digits"
+      )
       .optional(),
     address: z
       .string()
-      .max(255, 'Address cannot exceed 255 characters')
+      .max(255, "Address cannot exceed 255 characters")
       .optional(),
     businessTaxCode: z.string().max(100),
     businessRegistrationCode: z.string().max(100),
@@ -44,8 +47,8 @@ export const BrandUpdateSchema = z.object({
 export const BrandUpdateStatusSchema = z.object({
   body: z.object({
     status: z.nativeEnum(StatusEnum),
-    reason: z.string().min(1, 'Reason is required').optional(),
-    brandId: z.string().uuid('Invalid brand id'),
+    reason: z.string().min(1, "Reason is required").optional(),
+    brandId: z.string().uuid("Invalid brand id"),
   }),
 });
 

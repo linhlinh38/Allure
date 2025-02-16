@@ -5,7 +5,7 @@ import { getRandomNumber } from "../utils/getRandomNumber";
 
 class PaymentService {
   async createPaymentUrl(payment: CreatePaymentUrlRequest)
-  {
+  { 
     return {
       url: (
         await payos.createPaymentLink({

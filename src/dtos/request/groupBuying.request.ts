@@ -41,11 +41,13 @@ export const GroupBuyingJoinEventSchema = z.object({
 });
 
 export class GroupBuyingJoinEventRequest {
+  @Expose()
   items: {
     productClassificationId: string;
     quantity: number;
   }[];
-  addressId: string
+  @Expose()
+  addressId: string;
 }
 
 export class GroupBuyingRequest {
