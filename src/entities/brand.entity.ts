@@ -16,6 +16,8 @@ import { Voucher } from "./voucher.entity";
 import { StatusTracking } from "./statusTracking.entity";
 import { Product } from "./product.entity";
 import { Transaction } from "./transaction.entity";
+import { Order } from "./order.entity";
+import { GroupProduct } from "./groupProduct.entity";
 
 @Entity('brands')
 export class Brand extends BaseEntity {
@@ -93,6 +95,12 @@ export class Brand extends BaseEntity {
 
   @OneToMany(() => Voucher, (voucher) => voucher.brand)
   vouchers: Brand[];
+
+  @OneToMany(() => Order, (order) => order.brand)
+  orders: Order[];
+
+  @OneToMany(() => GroupProduct, (groupProduct) => groupProduct.brand)
+  groupProducts: GroupProduct[];
 
   @OneToMany(() => StatusTracking, (statusTracking) => statusTracking.brand)
   statusTrackings: StatusTracking[];

@@ -194,12 +194,19 @@ class GroupProductService extends BaseService<GroupProduct> {
   }
 
   async createGroupProduct(groupProductBody: GroupProductCreateRequest) {
+    const brand = await brandRepository.findOne({
+      where: {
+        id: groupProductBody.brandId,
+      },
+    });
+    if (!brand) throw new BadRequestError(`Brand not found`);
     const groupProduct = new GroupProduct();
     groupProduct.name = groupProductBody.name;
     groupProduct.description = groupProductBody.description;
     groupProduct.criterias = [];
     groupProduct.maxBuyAmountEachPerson =
       groupProductBody.maxBuyAmountEachPerson;
+    groupProduct.brand = brand;
     const products = await productRepository.find({
       where: { id: In(groupProductBody.productIds) },
     });
