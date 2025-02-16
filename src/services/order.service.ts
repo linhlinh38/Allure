@@ -21,6 +21,7 @@ import {
   OrderEnum,
   PaymentMethodEnum,
   ShippingStatusEnum,
+  TransactionStatusEnum,
   VoucherVisibilityEnum,
   VoucherWalletStatus,
 } from '../utils/enum';
@@ -40,6 +41,11 @@ import { walletRepository } from '../repositories/wallet.reposirory';
 import { Wallet } from '../entities/wallet.entity';
 import { addNormalOrderToQueue } from '../utils/orderQueue';
 import { StatusTrackingMediaFile } from '../entities/statusTrackingMediaFile.entity';
+import { Transaction } from '../entities/transaction.entity';
+import { Brand } from '../entities/brand.entity';
+import { transactionRepository } from '../repositories/transaction.repository';
+import { transactionService } from './transaction.service';
+import { walletService } from './wallet.service';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
@@ -175,6 +181,11 @@ class OrderService extends BaseService<Order> {
             order.status = ShippingStatusEnum.CANCELLED;
             await queryRunner.manager.save(Order, order);
           })(),
+          //update status of transaction
+          transactionService.cancelTransactionBasedOnOrderId(
+            order.id,
+            queryRunner
+          ),
           //update status of request
           (async () => {
             cancelOrderRequest.status = CancelOrderRequestStatusEnum.APPROVED;
@@ -185,6 +196,8 @@ class OrderService extends BaseService<Order> {
           })(),
           //refund voucher
           this.refundVoucherInBothChildAndParentOrder(order, queryRunner),
+          //refund to wallet
+          walletService.refundFromCancelOrder(order, queryRunner),
           //return back stock quantity
           this.returnBackStockQuantity(order, queryRunner),
           //create status tracking
@@ -287,6 +300,19 @@ class OrderService extends BaseService<Order> {
         );
       if (nextShippingStatusMap[order.status] != status)
         throw new BadRequestError('Can not update this status');
+      //update transaction if order status is WAIT_FOR_CONFIRMATION and payment method is not Cash
+      if (
+        status == ShippingStatusEnum.WAIT_FOR_CONFIRMATION &&
+        order.paymentMethod != PaymentMethodEnum.CASH
+      ) {
+        const transaction = await transactionRepository.findOne({
+          where: {
+            order: { id: orderId },
+          },
+        });
+        transaction.status = TransactionStatusEnum.COMPLETED;
+        await queryRunner.manager.save(Transaction, transaction);
+      }
       await Promise.all([
         //update order status and save
         (async () => {
@@ -349,6 +375,13 @@ class OrderService extends BaseService<Order> {
           })(),
           //refund voucher
           this.refundVoucherInBothChildAndParentOrder(order, queryRunner),
+          //update status of transaction
+          transactionService.cancelTransactionBasedOnOrderId(
+            order.id,
+            queryRunner
+          ),
+          //refund to wallet
+          walletService.refundFromCancelOrder(order, queryRunner),
           //return back stock quantity
           this.returnBackStockQuantity(order, queryRunner),
           //create status tracking
@@ -450,6 +483,13 @@ class OrderService extends BaseService<Order> {
           })(),
           //refund voucher
           this.refundVoucherInBothChildAndParentOrder(order, queryRunner),
+          //update status of transaction
+          transactionService.cancelTransactionBasedOnOrderId(
+            order.id,
+            queryRunner
+          ),
+          //refund to wallet
+          walletService.refundFromCancelOrder(order, queryRunner),
           //return back stock quantity
           this.returnBackStockQuantity(order, queryRunner),
           //create status tracking
@@ -558,7 +598,7 @@ class OrderService extends BaseService<Order> {
       relations: {
         updatedBy: { role: true },
         order: true,
-        mediaFiles: true
+        mediaFiles: true,
       },
       order: {
         createdAt: 'ASC',
@@ -914,6 +954,11 @@ class OrderService extends BaseService<Order> {
         childOrder.message = order.message;
         childOrder.orderDetails = [];
         childOrder.account = account;
+        const brand = await brandRepository.findOne({
+          where: {id: order.brandId}
+        })
+        if(!brand) throw new BadRequestError(`Brand not found`);
+        childOrder.brand = brand;
 
         let shopVoucher: Voucher = null;
         if (order.shopVoucherId) {
@@ -988,6 +1033,12 @@ class OrderService extends BaseService<Order> {
         accountId
       );
 
+      //create pending transaction
+      const transactions = createdParentOrder.children.map((childOrder) => {
+        return transactionService.createTransactionFromNormalOrder(childOrder);
+      });
+      await queryRunner.manager.save(Transaction, transactions);
+
       await queryRunner.commitTransaction();
       return createdParentOrder;
     } catch (error) {
@@ -997,6 +1048,8 @@ class OrderService extends BaseService<Order> {
       await queryRunner.release();
     }
   }
+
+  
 
   private initOrderDetail(
     productClassification: ProductClassification,

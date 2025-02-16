@@ -4,7 +4,14 @@ import { AppDataSource } from '../dataSource';
 import { BadRequestError } from '../errors/error';
 import { BaseService } from './base.service';
 import { groupBuyingRepository } from '../repositories/groupBuying.repository';
-import { OrderEnum, ShippingStatusEnum, StatusEnum } from '../utils/enum';
+import {
+  OrderEnum,
+  PaymentMethodEnum,
+  ShippingStatusEnum,
+  StatusEnum,
+  TransactionStatusEnum,
+  TransactionTypeEnum,
+} from '../utils/enum';
 import { GroupBuyingJoinEventRequest } from '../dtos/request/groupBuying.request';
 import { GroupBuying } from '../entities/groupBuying.entity';
 import { accountRepository } from '../repositories/account.repository';
@@ -19,6 +26,8 @@ import { orderService } from './order.service';
 import { ProductClassification } from '../entities/productClassification.entity';
 import { masterConfigRepository } from '../repositories/masterConfig.repository';
 import { criteriaRepository } from '../repositories/criteria.repository';
+import { Transaction } from '../entities/transaction.entity';
+import { transactionService } from './transaction.service';
 
 const repository = AppDataSource.getRepository(GroupBuying);
 class GroupBuyingService extends BaseService<GroupBuying> {
@@ -543,9 +552,9 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       const wallet = await walletRepository.findOne({
         where: {
           owner: { id: userId },
-        }
-      })
-      if(!wallet || parentOrder.totalPrice > wallet.balance)
+        },
+      });
+      if (!wallet || parentOrder.totalPrice > wallet.balance)
         throw new BadRequestError(`Wallet balance is not enough`);
 
       const createdParentOrder = await queryRunner.manager.save(
@@ -572,6 +581,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
         where: { id: groupBuyingId },
         relations: {
           groupProduct: {
+            brand: true,
             criterias: { voucher: true },
           },
         },
@@ -660,6 +670,9 @@ class GroupBuyingService extends BaseService<GroupBuying> {
                 );
               await queryRunner.manager.save(StatusTracking, statusTrackings);
               await queryRunner.manager.save(Order, [order, order.parent]);
+              //create transaction
+              const transaction = transactionService.createTransactionFromOrderGroupBuying(order, groupBuying);
+              await queryRunner.manager.save(Transaction, transaction);
             } else {
               await this.cancelOneOrderInGroupbuying(order, queryRunner);
             }

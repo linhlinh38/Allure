@@ -1,9 +1,11 @@
+import { QueryRunner } from 'typeorm';
 import { config } from '../configs/envConfig';
 import { AppDataSource } from '../dataSource';
 import {
   DepositRequest,
   WalletCreateRequest,
 } from '../dtos/request/wallet.request';
+import { Order } from '../entities/order.entity';
 import { Wallet } from '../entities/wallet.entity';
 import { BadRequestError } from '../errors/error';
 import { accountRepository } from '../repositories/account.repository';
@@ -11,6 +13,7 @@ import { walletRepository } from '../repositories/wallet.reposirory';
 import { isValidData } from '../utils/checkSignature';
 import { payos } from '../utils/payos';
 import { BaseService } from './base.service';
+import { PaymentMethodEnum } from '../utils/enum';
 
 const repository = AppDataSource.getRepository(Wallet);
 class WalletService extends BaseService<Wallet> {
@@ -49,7 +52,7 @@ class WalletService extends BaseService<Wallet> {
       },
       relations: {
         wallet: true,
-      }
+      },
     });
     if (!account) throw new BadRequestError('Account not found');
     if (account.wallet) throw new BadRequestError('Wallet already exist');
@@ -81,6 +84,21 @@ class WalletService extends BaseService<Wallet> {
     });
     if (!wallet) throw new BadRequestError(`Wallet not found`);
     return wallet;
+  }
+
+  async refundFromCancelOrder(
+    order: Order,
+    queryRunner: QueryRunner
+  ) {
+    if (order.paymentMethod == PaymentMethodEnum.CASH) return;
+    const wallet = await walletRepository.findOne({
+      where: {
+        owner: { id: order.account.id },
+      },
+    });
+    if (!wallet) throw new BadRequestError('Dont have wallet');
+    wallet.balance += order.totalPrice;
+    await queryRunner.manager.save(wallet);
   }
 
   async getById(id: string) {
