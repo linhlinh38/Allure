@@ -156,3 +156,16 @@ export enum WeekDay {
   SATURDAY = 7,
   SUNDAY = 8,
 }
+
+export enum TransactionType {
+  PURCHASE = "PURCHASE",
+  DEPOSIT = "DEPOSIT",
+  WITHDRAW = "WITHDRAW",
+}
+
+export enum TransactionStatus {
+  PENDING = 'PENDING',
+  COMPLETED = 'COMPLETED',
+  REFUNDED = 'REFUNDED',
+  CANCELLED = 'CANCELLED',
+}

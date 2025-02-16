@@ -1,3 +1,4 @@
+import { Transaction } from './transaction.entity';
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { OrderEnum, PaymentMethodEnum, ShippingStatusEnum, StatusEnum } from '../utils/enum';
@@ -102,4 +103,7 @@ export class Order extends BaseEntity {
     (cancelOrderRequest) => cancelOrderRequest.order
   )
   cancelOrderRequest: CancelOrderRequest;
+
+  @OneToOne(() => Transaction, (transaction) => transaction.order)
+  transaction: Transaction;
 }

@@ -1,27 +1,39 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToOne } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Account } from './account.entity';
-import { TransactionEnum } from '../utils/enum';
+import { PaymentMethodEnum, TransactionStatus, TransactionType } from '../utils/enum';
+import { Order } from './order.entity';
+import { Brand } from './brand.entity';
 
 @Entity('transactions')
 export class Transaction extends BaseEntity {
-  @Column({ type: 'varchar', nullable: false, default: 0 })
-  from: string;
+  @ManyToOne(() => Order, (order) => order.transaction, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  order: Order;
 
-  @Column({ type: 'varchar', nullable: false, default: 0 })
-  to: string;
+  @ManyToOne(() => Account, (buyer) => buyer.transactions)
+  buyer: Account;
 
-  @Column({ type: 'double precision', nullable: false, default: 0 })
+  @ManyToOne(() => Brand, (brand) => brand.transactions, { nullable: true })
+  brand: Brand;
+
+  @Column({ type: 'double precision'})
   amount: number;
 
   @Column({
     type: 'enum',
-    enum: TransactionEnum,
-    default: TransactionEnum.ORDER,
+    enum: PaymentMethodEnum,
   })
-  type: TransactionEnum;
+  paymentMethod: PaymentMethodEnum;
 
-  @OneToOne(() => Account, (account) => account.wallet)
-  @JoinColumn({ name: 'account_id' })
-  owner: Account;
+  @Column({ type: 'enum', enum: TransactionType })
+  transactionType: TransactionType;
+
+  @Column({
+    type: 'enum',
+    enum: TransactionStatus,
+  })
+  status: TransactionStatus;
 }
