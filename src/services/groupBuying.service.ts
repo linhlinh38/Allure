@@ -220,8 +220,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
     try {
       const childOrderWithParentRelation = await orderRepository.findOne({
         where: {
-          id: childOrderId,
-          parent: IsNull(),
+          id: childOrderId
         },
         relations: {
           parent: true
