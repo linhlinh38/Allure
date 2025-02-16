@@ -12,6 +12,7 @@ import { BaseEntity } from './base.entity';
 import { Account } from './account.entity';
 import { Brand } from './brand.entity';
 import { Order } from './order.entity';
+import { StatusTrackingMediaFile } from './statusTrackingMediaFile.entity';
 
 @Entity('status_trackings')
 export class StatusTracking extends BaseEntity {
@@ -42,4 +43,7 @@ export class StatusTracking extends BaseEntity {
   })
   @JoinColumn({ name: 'order' })
   order: Order;
+
+  @OneToMany(() => StatusTrackingMediaFile, (statusTrackingMediaFile) => statusTrackingMediaFile.statusTracking, { cascade: true})
+  mediaFiles: StatusTrackingMediaFile[];
 }
