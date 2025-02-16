@@ -66,11 +66,16 @@ export default class OrderController {
     next: NextFunction
   ) {
     try {
-      await orderService.makeDecisionOnRequest(
+      let isApproved = await orderService.makeDecisionOnRequest(
         req.params.requestId,
         req.body.status
       );
-      return createNormalResponse(res, 'Make decision on request successfully');
+      return createNormalResponse(
+        res,
+        isApproved
+          ? 'Approved cancel request successfully'
+          : 'Rejected cancel request successfully'
+      );
     } catch (err) {
       next(err);
     }
