@@ -6,6 +6,7 @@ import { Order } from '../entities/order.entity';
 import {
   OrderNormalRequest,
   PreOrderRequest,
+  UpdateOrderStatusRequest,
 } from '../dtos/request/order.request';
 import { voucherRepository } from '../repositories/voucher.repository';
 import { productClassificationRepository } from '../repositories/productClassification.repository';
@@ -38,6 +39,7 @@ import { cancelOrderRequestRepository } from '../repositories/cancelOrderRequest
 import { walletRepository } from '../repositories/wallet.reposirory';
 import { Wallet } from '../entities/wallet.entity';
 import { addNormalOrderToQueue } from '../utils/orderQueue';
+import { StatusTrackingMediaFile } from '../entities/statusTrackingMediaFile.entity';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
@@ -257,7 +259,7 @@ class OrderService extends BaseService<Order> {
     return order;
   }
   async updateStatus(
-    status: ShippingStatusEnum,
+    updateOrderStatusRequest: UpdateOrderStatusRequest,
     orderId: string,
     userId: string
   ) {
@@ -265,6 +267,7 @@ class OrderService extends BaseService<Order> {
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
+      const status = updateOrderStatusRequest.status;
       const order = await orderRepository.findOne({
         where: { id: orderId },
       });
@@ -291,7 +294,14 @@ class OrderService extends BaseService<Order> {
           await queryRunner.manager.save(Order, order);
         })(),
         //create status tracking
-        this.createStatusTracking(order, userId, status, null, queryRunner),
+        this.createStatusTracking(
+          order,
+          userId,
+          status,
+          null,
+          queryRunner,
+          updateOrderStatusRequest.mediaFiles
+        ),
       ]);
       await queryRunner.commitTransaction();
     } catch (error) {
@@ -368,8 +378,9 @@ class OrderService extends BaseService<Order> {
     order: Order,
     userId: string,
     status: string,
-    reason: any,
-    queryRunner: QueryRunner
+    reason: string,
+    queryRunner: QueryRunner,
+    mediaFiles?: string[]
   ) {
     let statusTracking = new StatusTracking();
     statusTracking.order = order;
@@ -379,6 +390,15 @@ class OrderService extends BaseService<Order> {
     }
     statusTracking.status = status;
     statusTracking.reason = reason;
+    if (mediaFiles && mediaFiles.length > 0) {
+      //create media files
+      const mediaFileObjects = mediaFiles.map((file) => {
+        const statusTrackingMediaFile = new StatusTrackingMediaFile();
+        statusTrackingMediaFile.fileUrl = file;
+        return statusTrackingMediaFile;
+      });
+      statusTracking.mediaFiles = mediaFileObjects;
+    }
     await queryRunner.manager.save(StatusTracking, statusTracking);
   }
 
@@ -538,6 +558,7 @@ class OrderService extends BaseService<Order> {
       relations: {
         updatedBy: { role: true },
         order: true,
+        mediaFiles: true
       },
       order: {
         createdAt: 'ASC',
