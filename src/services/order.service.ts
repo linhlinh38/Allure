@@ -138,6 +138,7 @@ class OrderService extends BaseService<Order> {
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
+      let isApproved = false;
       const cancelOrderRequest = await cancelOrderRequestRepository.findOne({
         where: {
           id: requestId,
@@ -150,6 +151,7 @@ class OrderService extends BaseService<Order> {
       if (status === CancelOrderRequestStatusEnum.REJECTED) {
         cancelOrderRequest.status = status;
         await queryRunner.manager.save(CancelOrderRequest, cancelOrderRequest);
+        isApproved = false;
       } else if (status === CancelOrderRequestStatusEnum.APPROVED) {
         const order = await orderRepository.findOne({
           where: { id: cancelOrderRequest.order.id },
@@ -188,12 +190,14 @@ class OrderService extends BaseService<Order> {
             order,
             order.account.id,
             status,
-            null,
+            cancelOrderRequest.reason,
             queryRunner
           ),
         ]);
-        await queryRunner.commitTransaction();
+        isApproved = true;
       }
+      await queryRunner.commitTransaction();
+      return isApproved;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
