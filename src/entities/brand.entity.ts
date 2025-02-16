@@ -15,6 +15,7 @@ import { Expose } from "class-transformer";
 import { Voucher } from "./voucher.entity";
 import { StatusTracking } from "./statusTracking.entity";
 import { Product } from "./product.entity";
+import { Transaction } from "./transaction.entity";
 
 @Entity('brands')
 export class Brand extends BaseEntity {
@@ -98,4 +99,7 @@ export class Brand extends BaseEntity {
 
   @OneToMany(() => Product, (product) => product.brand)
   products: Product[];
+
+  @OneToMany(() => Transaction, (transaction) => transaction.brand)
+  transactions: Transaction[];
 }

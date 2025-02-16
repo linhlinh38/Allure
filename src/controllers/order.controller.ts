@@ -146,14 +146,14 @@ export default class OrderController {
     next: NextFunction
   ) {
     try {
+      let cancelStatus = await orderService.customerCancelOrder(
+        req.params.orderId,
+        req.body.reason,
+        req.loginUser
+      );
       return createNormalResponse(
         res,
-        'Cancel order successfully',
-        await orderService.customerCancelOrder(
-          req.params.orderId,
-          req.body.reason,
-          req.loginUser
-        )
+        cancelStatus == 1 ? 'Cancel order successfully' : 'Send cancel request success'
       );
     } catch (err) {
       next(err);
