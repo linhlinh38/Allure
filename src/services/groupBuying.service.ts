@@ -17,6 +17,8 @@ import { orderRepository } from '../repositories/order.repository';
 import { walletRepository } from '../repositories/wallet.reposirory';
 import { orderService } from './order.service';
 import { ProductClassification } from '../entities/productClassification.entity';
+import { masterConfigRepository } from '../repositories/masterConfig.repository';
+import { criteriaRepository } from '../repositories/criteria.repository';
 
 const repository = AppDataSource.getRepository(GroupBuying);
 class GroupBuyingService extends BaseService<GroupBuying> {
@@ -28,7 +30,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       relations: {
         creator: true,
         orders: true,
-        criteria: true,
+        groupProduct: true,
       },
     });
     if (!groupBuying) throw new BadRequestError('GroupBuying not found');
@@ -36,14 +38,28 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       throw new BadRequestError('Only creator can start to end group buying');
     if (groupBuying.endTime < new Date())
       throw new BadRequestError('Group buying has ended');
-    //nhỏ hơn 15p
-    if (groupBuying.endTime.getTime() - Date.now() < 15 * 60 * 1000)
+    const masterConfig = await masterConfigRepository.findOne({});
+    //nhỏ hơn groupBuyingRemainingTime
+    if (
+      groupBuying.endTime.getTime() - Date.now() <
+      masterConfig.groupBuyingRemainingTime
+    )
       throw new BadRequestError(
         'Can not start to end because there is under 15 minutes left'
       );
-    if (groupBuying.orders.length < groupBuying.criteria.threshold)
+    const criterias = await criteriaRepository.find({
+      where: {
+        groupProduct: { id: groupBuying.groupProduct.id },
+      },
+      order: {
+        threshold: 'ASC',
+      },
+    });
+    if (groupBuying.orders.length < criterias[0].threshold)
       throw new BadRequestError('Not enough orders to end group buying');
-    groupBuying.endTime = new Date(Date.now() + 15 * 60 * 1000);
+    groupBuying.endTime = new Date(
+      Date.now() + masterConfig.groupBuyingRemainingTime
+    );
     await groupBuying.save();
   }
   async getOrderByGroupBuyingId(groupBuyingId: string, loginUser: string) {
@@ -82,7 +98,6 @@ class GroupBuyingService extends BaseService<GroupBuying> {
               productClassifications: { images: true },
             },
           },
-          criteria: { voucher: true },
           creator: true,
         },
         order: {
@@ -102,7 +117,6 @@ class GroupBuyingService extends BaseService<GroupBuying> {
             productClassifications: { images: true },
           },
         },
-        criteria: { voucher: true },
         creator: true,
       },
       order: {
@@ -120,7 +134,6 @@ class GroupBuyingService extends BaseService<GroupBuying> {
             productClassifications: { images: true },
           },
         },
-        criteria: { voucher: true },
         creator: true,
       },
       order: {
@@ -140,7 +153,6 @@ class GroupBuyingService extends BaseService<GroupBuying> {
               productClassifications: { images: true },
             },
           },
-          criteria: { voucher: true },
           creator: true,
         },
         order: {
@@ -159,7 +171,6 @@ class GroupBuyingService extends BaseService<GroupBuying> {
             productClassifications: { images: true },
           },
         },
-        criteria: { voucher: true },
         creator: true,
       },
       order: {
@@ -181,7 +192,6 @@ class GroupBuyingService extends BaseService<GroupBuying> {
               productClassifications: { images: true },
             },
           },
-          criteria: { voucher: true },
           creator: true,
         },
         order: {
@@ -201,7 +211,6 @@ class GroupBuyingService extends BaseService<GroupBuying> {
             productClassifications: { images: true },
           },
         },
-        criteria: { voucher: true },
         creator: true,
       },
       order: {
@@ -212,15 +221,23 @@ class GroupBuyingService extends BaseService<GroupBuying> {
 
   async updateOrder(
     groupBuyingJoinEventBody: GroupBuyingJoinEventRequest,
-    orderId: string
+    childOrderId: string
   ) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
+      const childOrderWithParentRelation = await orderRepository.findOne({
+        where: {
+          id: childOrderId,
+        },
+        relations: {
+          parent: true,
+        },
+      });
       const parentOrder = await orderRepository.findOne({
         where: {
-          id: orderId,
+          id: childOrderWithParentRelation.parent.id,
           parent: IsNull(),
         },
         relations: {
@@ -246,8 +263,6 @@ class GroupBuyingService extends BaseService<GroupBuying> {
           return productClassification;
         }
       );
-      console.log(oldProductClassfications);
-
       await this.removeAllOrderDetails(childOrder, queryRunner);
       const totalQuantity = groupBuyingJoinEventBody.items.reduce(
         (total, item) => total + item.quantity,
@@ -533,10 +548,20 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       const groupBuying = await repository.findOne({
         where: { id: groupBuyingId },
         relations: {
-          criteria: { voucher: true },
           groupProduct: {
             criterias: { voucher: true },
           },
+        },
+      });
+      let criteriasDescThreshold = await criteriaRepository.find({
+        where: {
+          groupProduct: { id: groupBuying.groupProduct.id },
+        },
+        relations: {
+          voucher: true,
+        },
+        order: {
+          threshold: 'ASC',
         },
       });
       if (!groupBuying) throw new BadRequestError('Group buying not found');
@@ -552,7 +577,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
           },
         },
       });
-      if (orders.length < groupBuying.criteria.threshold) {
+      if (orders.length < criteriasDescThreshold[0].threshold) {
         await this.cancelAllOrdersInGroupbuying(orders, queryRunner);
         isEventEndSuccess = false;
       } else {
@@ -567,7 +592,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
             },
           });
           //apply voucher
-          order.voucher = groupBuying.criteria.voucher;
+          order.voucher = criteriasDescThreshold[0].voucher;
           voucherService.applyShopVoucher(order);
           voucherService.calculateOrderPrice(order.parent);
 
@@ -578,15 +603,15 @@ class GroupBuyingService extends BaseService<GroupBuying> {
             orderIdCanAffordMap[order.id] = false;
           }
         }
-        if (countAffordableOrder < groupBuying.criteria.threshold) {
+        if (countAffordableOrder < criteriasDescThreshold[0].threshold) {
           await this.cancelAllOrdersInGroupbuying(orders, queryRunner);
           isEventEndSuccess = false;
         } else {
           //find most matching criteria
-          const criterias = groupBuying.groupProduct.criterias.sort(
+          criteriasDescThreshold = criteriasDescThreshold.sort(
             (a, b) => b.threshold - a.threshold
           );
-          const findCriteria = criterias.find(
+          const mostMatchingCriteria = criteriasDescThreshold.find(
             (criteria) => criteria.threshold <= countAffordableOrder
           );
 
@@ -597,7 +622,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
               },
             });
             //apply voucher
-            order.voucher = findCriteria.voucher;
+            order.voucher = mostMatchingCriteria.voucher;
             voucherService.applyShopVoucher(order);
             voucherService.calculateOrderPrice(order.parent);
             //check if order is affordable or not
@@ -661,7 +686,6 @@ class GroupBuyingService extends BaseService<GroupBuying> {
           criterias: { voucher: true },
           products: { images: true, productClassifications: { images: true } },
         },
-        criteria: { voucher: true },
         creator: true,
       },
     });

@@ -102,15 +102,9 @@ class GroupProductService extends BaseService<GroupProduct> {
       relations: { criterias: true },
     });
     if (!groupProduct) throw new BadRequestError('Group product not found');
-    const groupBuyingCriteria = groupProduct.criterias.find(
-      (criteria) => criteria.id === groupBuyingBody.criteriaId
-    );
-    if (!groupBuyingCriteria)
-      throw new BadRequestError('Criteria not in group product');
     const newGroupBuying = new GroupBuying();
     newGroupBuying.startTime = new Date(groupBuyingBody.startTime);
     newGroupBuying.endTime = new Date(groupBuyingBody.endTime);
-    newGroupBuying.criteria = groupBuyingCriteria;
     const creator = await accountRepository.findOne({
       where: { id: loginUser },
     });

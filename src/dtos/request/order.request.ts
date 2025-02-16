@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { CancelOrderRequestStatusEnum, PaymentMethodEnum, ShippingStatusEnum, StatusEnum } from '../../utils/enum';
+import {
+  CancelOrderRequestStatusEnum,
+  PaymentMethodEnum,
+  ShippingStatusEnum,
+  StatusEnum,
+} from '../../utils/enum';
 import { Expose } from 'class-transformer';
 
 export const OrderNormalCreateSchema = z.object({
@@ -55,9 +60,18 @@ export const SearchOrderSchema = z.object({
 
 export const UpdateOrderStatusSchema = z.object({
   body: z.object({
-    status: z.nativeEnum(ShippingStatusEnum).optional(),
+    status: z.nativeEnum(ShippingStatusEnum),
+    mediaFiles: z.array(z.string()).optional(),
   }),
 });
+
+export class UpdateOrderStatusRequest {
+  @Expose()
+  status: ShippingStatusEnum;
+
+  @Expose()
+  mediaFiles: string[];
+}
 
 export const CancelOrderSchema = z.object({
   body: z.object({

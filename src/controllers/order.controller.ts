@@ -5,6 +5,7 @@ import { plainToInstance } from 'class-transformer';
 import {
   OrderNormalRequest,
   PreOrderRequest,
+  UpdateOrderStatusRequest,
 } from '../dtos/request/order.request';
 import { AuthRequest } from '../middleware/authentication';
 
@@ -66,11 +67,16 @@ export default class OrderController {
     next: NextFunction
   ) {
     try {
-      await orderService.makeDecisionOnRequest(
+      let isApproved = await orderService.makeDecisionOnRequest(
         req.params.requestId,
         req.body.status
       );
-      return createNormalResponse(res, 'Make decision on request successfully');
+      return createNormalResponse(
+        res,
+        isApproved
+          ? 'Approved cancel request successfully'
+          : 'Rejected cancel request successfully'
+      );
     } catch (err) {
       next(err);
     }
@@ -93,8 +99,15 @@ export default class OrderController {
     next: NextFunction
   ) {
     try {
+      const updateOrderStatusRequest = plainToInstance(
+        UpdateOrderStatusRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
       await orderService.updateStatus(
-        req.body.status,
+        updateOrderStatusRequest,
         req.params.orderId,
         req.loginUser
       );
