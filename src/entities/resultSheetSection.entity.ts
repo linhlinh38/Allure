@@ -7,36 +7,25 @@ import { CartItem } from "./cartItem.entity";
 import { Category } from "./category.entity";
 import { ConsultantService } from "./consultantService.entity";
 import { ServiceBookingForm } from "./serviceBookingForm.entity";
-import { ServiceImage } from "./serviceImage.entity";
+import { SystemService } from "./systemService.entity";
+import { ResultSheet } from "./resultSheet.entity";
 
-@Entity("questions")
-export class Question extends BaseEntity {
+@Entity("result_sheet_section")
+export class ResultSheetSection extends BaseEntity {
   @Column({ type: "varchar" })
-  question: string;
+  section: string;
 
-  @Column({ type: "int", name: "order_index" })
-  orderIndex: number;
+  @Column({ type: "varchar" })
+  description: string;
 
   @Column({ type: "boolean", default: false })
   mandatory: boolean;
 
-  @OneToMany(() => ServiceImage, (image) => image.question, {
-    nullable: true,
-  })
-  images?: ServiceImage[];
+  @Column({ type: "int", name: "order_index" })
+  orderIndex: number;
 
-  @Column({ type: "jsonb", nullable: true })
-  answers: object;
-
-  @Column({
-    type: "enum",
-    enum: QuestionTypeEnum,
-  })
-  type: QuestionTypeEnum;
-
-  @ManyToOne(() => ServiceBookingForm, (form) => form.questions)
-  @JoinColumn({ name: "service_booking_form_id" })
-  serviceBookingForm: ServiceBookingForm;
+  @ManyToOne(() => ResultSheet, (sheet) => sheet.resultSheetSections)
+  resultSheet: ResultSheet;
 
   @Column({
     type: "enum",

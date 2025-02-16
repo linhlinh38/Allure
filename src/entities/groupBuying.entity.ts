@@ -5,13 +5,14 @@ import {
   ManyToOne,
   OneToMany,
   OneToOne,
-} from 'typeorm';
-import { BaseEntity } from './base.entity';
-import { StatusEnum } from '../utils/enum';
-import { Account } from './account.entity';
-import { Order } from './order.entity';
-import { GroupBuyingCriteria } from './groupBuyingCriteria.entity';
-import { GroupProduct } from './groupProduct.entity';
+} from "typeorm";
+import { BaseEntity } from "./base.entity";
+import { StatusEnum } from "../utils/enum";
+import { Account } from "./account.entity";
+import { Order } from "./order.entity";
+import { GroupBuyingCriteria } from "./groupBuyingCriteria.entity";
+import { GroupProduct } from "./groupProduct.entity";
+import { CartItem } from "./cartItem.entity";
 
 @Entity('group_buyings')
 export class GroupBuying extends BaseEntity {
@@ -34,6 +35,9 @@ export class GroupBuying extends BaseEntity {
 
   @OneToMany(() => Order, (order) => order.groupBuying)
   orders: Order[];
+
+  @OneToMany(() => CartItem, (cart) => cart.groupBuying)
+  cartItems: CartItem[];
 
   @ManyToOne(() => GroupProduct, (groupProduct) => groupProduct.groupBuyings)
   @JoinColumn({ name: 'group_product' })
