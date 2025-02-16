@@ -523,7 +523,30 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       );
       await queryRunner.manager.save(StatusTracking, statusTrackings);
       await orderService.updateDecreaseStockQuantity(parentOrder, queryRunner);
+
+      const smallestCriteria = (
+        await criteriaRepository.find({
+          where: {
+            groupProduct: { id: groupBuying.groupProduct.id },
+          },
+          relations: {
+            voucher: true,
+          },
+          order: {
+            threshold: 'ASC',
+          },
+        })
+      )[0];
+      childOrder.voucher = smallestCriteria.voucher;
+      voucherService.applyShopVoucher(childOrder);
       voucherService.calculateOrderPrice(parentOrder);
+      const wallet = await walletRepository.findOne({
+        where: {
+          owner: { id: userId },
+        }
+      })
+      if(!wallet || parentOrder.totalPrice > wallet.balance)
+        throw new BadRequestError(`Wallet balance is not enough`);
 
       const createdParentOrder = await queryRunner.manager.save(
         Order,
