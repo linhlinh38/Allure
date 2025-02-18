@@ -1,0 +1,42 @@
+import { NextFunction, Request, Response } from "express";
+import { bookingService } from "../services/booking.service";
+import { createNormalResponse } from "../utils/response";
+import { NotFoundError } from "../errors/error";
+export default class BookingController {
+  static async getAll(req: Request, res: Response, next: NextFunction) {
+    try {
+      const bookings = await bookingService.findAll();
+      return createNormalResponse(res, "Get all booking success", bookings);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async getById(req: Request, res: Response, next: NextFunction) {
+    try {
+      const booking = await bookingService.findById(req.params.id);
+      if (!booking) throw new NotFoundError("booking not found");
+      return createNormalResponse(res, "Get booking success", booking);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async update(req: Request, res: Response, next: NextFunction) {
+    try {
+      await bookingService.update(req.params.id, req.body);
+      return createNormalResponse(res, "Update booking success");
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async create(req: Request, res: Response, next: NextFunction) {
+    try {
+      await bookingService.create(req.body);
+      return createNormalResponse(res, "Create booking success");
+    } catch (err) {
+      next(err);
+    }
+  }
+}
