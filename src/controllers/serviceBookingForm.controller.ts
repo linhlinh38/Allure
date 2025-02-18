@@ -5,7 +5,7 @@ import { NotFoundError } from "../errors/error";
 export default class ServiceBookingFormController {
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
-      const serviceBookingForm = await serviceBookingFormService.findAll();
+      const serviceBookingForm = await serviceBookingFormService.getAll();
       return createNormalResponse(
         res,
         "Get all serviceBookingForm success",
@@ -18,7 +18,7 @@ export default class ServiceBookingFormController {
 
   static async getById(req: Request, res: Response, next: NextFunction) {
     try {
-      const serviceBookingForm = await serviceBookingFormService.findById(
+      const serviceBookingForm = await serviceBookingFormService.getById(
         req.params.id
       );
       if (!serviceBookingForm) throw new NotFoundError("form not found");
