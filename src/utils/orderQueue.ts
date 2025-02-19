@@ -4,16 +4,18 @@ import { AppDataSource } from '../dataSource';
 import { ShippingStatusEnum } from './enum';
 import { orderService } from '../services/order.service';
 import { groupBuyingService } from '../services/groupBuying.service';
+import { retrieveMasterConfig } from './retrieveMasterConfig';
 
 export const normalOrderQueue = new Queue('normalOrderQueue', {
   connection: { host: 'localhost', port: 6379 },
 });
 
 export async function addNormalOrderToQueue(orderId: string) {
+  const masterConfig = await retrieveMasterConfig();
   await normalOrderQueue.add(
-    'checkPayment',
+    'checkStatus',
     { orderId },
-    { delay: 24 * 60 * 60 * 1000 }
+    { delay: masterConfig.autoCancelOrderTime }
   );
 }
 

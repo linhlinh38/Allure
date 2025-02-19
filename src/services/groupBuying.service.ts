@@ -6,11 +6,8 @@ import { BaseService } from './base.service';
 import { groupBuyingRepository } from '../repositories/groupBuying.repository';
 import {
   OrderEnum,
-  PaymentMethodEnum,
   ShippingStatusEnum,
   StatusEnum,
-  TransactionStatusEnum,
-  TransactionTypeEnum,
 } from '../utils/enum';
 import { GroupBuyingJoinEventRequest } from '../dtos/request/groupBuying.request';
 import { GroupBuying } from '../entities/groupBuying.entity';

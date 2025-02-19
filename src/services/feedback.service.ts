@@ -220,7 +220,7 @@ class FeedbackService extends BaseService<Feedback> {
     const masterConfig = (await masterConfigRepository.find({ take: 1 }))[0];
     if (
       completedStatusTracking.updatedAt.getTime() +
-        masterConfig.timeToFeedback <
+        masterConfig.feedbackTimeExpired <
       Date.now()
     ) {
       throw new BadRequestError('Time to feedback is expired');
