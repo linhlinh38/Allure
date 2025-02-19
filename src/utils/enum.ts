@@ -169,3 +169,10 @@ export enum TransactionStatusEnum {
   REFUNDED = 'REFUNDED',
   CANCELLED = 'CANCELLED',
 }
+
+export enum FeedbackFilterEnum {
+  ALL = 'ALL',
+  RATING = 'RATING',
+  IMAGE_VIDEO = 'IMAGE_VIDEO',
+  CLASSIFICATION = 'CLASSIFICATION',
+}
