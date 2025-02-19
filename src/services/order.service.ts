@@ -415,6 +415,13 @@ class OrderService extends BaseService<Order> {
         throw new BadRequestError(
           `Can not cancel order due to current status ${order.status}`
         );
+      if (
+        status == ShippingStatusEnum.REFUNDED &&
+        order.status != ShippingStatusEnum.RETURNING
+      )
+        throw new BadRequestError(
+          `Only refund order when current status is RETURNING`
+        );
       if (nextShippingStatusMap[order.status] != status)
         throw new BadRequestError('Can not update this status');
       //update transaction if order status is WAIT_FOR_CONFIRMATION and payment method is not Cash
