@@ -42,6 +42,13 @@ export class MasterConfig extends BaseEntity {
   autoCompleteOrderTime: number;
 
   @Column({
+    name: 'auto_approve_refund_request_time',
+    type: 'bigint',
+    default: 2 * oneDay,
+  })
+  autoApproveRefundRequestTime: number;
+
+  @Column({
     name: 'feedback_time_expired',
     type: 'bigint',
     default: oneMonth,

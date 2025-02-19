@@ -129,7 +129,7 @@ export enum VoucherUnavailableReasonEnum {
   NOT_APPLICABLE = 'NOT_APPLICABLE',
 }
 
-export enum CancelOrderRequestStatusEnum {
+export enum RequestStatusEnum {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',

@@ -3,13 +3,58 @@ import { orderService } from '../services/order.service';
 import { createNormalResponse } from '../utils/response';
 import { plainToInstance } from 'class-transformer';
 import {
-  OrderNormalRequest,
+  RequestRefundRequest,
   PreOrderRequest,
   UpdateOrderStatusRequest,
+  OrderNormalRequest,
 } from '../dtos/request/order.request';
 import { AuthRequest } from '../middleware/authentication';
 
 export default class OrderController {
+  static async makeDecisionOnRefundRequest(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    const isApproved = await orderService.makeDecisionOnRefundRequest(
+      req.params.requestId,
+      req.body.status
+    );
+    try {
+      return createNormalResponse(
+        res,
+        isApproved ? 'Approved request success' : 'Reject request success',
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async requestRefund(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const requestRefundRequest = plainToInstance(
+        RequestRefundRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Request refund success',
+        await orderService.requestRefund(
+          requestRefundRequest,
+          req.params.orderId,
+          req.loginUser
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async getCancelRequestById(
     req: AuthRequest,
     res: Response,
@@ -166,7 +211,9 @@ export default class OrderController {
       );
       return createNormalResponse(
         res,
-        cancelStatus == 1 ? 'Cancel order successfully' : 'Send cancel request success'
+        cancelStatus == 1
+          ? 'Cancel order successfully'
+          : 'Send cancel request success'
       );
     } catch (err) {
       next(err);

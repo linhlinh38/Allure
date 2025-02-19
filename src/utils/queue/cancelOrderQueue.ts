@@ -1,26 +1,26 @@
-import { Queue, Worker } from 'bullmq';
-import { orderRepository } from '../repositories/order.repository';
-import { AppDataSource } from '../dataSource';
-import { ShippingStatusEnum } from './enum';
-import { orderService } from '../services/order.service';
-import { groupBuyingService } from '../services/groupBuying.service';
-import { retrieveMasterConfig } from './retrieveMasterConfig';
+import { Queue, Worker } from "bullmq";
+import { AppDataSource } from "../../dataSource";
+import { orderRepository } from "../../repositories/order.repository";
+import { orderService } from "../../services/order.service";
+import { ShippingStatusEnum } from "../enum";
+import { retrieveMasterConfig } from "../retrieveMasterConfig";
 
-export const normalOrderQueue = new Queue('normalOrderQueue', {
+
+export const cancelOrderQueue = new Queue('cancelOrderQueue', {
   connection: { host: 'localhost', port: 6379 },
 });
 
 export async function addNormalOrderToQueue(orderId: string) {
   const masterConfig = await retrieveMasterConfig();
-  await normalOrderQueue.add(
+  await cancelOrderQueue.add(
     'checkStatus',
     { orderId },
     { delay: masterConfig.autoCancelOrderTime }
   );
 }
 
-const normalOrderQueueWorker = new Worker(
-  'normalOrderQueue',
+const cancelOrderQueueWorker = new Worker(
+  'cancelOrderQueue',
   async (job) => {
     const { orderId } = job.data;
     console.log(`⏳ Kiểm tra trạng thái đơn hàng ${orderId}...`);
@@ -71,47 +71,10 @@ const normalOrderQueueWorker = new Worker(
   }
 );
 
-normalOrderQueueWorker.on('completed', (job) => {
+cancelOrderQueueWorker.on('completed', (job) => {
   console.log(`✅ Job kiểm tra đơn hàng ${job.data.orderId} đã hoàn thành`);
 });
 
-normalOrderQueueWorker.on('failed', (job, err) => {
+cancelOrderQueueWorker.on('failed', (job, err) => {
   console.log(`❌ Job ${job.data.orderId} thất bại: ${err.message}`);
-});
-
-export const groupOrderQueue = new Queue('groupOrderQueue', {
-  connection: { host: 'localhost', port: 6379 },
-});
-
-export async function addGroupOrderToQueue(
-  groupBuyingId: string,
-  time: number
-) {
-  await groupOrderQueue.add(
-    'checkEventEnd',
-    { groupBuyingId },
-    { delay: time }
-  );
-}
-
-const groupOrderQueueWorker = new Worker(
-  'groupOrderQueue',
-  async (job) => {
-    const { groupBuyingId } = job.data;
-    console.log(`⏳ Kiểm tra trạng thái groupBuying ${groupBuyingId}...`);
-    await groupBuyingService.endGroupBuying(groupBuyingId);
-  },
-  {
-    connection: { host: 'localhost', port: 6379 },
-  }
-);
-
-groupOrderQueueWorker.on('completed', (job) => {
-  console.log(
-    `✅ Job end group buying ${job.data.groupBuyingId} đã hoàn thành`
-  );
-});
-
-groupOrderQueueWorker.on('failed', (job, err) => {
-  console.log(`❌ Job ${job.data.groupBuyingId} thất bại: ${err.message}`);
 });

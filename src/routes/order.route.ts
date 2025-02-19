@@ -5,6 +5,8 @@ import {
   CancelOrderSchema,
   CancelOrderStatusSchema,
   OrderNormalCreateSchema,
+  RequestRefundSchema,
+  RequestStatusSchema,
   SearchOrderSchema,
   UpdateOrderStatusSchema,
 } from '../dtos/request/order.request';
@@ -54,13 +56,23 @@ orderRouter.post(
 );
 orderRouter.post(
   '/get-cancel-request-of-brand/:brandId',
-  validate(CancelOrderStatusSchema),
+  validate(RequestStatusSchema),
   OrderController.getCancelRequestOfBrand
 );
 orderRouter.post(
   '/get-my-cancel-requests',
   validate(CancelOrderStatusSchema),
   OrderController.getMyCancelRequests
+);
+orderRouter.post(
+  '/request-refund/:orderId',
+  validate(RequestRefundSchema),
+  OrderController.requestRefund
+);
+orderRouter.post(
+  '/make-decision-on-refund-request/:requestId',
+  validate(RequestStatusSchema),
+  OrderController.makeDecisionOnRefundRequest
 );
 orderRouter.post('/create-pre-order', OrderController.createPreOrder);
 orderRouter.post('/create-group-order', OrderController.createGroupOrder);

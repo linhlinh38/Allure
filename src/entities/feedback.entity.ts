@@ -1,8 +1,8 @@
 import { Entity, Column, OneToMany, OneToOne, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { OrderDetail } from './orderDetail.entity';
-import { FeedbackMediaFile } from './feedbackMediafile.entity';
 import { Reply } from './reply.entity';
+import { MediaFile } from './mediaFile.entity';
 
 @Entity('feedbacks')
 export class Feedback extends BaseEntity {
@@ -16,11 +16,11 @@ export class Feedback extends BaseEntity {
   orderDetail: OrderDetail;
 
   @OneToMany(
-    () => FeedbackMediaFile,
-    (feedbackMediaFile) => feedbackMediaFile.feedback,
+    () => MediaFile,
+    (mediaFile) => mediaFile.feedback,
     { cascade: true }
   )
-  mediaFiles: FeedbackMediaFile[];
+  mediaFiles: MediaFile[];
 
   @OneToMany(() => Reply, (reply) => reply.feedback)
   replies: Reply[];

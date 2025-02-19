@@ -5,7 +5,6 @@ import {
   FeedbackFilterRequest,
 } from '../dtos/request/feedback.request';
 import { Feedback } from '../entities/feedback.entity';
-import { FeedbackMediaFile } from '../entities/feedbackMediafile.entity';
 import { BadRequestError } from '../errors/error';
 import { feedbackRepository } from '../repositories/feedback.repository';
 import { masterConfigRepository } from '../repositories/masterConfig.repository';
@@ -17,6 +16,7 @@ import { BaseService } from './base.service';
 import { Reply } from '../entities/reply.entity';
 import { Account } from '../entities/account.entity';
 import { replyRepository } from '../repositories/reply.repository';
+import { MediaFile } from '../entities/mediaFile.entity';
 
 const repository = AppDataSource.getRepository(Feedback);
 class FeedbackService extends BaseService<Feedback> {
@@ -230,7 +230,7 @@ class FeedbackService extends BaseService<Feedback> {
     feedback.content = feedbackCreateRequest.content;
     feedback.orderDetail = orderDetail;
     feedback.mediaFiles = feedbackCreateRequest.mediaFiles.map((mediaFile) => {
-      const mediaFileEntity = new FeedbackMediaFile();
+      const mediaFileEntity = new MediaFile();
       mediaFileEntity.fileUrl = mediaFile;
       return mediaFileEntity;
     });

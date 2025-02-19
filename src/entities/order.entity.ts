@@ -22,6 +22,7 @@ import { OrderDetail } from './orderDetail.entity';
 import { StatusTracking } from './statusTracking.entity';
 import { CancelOrderRequest } from './cancelOrderRequest.entity';
 import { Brand } from './brand.entity';
+import { RefundRequest } from './refundRequest.entity';
 
 @Entity('orders')
 export class Order extends BaseEntity {
@@ -123,4 +124,8 @@ export class Order extends BaseEntity {
 
   @OneToOne(() => Transaction, (transaction) => transaction.order)
   transaction: Transaction;
+
+  @OneToOne(() => RefundRequest, (refundRequest) => refundRequest.order)
+  @JoinColumn({ name: 'refund_request_id' })
+  refundRequest: RefundRequest;
 }
