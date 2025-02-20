@@ -19,7 +19,7 @@ import { GroupBuying } from '../entities/groupBuying.entity';
 import { accountRepository } from '../repositories/account.repository';
 import { VoucherRequest } from '../dtos/request/voucher.request';
 import { criteriaRepository } from '../repositories/criteria.repository';
-import { addGroupOrderToQueue } from '../utils/orderQueue';
+import { addGroupBuyingToQueue } from '../utils/queue/endGrBuyingQueue';
 
 const repository = AppDataSource.getRepository(GroupProduct);
 class GroupProductService extends BaseService<GroupProduct> {
@@ -111,7 +111,7 @@ class GroupProductService extends BaseService<GroupProduct> {
     newGroupBuying.creator = creator;
     newGroupBuying.groupProduct = groupProduct;
     const createdGroupBuying = await groupBuyingRepository.save(newGroupBuying);
-    await addGroupOrderToQueue(
+    await addGroupBuyingToQueue(
       createdGroupBuying.id,
       createdGroupBuying.endTime.getTime() -
         createdGroupBuying.startTime.getTime()

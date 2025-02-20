@@ -6,11 +6,8 @@ import { BaseService } from './base.service';
 import { groupBuyingRepository } from '../repositories/groupBuying.repository';
 import {
   OrderEnum,
-  PaymentMethodEnum,
   ShippingStatusEnum,
   StatusEnum,
-  TransactionStatusEnum,
-  TransactionTypeEnum,
 } from '../utils/enum';
 import { GroupBuyingJoinEventRequest } from '../dtos/request/groupBuying.request';
 import { GroupBuying } from '../entities/groupBuying.entity';
@@ -28,6 +25,7 @@ import { masterConfigRepository } from '../repositories/masterConfig.repository'
 import { criteriaRepository } from '../repositories/criteria.repository';
 import { Transaction } from '../entities/transaction.entity';
 import { transactionService } from './transaction.service';
+import { addGroupBuyingToQueue } from '../utils/queue/endGrBuyingQueue';
 
 const repository = AppDataSource.getRepository(GroupBuying);
 class GroupBuyingService extends BaseService<GroupBuying> {
@@ -70,6 +68,10 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       Date.now() + masterConfig.groupBuyingRemainingTime
     );
     await groupBuying.save();
+    await addGroupBuyingToQueue(
+      groupBuyingId,
+      masterConfig.groupBuyingRemainingTime
+    );
   }
   async getOrderByGroupBuyingId(groupBuyingId: string, loginUser: string) {
     const groupBuying = await groupBuyingRepository.findOne({

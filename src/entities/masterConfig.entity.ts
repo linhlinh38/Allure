@@ -28,32 +28,39 @@ export class MasterConfig extends BaseEntity {
   groupBuyingRemainingTime: number;
 
   @Column({
-    name: 'waiting_pending_order_time',
+    name: 'auto_cancel_order_time',
     type: 'bigint',
     default: oneDay,
   })
-  waitingPendingOrderTime: number;
+  autoCancelOrderTime: number;
 
   @Column({
-    name: 'waiting_completed_order_time',
+    name: 'auto_complete_order_time',
     type: 'bigint',
     default: oneWeek,
   })
-  waitingCompletedOrderTime: number;
+  autoCompleteOrderTime: number;
 
   @Column({
-    name: 'waiting_completed_order_time',
+    name: 'auto_approve_refund_request_time',
     type: 'bigint',
-    default: oneDay,
+    default: 2 * oneDay,
   })
-  timeToCancelOrder: number;
+  autoApproveRefundRequestTime: number;
 
   @Column({
-    name: 'time_to_feedback',
+    name: 'feedback_time_expired',
     type: 'bigint',
     default: oneMonth,
   })
-  timeToFeedback: number;
+  feedbackTimeExpired: number;
+
+  @Column({
+    name: 'refund_time_expired',
+    type: 'bigint',
+    default: 15 * oneDay,
+  })
+  refundTimeExpired: number;
 
   @Column({
     type: 'enum',
