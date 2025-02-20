@@ -13,6 +13,7 @@ import { Account } from "./account.entity";
 import { Brand } from "./brand.entity";
 import { Order } from "./order.entity";
 import { Booking } from "./booking.entity";
+import { MediaFile } from "./mediaFile.entity";
 
 @Entity("status_trackings")
 export class StatusTracking extends BaseEntity {
@@ -49,4 +50,9 @@ export class StatusTracking extends BaseEntity {
   })
   @JoinColumn({ name: "booking" })
   booking: Booking;
+
+  @OneToMany(() => MediaFile, (mediaFile) => mediaFile.statusTracking, {
+    cascade: true,
+  })
+  mediaFiles: MediaFile[];
 }

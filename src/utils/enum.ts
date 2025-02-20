@@ -28,7 +28,7 @@ export enum ShippingStatusEnum {
   WAIT_FOR_CONFIRMATION = "WAIT_FOR_CONFIRMATION",
   PREPARING_ORDER = "PREPARING_ORDER",
   TO_SHIP = "TO_SHIP",
-  TO_RECEIVED = "TO_RECEIVED",
+  SHIPPING = "SHIPPING",
   DELIVERED = "DELIVERED",
   COMPLETED = "COMPLETED",
   RETURNING = "RETURNING",
@@ -145,7 +145,7 @@ export enum VoucherUnavailableReasonEnum {
   NOT_APPLICABLE = "NOT_APPLICABLE",
 }
 
-export enum CancelOrderRequestStatusEnum {
+export enum RequestStatusEnum {
   PENDING = "PENDING",
   APPROVED = "APPROVED",
   REJECTED = "REJECTED",
@@ -171,4 +171,24 @@ export enum WeekDay {
   FRIDAY = 6,
   SATURDAY = 7,
   SUNDAY = 8,
+}
+
+export enum TransactionTypeEnum {
+  PURCHASE = "PURCHASE",
+  DEPOSIT = "DEPOSIT",
+  WITHDRAW = "WITHDRAW",
+}
+
+export enum TransactionStatusEnum {
+  PENDING = "PENDING",
+  COMPLETED = "COMPLETED",
+  REFUNDED = "REFUNDED",
+  CANCELLED = "CANCELLED",
+}
+
+export enum FeedbackFilterEnum {
+  ALL = "ALL",
+  RATING = "RATING",
+  IMAGE_VIDEO = "IMAGE_VIDEO",
+  CLASSIFICATION = "CLASSIFICATION",
 }

@@ -23,6 +23,7 @@ import slotRouter from "./slot.route";
 import bookingRoute from "./booking.route";
 import resultSheetRoute from "./resultSheet.route";
 import serviceBookingFormRouter from "./serviceBookingForm.route";
+import feedbackRouter from "./feedback.route";
 
 const router = express.Router();
 router.use("/accounts", accountRouter);
@@ -49,4 +50,5 @@ router.use("/slots", slotRouter);
 router.use("/bookings", bookingRoute);
 router.use("/service-booking-forms", serviceBookingFormRouter);
 router.use("/result-sheets", resultSheetRoute);
+router.use("/feedbacks", feedbackRouter);
 export default router;

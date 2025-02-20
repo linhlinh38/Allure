@@ -1,33 +1,34 @@
+import { QueryRunner } from 'typeorm';
 import { config } from '../configs/envConfig';
 import { AppDataSource } from '../dataSource';
 import {
   DepositRequest,
   WalletCreateRequest,
 } from '../dtos/request/wallet.request';
+import { Order } from '../entities/order.entity';
 import { Wallet } from '../entities/wallet.entity';
 import { BadRequestError } from '../errors/error';
 import { accountRepository } from '../repositories/account.repository';
 import { walletRepository } from '../repositories/wallet.reposirory';
 import { isValidData } from '../utils/checkSignature';
+import { payos } from '../utils/payos';
 import { BaseService } from './base.service';
+import { PaymentMethodEnum } from '../utils/enum';
 
 const repository = AppDataSource.getRepository(Wallet);
 class WalletService extends BaseService<Wallet> {
-  async deposit(depositBody: DepositRequest) {
-    const isValid = isValidData(
-      depositBody.data,
-      depositBody.signature,
-      config.PAYOS_CHECKSUM_KEY
-    );
-    if (!isValid) throw new BadRequestError(`Invalid signature`);
-    const accountId = depositBody.data.description;
+  async deposit(depositBody: DepositRequest, loginUser: string) {
+    const paymentLink = await payos.getPaymentLinkInformation(depositBody.id);
+    if (paymentLink.status != 'PAID') {
+      throw new BadRequestError('Payment not paid yet');
+    }
     const wallet = await walletRepository.findOne({
       where: {
-        owner: { id: accountId },
+        owner: { id: loginUser },
       },
     });
     if (wallet) {
-      wallet.balance += depositBody.data.amount;
+      wallet.balance += paymentLink.amountPaid;
     }
     await walletRepository.save(wallet);
   }
@@ -47,10 +48,14 @@ class WalletService extends BaseService<Wallet> {
   async createWallet(walletCreateRequest: WalletCreateRequest) {
     const account = await accountRepository.findOne({
       where: {
-        id: walletCreateRequest.accountId,
+        id: walletCreateRequest.ownerId,
+      },
+      relations: {
+        wallet: true,
       },
     });
     if (!account) throw new BadRequestError('Account not found');
+    if (account.wallet) throw new BadRequestError('Wallet already exist');
     const wallet = new Wallet();
     wallet.owner = account;
     wallet.balance = walletCreateRequest.balance;
@@ -79,6 +84,21 @@ class WalletService extends BaseService<Wallet> {
     });
     if (!wallet) throw new BadRequestError(`Wallet not found`);
     return wallet;
+  }
+
+  async refundFromCancelOrder(
+    order: Order,
+    queryRunner: QueryRunner
+  ) {
+    if (order.paymentMethod == PaymentMethodEnum.CASH) return;
+    const wallet = await walletRepository.findOne({
+      where: {
+        owner: { id: order.account.id },
+      },
+    });
+    if (!wallet) throw new BadRequestError('Dont have wallet');
+    wallet.balance += order.totalPrice;
+    await queryRunner.manager.save(wallet);
   }
 
   async getById(id: string) {

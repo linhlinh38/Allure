@@ -24,6 +24,7 @@ import { Wallet } from "./wallet.entity";
 import { ConsultantService } from "./consultantService.entity";
 import { Slot } from "./slot.entity";
 import { Booking } from "./booking.entity";
+import { Transaction } from "./transaction.entity";
 
 @Entity("accounts")
 export class Account extends BaseEntity {
@@ -126,4 +127,7 @@ export class Account extends BaseEntity {
     inverseJoinColumn: { name: "slot_id", referencedColumnName: "id" },
   })
   workingSlots: Slot[];
+
+  @OneToMany(() => Transaction, (transaction) => transaction.buyer)
+  transactions: Transaction[];
 }

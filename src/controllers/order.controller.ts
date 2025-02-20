@@ -3,12 +3,58 @@ import { orderService } from '../services/order.service';
 import { createNormalResponse } from '../utils/response';
 import { plainToInstance } from 'class-transformer';
 import {
-  OrderNormalRequest,
+  RequestRefundRequest,
   PreOrderRequest,
+  UpdateOrderStatusRequest,
+  OrderNormalRequest,
 } from '../dtos/request/order.request';
 import { AuthRequest } from '../middleware/authentication';
 
 export default class OrderController {
+  static async makeDecisionOnRefundRequest(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    const isApproved = await orderService.makeDecisionOnRefundRequest(
+      req.params.requestId,
+      req.body.status
+    );
+    try {
+      return createNormalResponse(
+        res,
+        isApproved ? 'Approved request success' : 'Reject request success',
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async requestRefund(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const requestRefundRequest = plainToInstance(
+        RequestRefundRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Request refund success',
+        await orderService.requestRefund(
+          requestRefundRequest,
+          req.params.orderId,
+          req.loginUser
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async getCancelRequestById(
     req: AuthRequest,
     res: Response,
@@ -66,11 +112,16 @@ export default class OrderController {
     next: NextFunction
   ) {
     try {
-      await orderService.makeDecisionOnRequest(
+      let isApproved = await orderService.makeDecisionOnRequest(
         req.params.requestId,
         req.body.status
       );
-      return createNormalResponse(res, 'Make decision on request successfully');
+      return createNormalResponse(
+        res,
+        isApproved
+          ? 'Approved cancel request successfully'
+          : 'Rejected cancel request successfully'
+      );
     } catch (err) {
       next(err);
     }
@@ -93,8 +144,15 @@ export default class OrderController {
     next: NextFunction
   ) {
     try {
+      const updateOrderStatusRequest = plainToInstance(
+        UpdateOrderStatusRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
       await orderService.updateStatus(
-        req.body.status,
+        updateOrderStatusRequest,
         req.params.orderId,
         req.loginUser
       );
@@ -146,14 +204,16 @@ export default class OrderController {
     next: NextFunction
   ) {
     try {
+      let cancelStatus = await orderService.customerCancelOrder(
+        req.params.orderId,
+        req.body.reason,
+        req.loginUser
+      );
       return createNormalResponse(
         res,
-        'Cancel order successfully',
-        await orderService.customerCancelOrder(
-          req.params.orderId,
-          req.body.reason,
-          req.loginUser
-        )
+        cancelStatus == 1
+          ? 'Cancel order successfully'
+          : 'Send cancel request success'
       );
     } catch (err) {
       next(err);

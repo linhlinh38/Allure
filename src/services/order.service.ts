@@ -1,11 +1,14 @@
+import { statusTrackingRepository } from './../repositories/statusTracking.repository';
 import { ILike, In, IsNull, Not, QueryRunner } from 'typeorm';
 import { AppDataSource } from '../dataSource';
 import { BadRequestError } from '../errors/error';
 import { BaseService } from './base.service';
 import { Order } from '../entities/order.entity';
 import {
-  OrderNormalRequest,
+  RequestRefundRequest,
   PreOrderRequest,
+  UpdateOrderStatusRequest,
+  OrderNormalRequest,
 } from '../dtos/request/order.request';
 import { voucherRepository } from '../repositories/voucher.repository';
 import { productClassificationRepository } from '../repositories/productClassification.repository';
@@ -16,10 +19,11 @@ import { ProductClassification } from '../entities/productClassification.entity'
 import { accountRepository } from '../repositories/account.repository';
 import { brandRepository } from '../repositories/brand.repository';
 import {
-  CancelOrderRequestStatusEnum,
+  RequestStatusEnum,
   OrderEnum,
   PaymentMethodEnum,
   ShippingStatusEnum,
+  TransactionStatusEnum,
   VoucherVisibilityEnum,
   VoucherWalletStatus,
 } from '../utils/enum';
@@ -31,16 +35,146 @@ import { VoucherWallet } from '../entities/voucherWallet.entity';
 import nextShippingStatusMap from '../utils/util';
 import { StatusTracking } from '../entities/statusTracking.entity';
 import { Account } from '../entities/account.entity';
-import { statusTrackingRepository } from '../repositories/statusTracking.repository';
 import { voucherWalletRepository } from '../repositories/voucherWallet.reposirory';
 import { CancelOrderRequest } from '../entities/cancelOrderRequest.entity';
 import { cancelOrderRequestRepository } from '../repositories/cancelOrderRequest.repository';
 import { walletRepository } from '../repositories/wallet.reposirory';
 import { Wallet } from '../entities/wallet.entity';
-import { addNormalOrderToQueue } from '../utils/orderQueue';
+import { Transaction } from '../entities/transaction.entity';
+import { transactionRepository } from '../repositories/transaction.repository';
+import { transactionService } from './transaction.service';
+import { walletService } from './wallet.service';
+import { MediaFile } from '../entities/mediaFile.entity';
+import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
+import { refundRequestRepository } from '../repositories/refundRequest.repository';
+import { RefundRequest } from '../entities/refundRequest.entity';
+import { addNormalOrderToQueue } from '../utils/queue/cancelOrderQueue';
+import { addRefundRequestToQueue } from '../utils/queue/approveRefundRequestQueue';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
+  async makeDecisionOnRefundRequest(
+    requestId: string,
+    status: RequestStatusEnum
+  ) {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      let isApproved = false;
+      const refundRequest = await refundRequestRepository.findOne({
+        where: {
+          id: requestId,
+        },
+        relations: {
+          order: { account: true },
+        },
+      });
+      if (!refundRequest) throw new BadRequestError('Request not found');
+      if (refundRequest.status != RequestStatusEnum.PENDING)
+        throw new BadRequestError('Request has already been processed');
+      if (status === RequestStatusEnum.REJECTED) {
+        refundRequest.status = status;
+        await queryRunner.manager.save(RefundRequest, refundRequest);
+        isApproved = false;
+      } else if (status === RequestStatusEnum.APPROVED) {
+        const order = refundRequest.order;
+        await Promise.all([
+          //update refund request status
+          (async () => {
+            refundRequest.status = status;
+            await queryRunner.manager.save(RefundRequest, refundRequest);
+          })(),
+          //update order status
+          (async () => {
+            order.status = ShippingStatusEnum.RETURNING;
+            await queryRunner.manager.save(Order, order);
+          })(),
+          //create status tracking
+          this.createStatusTracking(
+            order,
+            order.account.id,
+            ShippingStatusEnum.RETURNING,
+            refundRequest.reason,
+            queryRunner
+          ),
+        ]);
+        isApproved = true;
+      }
+      await queryRunner.commitTransaction();
+      return isApproved;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+  async requestRefund(
+    requestRefundRequest: RequestRefundRequest,
+    orderId: string,
+    loginUser: string
+  ) {
+    const order = await orderRepository.findOne({
+      where: { id: orderId },
+      relations: {
+        account: true,
+        orderDetails: {
+          productClassification: {
+            images: true,
+            product: { brand: true, images: true },
+            productDiscount: { product: { brand: true, images: true } },
+            preOrderProduct: { product: { brand: true, images: true } },
+          },
+        },
+        voucher: true,
+      },
+    });
+    if (!order) throw new BadRequestError(`Order not found`);
+    if (order.account.id != loginUser)
+      throw new BadRequestError('You are not owner of this order');
+    if (
+      ![ShippingStatusEnum.DELIVERED, ShippingStatusEnum.COMPLETED].includes(
+        order.status
+      )
+    )
+      throw new BadRequestError('Can not request refund due to current status');
+    const masterConfig = await retrieveMasterConfig();
+    const deliveredStatusTracking = await statusTrackingRepository.findOne({
+      where: {
+        status: ShippingStatusEnum.DELIVERED,
+      },
+    });
+    if (
+      deliveredStatusTracking.createdAt.getTime() +
+        masterConfig.refundTimeExpired <
+      Date.now()
+    )
+      throw new BadRequestError('Refund time expired');
+    const refundRequest = await refundRequestRepository.findOne({
+      where: {
+        order: { id: orderId },
+      },
+    });
+    if (refundRequest)
+      throw new BadRequestError(
+        'Only request refund once. Can not request anymore'
+      );
+    const createdRefundRequest = new RefundRequest();
+    createdRefundRequest.order = order;
+    createdRefundRequest.reason = requestRefundRequest.reason;
+    createdRefundRequest.mediaFiles = requestRefundRequest.mediaFiles.map(
+      (file) => {
+        const fileEntity = new MediaFile();
+        fileEntity.fileUrl = file;
+        return fileEntity;
+      }
+    );
+    const createdRefundRequestEntity = await refundRequestRepository.save(
+      createdRefundRequest
+    );
+    await addRefundRequestToQueue(createdRefundRequestEntity.id);
+  }
   async getCancelRequestById(requestId: string) {
     const cancelRequest = await cancelOrderRequestRepository.findOne({
       where: {
@@ -53,10 +187,7 @@ class OrderService extends BaseService<Order> {
     if (!cancelRequest) throw new BadRequestError('Request not found');
     return cancelRequest;
   }
-  async getMyCancelRequests(
-    status: CancelOrderRequestStatusEnum,
-    userId: string
-  ) {
+  async getMyCancelRequests(status: RequestStatusEnum, userId: string) {
     if (!status)
       return await cancelOrderRequestRepository.find({
         relations: {
@@ -86,77 +217,53 @@ class OrderService extends BaseService<Order> {
       },
     });
   }
-  async getCancelRequestOfBrand(
-    brandId: string,
-    status: CancelOrderRequestStatusEnum
-  ) {
+  async getCancelRequestOfBrand(brandId: string, status: RequestStatusEnum) {
+    console.log(status);
+
     const brand = await brandRepository.findOne({
-      where: {
-        id: brandId,
-      },
+      where: { id: brandId },
     });
     if (!brand) throw new BadRequestError('Brand not found');
-    const commonConditions = [
-      {
-        order: {
-          orderDetails: {
-            productClassification: {
-              product: { brand: { id: brandId } },
-            },
-          },
-        },
-      },
-      {
-        order: {
-          orderDetails: {
-            productClassification: {
-              productDiscount: { product: { brand: { id: brandId } } },
-            },
-          },
-        },
-      },
-      {
-        order: {
-          orderDetails: {
-            productClassification: {
-              preOrderProduct: { product: { brand: { id: brandId } } },
-            },
-          },
-        },
-      },
-    ];
-    if (!status)
-      return await cancelOrderRequestRepository.find({
-        where: commonConditions,
-        relations: {
-          order: true,
-        },
-        order: {
-          updatedAt: 'DESC',
-        },
-      });
-    commonConditions.forEach((cond) => {
-      cond['status'] = status;
-    });
-    return await cancelOrderRequestRepository.find({
-      where: commonConditions,
-      relations: {
-        order: true,
-      },
-      order: {
-        updatedAt: 'DESC',
-      },
-    });
+
+    const queryBuilder = cancelOrderRequestRepository
+      .createQueryBuilder('cancelRequest')
+      .innerJoinAndSelect('cancelRequest.order', 'order')
+      .innerJoinAndSelect('order.orderDetails', 'orderDetails')
+      .innerJoinAndSelect(
+        'orderDetails.productClassification',
+        'productClassification'
+      )
+      .leftJoinAndSelect('productClassification.product', 'product')
+      .leftJoinAndSelect('productClassification.images', 'images')
+      .leftJoinAndSelect(
+        'productClassification.productDiscount',
+        'productDiscount'
+      )
+      .leftJoinAndSelect('productDiscount.product', 'discountProduct')
+      .leftJoinAndSelect(
+        'productClassification.preOrderProduct',
+        'preOrderProduct'
+      )
+      .leftJoinAndSelect('preOrderProduct.product', 'preProduct')
+      .where(
+        '(product.brand_id = :brandId OR discountProduct.brand_id = :brandId OR preProduct.brand_id = :brandId)',
+        { brandId }
+      )
+      .orderBy('cancelRequest.updatedAt', 'DESC');
+
+    if (status) {
+      queryBuilder.andWhere('cancelRequest.status = :status', { status });
+    }
+    const cancelRequests = await queryBuilder.getMany();
+    return cancelRequests;
   }
 
-  async makeDecisionOnRequest(
-    requestId: string,
-    status: CancelOrderRequestStatusEnum
-  ) {
+  async makeDecisionOnRequest(requestId: string, status: RequestStatusEnum) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
+      let isApproved = false;
       const cancelOrderRequest = await cancelOrderRequestRepository.findOne({
         where: {
           id: requestId,
@@ -166,10 +273,11 @@ class OrderService extends BaseService<Order> {
         },
       });
       if (!cancelOrderRequest) throw new BadRequestError('Request not found');
-      if (status === CancelOrderRequestStatusEnum.REJECTED) {
+      if (status === RequestStatusEnum.REJECTED) {
         cancelOrderRequest.status = status;
         await queryRunner.manager.save(CancelOrderRequest, cancelOrderRequest);
-      } else if (status === CancelOrderRequestStatusEnum.APPROVED) {
+        isApproved = false;
+      } else if (status === RequestStatusEnum.APPROVED) {
         const order = await orderRepository.findOne({
           where: { id: cancelOrderRequest.order.id },
           relations: {
@@ -190,9 +298,14 @@ class OrderService extends BaseService<Order> {
             order.status = ShippingStatusEnum.CANCELLED;
             await queryRunner.manager.save(Order, order);
           })(),
+          //update status of transaction
+          transactionService.cancelTransactionBasedOnOrderId(
+            order.id,
+            queryRunner
+          ),
           //update status of request
           (async () => {
-            cancelOrderRequest.status = CancelOrderRequestStatusEnum.APPROVED;
+            cancelOrderRequest.status = RequestStatusEnum.APPROVED;
             await queryRunner.manager.save(
               CancelOrderRequest,
               cancelOrderRequest
@@ -200,6 +313,8 @@ class OrderService extends BaseService<Order> {
           })(),
           //refund voucher
           this.refundVoucherInBothChildAndParentOrder(order, queryRunner),
+          //refund to wallet
+          walletService.refundFromCancelOrder(order, queryRunner),
           //return back stock quantity
           this.returnBackStockQuantity(order, queryRunner),
           //create status tracking
@@ -207,12 +322,14 @@ class OrderService extends BaseService<Order> {
             order,
             order.account.id,
             status,
-            null,
+            cancelOrderRequest.reason,
             queryRunner
           ),
         ]);
-        await queryRunner.commitTransaction();
+        isApproved = true;
       }
+      await queryRunner.commitTransaction();
+      return isApproved;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -272,7 +389,7 @@ class OrderService extends BaseService<Order> {
     return order;
   }
   async updateStatus(
-    status: ShippingStatusEnum,
+    updateOrderStatusRequest: UpdateOrderStatusRequest,
     orderId: string,
     userId: string
   ) {
@@ -280,6 +397,7 @@ class OrderService extends BaseService<Order> {
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
+      const status = updateOrderStatusRequest.status;
       const order = await orderRepository.findOne({
         where: { id: orderId },
       });
@@ -297,8 +415,28 @@ class OrderService extends BaseService<Order> {
         throw new BadRequestError(
           `Can not cancel order due to current status ${order.status}`
         );
+      if (
+        status == ShippingStatusEnum.REFUNDED &&
+        order.status != ShippingStatusEnum.RETURNING
+      )
+        throw new BadRequestError(
+          `Only refund order when current status is RETURNING`
+        );
       if (nextShippingStatusMap[order.status] != status)
         throw new BadRequestError('Can not update this status');
+      //update transaction if order status is WAIT_FOR_CONFIRMATION and payment method is not Cash
+      if (
+        status == ShippingStatusEnum.WAIT_FOR_CONFIRMATION &&
+        order.paymentMethod != PaymentMethodEnum.CASH
+      ) {
+        const transaction = await transactionRepository.findOne({
+          where: {
+            order: { id: orderId },
+          },
+        });
+        transaction.status = TransactionStatusEnum.COMPLETED;
+        await queryRunner.manager.save(Transaction, transaction);
+      }
       await Promise.all([
         //update order status and save
         (async () => {
@@ -306,7 +444,14 @@ class OrderService extends BaseService<Order> {
           await queryRunner.manager.save(Order, order);
         })(),
         //create status tracking
-        this.createStatusTracking(order, userId, status, null, queryRunner),
+        this.createStatusTracking(
+          order,
+          userId,
+          status,
+          null,
+          queryRunner,
+          updateOrderStatusRequest.mediaFiles
+        ),
       ]);
       await queryRunner.commitTransaction();
     } catch (error) {
@@ -354,6 +499,13 @@ class OrderService extends BaseService<Order> {
           })(),
           //refund voucher
           this.refundVoucherInBothChildAndParentOrder(order, queryRunner),
+          //update status of transaction
+          transactionService.cancelTransactionBasedOnOrderId(
+            order.id,
+            queryRunner
+          ),
+          //refund to wallet
+          walletService.refundFromCancelOrder(order, queryRunner),
           //return back stock quantity
           this.returnBackStockQuantity(order, queryRunner),
           //create status tracking
@@ -379,12 +531,13 @@ class OrderService extends BaseService<Order> {
     }
   }
 
-  private async createStatusTracking(
+  async createStatusTracking(
     order: Order,
     userId: string,
     status: string,
-    reason: any,
-    queryRunner: QueryRunner
+    reason: string,
+    queryRunner: QueryRunner,
+    mediaFiles?: string[]
   ) {
     let statusTracking = new StatusTracking();
     statusTracking.order = order;
@@ -394,6 +547,15 @@ class OrderService extends BaseService<Order> {
     }
     statusTracking.status = status;
     statusTracking.reason = reason;
+    if (mediaFiles && mediaFiles.length > 0) {
+      //create media files
+      const mediaFileObjects = mediaFiles.map((file) => {
+        const mediaFile = new MediaFile();
+        mediaFile.fileUrl = file;
+        return mediaFile;
+      });
+      statusTracking.mediaFiles = mediaFileObjects;
+    }
     await queryRunner.manager.save(StatusTracking, statusTracking);
   }
 
@@ -402,6 +564,7 @@ class OrderService extends BaseService<Order> {
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
+      let cancelStatus = 0;
       const order = await orderRepository.findOne({
         where: { id: orderId },
         relations: {
@@ -444,6 +607,13 @@ class OrderService extends BaseService<Order> {
           })(),
           //refund voucher
           this.refundVoucherInBothChildAndParentOrder(order, queryRunner),
+          //update status of transaction
+          transactionService.cancelTransactionBasedOnOrderId(
+            order.id,
+            queryRunner
+          ),
+          //refund to wallet
+          walletService.refundFromCancelOrder(order, queryRunner),
           //return back stock quantity
           this.returnBackStockQuantity(order, queryRunner),
           //create status tracking
@@ -455,16 +625,19 @@ class OrderService extends BaseService<Order> {
             queryRunner
           ),
         ]);
+        cancelStatus = 1;
       } else if (order.status == ShippingStatusEnum.PREPARING_ORDER) {
         const cancelOrderRequest = new CancelOrderRequest();
         cancelOrderRequest.reason = reason;
         cancelOrderRequest.order = order;
         await queryRunner.manager.save(CancelOrderRequest, cancelOrderRequest);
+        cancelStatus = 0;
       } else
         throw new BadRequestError(
           `Can not request cancel due to current status ${order.status}`
         );
       await queryRunner.commitTransaction();
+      return cancelStatus;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -547,8 +720,9 @@ class OrderService extends BaseService<Order> {
         },
       },
       relations: {
-        updatedBy: true,
+        updatedBy: { role: true },
         order: true,
+        mediaFiles: true,
       },
       order: {
         createdAt: 'ASC',
@@ -904,6 +1078,11 @@ class OrderService extends BaseService<Order> {
         childOrder.message = order.message;
         childOrder.orderDetails = [];
         childOrder.account = account;
+        const brand = await brandRepository.findOne({
+          where: { id: order.brandId },
+        });
+        if (!brand) throw new BadRequestError(`Brand not found`);
+        childOrder.brand = brand;
 
         let shopVoucher: Voucher = null;
         if (order.shopVoucherId) {
@@ -977,6 +1156,12 @@ class OrderService extends BaseService<Order> {
         productClassificationIds,
         accountId
       );
+
+      //create pending transaction
+      const transactions = createdParentOrder.children.map((childOrder) => {
+        return transactionService.createTransactionFromNormalOrder(childOrder);
+      });
+      await queryRunner.manager.save(Transaction, transactions);
 
       await queryRunner.commitTransaction();
       return createdParentOrder;

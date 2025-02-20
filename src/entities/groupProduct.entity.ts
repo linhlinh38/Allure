@@ -1,9 +1,18 @@
-import { Column, Entity, JoinTable, ManyToMany, OneToMany } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+  OneToMany,
+} from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { StatusEnum } from '../utils/enum';
 import { GroupBuyingCriteria } from './groupBuyingCriteria.entity';
 import { Product } from './product.entity';
 import { GroupBuying } from './groupBuying.entity';
+import { Brand } from './brand.entity';
 
 @Entity('group_products')
 export class GroupProduct extends BaseEntity {
@@ -46,4 +55,8 @@ export class GroupProduct extends BaseEntity {
 
   @OneToMany(() => GroupBuying, (groupBuying) => groupBuying.groupProduct)
   groupBuyings: GroupBuying;
+
+  @ManyToOne(() => Brand, (brand) => brand.groupProducts, { nullable: true })
+  @JoinColumn({ name: 'brand_id' })
+  brand: Brand;
 }

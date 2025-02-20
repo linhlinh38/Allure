@@ -16,7 +16,6 @@ export const GroupBuyingCreateSchema = z.object({
       .refine((date) => !date || date > new Date(), {
         message: 'End Time must be greater than the current time.',
       }),
-    criteriaId: z.string().uuid('Criteria ID must be a valid string'),
     groupProductId: z.string().uuid('Group Product ID must be a valid string'),
   }),
 });
@@ -55,8 +54,6 @@ export class GroupBuyingRequest {
   startTime: Date;
   @Expose()
   endTime: Date;
-  @Expose()
-  criteriaId: string;
   @Expose()
   groupProductId: string;
 }
