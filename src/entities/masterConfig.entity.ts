@@ -2,13 +2,14 @@ import { Entity, Column, OneToMany } from "typeorm";
 import { StatusEnum } from "../utils/enum";
 import { BaseEntity } from "./base.entity";
 import { BannerConfig } from "./bannerConfig.entity";
+import { oneDay, oneMinute, oneMonth, oneWeek } from "../utils/time";
 
 @Entity('master_configs')
 export class MasterConfig extends BaseEntity {
-  @Column({ type: 'varchar' })
+  @Column({ type: 'varchar', default: 'Allure' })
   name: string;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: 'varchar', default: 'Allure logo' })
   logo: string;
 
   @Column({ name: 'max_level_category', type: 'int', default: 4 })
@@ -22,23 +23,44 @@ export class MasterConfig extends BaseEntity {
   @Column({
     name: 'group_buying_remaining_time',
     type: 'int',
-    default: 5 * 60 * 1000,
+    default: 5 * oneMinute,
   })
   groupBuyingRemainingTime: number;
 
   @Column({
-    name: 'waiting_pending_order_time',
-    type: 'int',
-    default: 24 * 60 * 60 * 1000,
+    name: 'auto_cancel_order_time',
+    type: 'bigint',
+    default: oneDay,
   })
-  waitingPendingOrderTime: number;
+  autoCancelOrderTime: number;
 
   @Column({
-    name: 'waiting_completed_order_time',
-    type: 'int',
-    default: 24 * 60 * 60 * 1000,
+    name: 'auto_complete_order_time',
+    type: 'bigint',
+    default: oneWeek,
   })
-  waitingCompletedOrderTime: number;
+  autoCompleteOrderTime: number;
+
+  @Column({
+    name: 'auto_approve_refund_request_time',
+    type: 'bigint',
+    default: 2 * oneDay,
+  })
+  autoApproveRefundRequestTime: number;
+
+  @Column({
+    name: 'feedback_time_expired',
+    type: 'bigint',
+    default: oneMonth,
+  })
+  feedbackTimeExpired: number;
+
+  @Column({
+    name: 'refund_time_expired',
+    type: 'bigint',
+    default: 15 * oneDay,
+  })
+  refundTimeExpired: number;
 
   @Column({
     type: 'enum',

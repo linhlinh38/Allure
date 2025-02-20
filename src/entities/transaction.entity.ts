@@ -1,7 +1,11 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToOne } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Account } from './account.entity';
-import { PaymentMethodEnum, TransactionStatus, TransactionType } from '../utils/enum';
+import {
+  PaymentMethodEnum,
+  TransactionStatusEnum as TransactionStatusEnum,
+  TransactionTypeEnum as TransactionTypeEnum,
+} from '../utils/enum';
 import { Order } from './order.entity';
 import { Brand } from './brand.entity';
 
@@ -19,7 +23,7 @@ export class Transaction extends BaseEntity {
   @ManyToOne(() => Brand, (brand) => brand.transactions, { nullable: true })
   brand: Brand;
 
-  @Column({ type: 'double precision'})
+  @Column({ type: 'double precision' })
   amount: number;
 
   @Column({
@@ -28,12 +32,12 @@ export class Transaction extends BaseEntity {
   })
   paymentMethod: PaymentMethodEnum;
 
-  @Column({ type: 'enum', enum: TransactionType })
-  transactionType: TransactionType;
+  @Column({ type: 'enum', enum: TransactionTypeEnum })
+  type: TransactionTypeEnum;
 
   @Column({
     type: 'enum',
-    enum: TransactionStatus,
+    enum: TransactionStatusEnum,
   })
-  status: TransactionStatus;
+  status: TransactionStatusEnum;
 }

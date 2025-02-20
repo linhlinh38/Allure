@@ -19,7 +19,7 @@ import { GroupBuying } from '../entities/groupBuying.entity';
 import { accountRepository } from '../repositories/account.repository';
 import { VoucherRequest } from '../dtos/request/voucher.request';
 import { criteriaRepository } from '../repositories/criteria.repository';
-import { addGroupOrderToQueue } from '../utils/orderQueue';
+import { addGroupBuyingToQueue } from '../utils/queue/endGrBuyingQueue';
 
 const repository = AppDataSource.getRepository(GroupProduct);
 class GroupProductService extends BaseService<GroupProduct> {
@@ -111,7 +111,7 @@ class GroupProductService extends BaseService<GroupProduct> {
     newGroupBuying.creator = creator;
     newGroupBuying.groupProduct = groupProduct;
     const createdGroupBuying = await groupBuyingRepository.save(newGroupBuying);
-    await addGroupOrderToQueue(
+    await addGroupBuyingToQueue(
       createdGroupBuying.id,
       createdGroupBuying.endTime.getTime() -
         createdGroupBuying.startTime.getTime()
@@ -194,12 +194,19 @@ class GroupProductService extends BaseService<GroupProduct> {
   }
 
   async createGroupProduct(groupProductBody: GroupProductCreateRequest) {
+    const brand = await brandRepository.findOne({
+      where: {
+        id: groupProductBody.brandId,
+      },
+    });
+    if (!brand) throw new BadRequestError(`Brand not found`);
     const groupProduct = new GroupProduct();
     groupProduct.name = groupProductBody.name;
     groupProduct.description = groupProductBody.description;
     groupProduct.criterias = [];
     groupProduct.maxBuyAmountEachPerson =
       groupProductBody.maxBuyAmountEachPerson;
+    groupProduct.brand = brand;
     const products = await productRepository.find({
       where: { id: In(groupProductBody.productIds) },
     });

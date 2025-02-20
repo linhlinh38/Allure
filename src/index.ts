@@ -7,6 +7,7 @@ import http from "http";
 import "./services/cron.service";
 import router from "./routes/index.route";
 import { errorHandler } from "./errors/errorHandler";
+import { initializeMasterConfig } from "./utils/initializeMasterConfig";
 
 const app = express();
 
@@ -69,13 +70,9 @@ const StartServer = () => {
     );
 };
 AppDataSource.initialize()
-  .then(() => {
-    //   app.use(express.json());
-    //   app.get("/", (req, res) => {
-    //     return res.json("Established connection!");
-    //   });
-    //   return app.listen(config.PORT);
-    Logging.info("Established connection!");
+  .then(async () => {
     StartServer();
+    Logging.info('Established connection!');
+    await initializeMasterConfig();
   })
   .catch((error) => Logging.error(error));

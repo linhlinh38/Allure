@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import {
-  CancelOrderRequestStatusEnum,
+  RequestStatusEnum,
   PaymentMethodEnum,
   ShippingStatusEnum,
   StatusEnum,
@@ -19,6 +19,7 @@ export const OrderNormalCreateSchema = z.object({
     orders: z
       .array(
         z.object({
+          brandId: z.string().optional(),
           shopVoucherId: z.string().optional(),
           message: z.string().max(255).optional(),
           items: z
@@ -81,9 +82,30 @@ export const CancelOrderSchema = z.object({
 
 export const CancelOrderStatusSchema = z.object({
   body: z.object({
-    status: z.nativeEnum(CancelOrderRequestStatusEnum).optional(),
+    status: z.nativeEnum(RequestStatusEnum).optional(),
   }),
 });
+
+export const RequestRefundSchema = z.object({
+  body: z.object({
+    reason: z.string(),
+    mediaFiles: z.array(z.string()),
+  }),
+});
+
+export const RequestStatusSchema = z.object({
+  body: z.object({
+    status: z.nativeEnum(RequestStatusEnum).optional(),
+  }),
+});
+
+export class RequestRefundRequest {
+  @Expose()
+  reason: string;
+
+  @Expose()
+  mediaFiles: string[];
+}
 
 export class OrderNormalRequest {
   @Expose()
@@ -97,6 +119,7 @@ export class OrderNormalRequest {
 
   @Expose()
   orders: Array<{
+    brandId: string;
     shopVoucherId?: string;
     message: string;
     items: Array<{

@@ -1,14 +1,7 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  OneToOne,
-} from "typeorm";
-import { BaseEntity } from "./base.entity";
-import {
-  CancelOrderRequestStatusEnum,
-} from "../utils/enum";
-import { Order } from "./order.entity";
+import { Column, Entity, JoinColumn, OneToOne } from 'typeorm';
+import { BaseEntity } from './base.entity';
+import { RequestStatusEnum } from '../utils/enum';
+import { Order } from './order.entity';
 
 @Entity('cancel_order_requests')
 export class CancelOrderRequest extends BaseEntity {
@@ -21,8 +14,8 @@ export class CancelOrderRequest extends BaseEntity {
 
   @Column({
     type: 'enum',
-    enum: CancelOrderRequestStatusEnum,
-    default: CancelOrderRequestStatusEnum.PENDING,
+    enum: RequestStatusEnum,
+    default: RequestStatusEnum.PENDING,
   })
-  status: CancelOrderRequestStatusEnum;
+  status: RequestStatusEnum;
 }

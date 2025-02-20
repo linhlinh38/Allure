@@ -1,7 +1,19 @@
 import { Transaction } from './transaction.entity';
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  OneToOne,
+} from 'typeorm';
 import { BaseEntity } from './base.entity';
-import { OrderEnum, PaymentMethodEnum, ShippingStatusEnum, StatusEnum } from '../utils/enum';
+import {
+  OrderEnum,
+  PaymentMethodEnum,
+  ShippingStatusEnum,
+  StatusEnum,
+} from '../utils/enum';
 import { GroupBuying } from './groupBuying.entity';
 import { LiveStream } from './livestream.entity';
 import { Voucher } from './voucher.entity';
@@ -9,6 +21,8 @@ import { Account } from './account.entity';
 import { OrderDetail } from './orderDetail.entity';
 import { StatusTracking } from './statusTracking.entity';
 import { CancelOrderRequest } from './cancelOrderRequest.entity';
+import { Brand } from './brand.entity';
+import { RefundRequest } from './refundRequest.entity';
 
 @Entity('orders')
 export class Order extends BaseEntity {
@@ -85,6 +99,10 @@ export class Order extends BaseEntity {
   @ManyToOne(() => Order, (order) => order.children, { nullable: true })
   parent: Order;
 
+  @ManyToOne(() => Brand, (brand) => brand.orders, { nullable: true })
+  @JoinColumn({ name: 'brand_id' })
+  brand: Brand;
+
   @OneToMany(() => Order, (order) => order.parent, {
     cascade: true,
   })
@@ -106,4 +124,8 @@ export class Order extends BaseEntity {
 
   @OneToOne(() => Transaction, (transaction) => transaction.order)
   transaction: Transaction;
+
+  @OneToOne(() => RefundRequest, (refundRequest) => refundRequest.order)
+  @JoinColumn({ name: 'refund_request_id' })
+  refundRequest: RefundRequest;
 }

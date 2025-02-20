@@ -4,7 +4,11 @@ import { AppDataSource } from '../dataSource';
 import { BadRequestError } from '../errors/error';
 import { BaseService } from './base.service';
 import { groupBuyingRepository } from '../repositories/groupBuying.repository';
-import { OrderEnum, ShippingStatusEnum, StatusEnum } from '../utils/enum';
+import {
+  OrderEnum,
+  ShippingStatusEnum,
+  StatusEnum,
+} from '../utils/enum';
 import { GroupBuyingJoinEventRequest } from '../dtos/request/groupBuying.request';
 import { GroupBuying } from '../entities/groupBuying.entity';
 import { accountRepository } from '../repositories/account.repository';
@@ -19,6 +23,9 @@ import { orderService } from './order.service';
 import { ProductClassification } from '../entities/productClassification.entity';
 import { masterConfigRepository } from '../repositories/masterConfig.repository';
 import { criteriaRepository } from '../repositories/criteria.repository';
+import { Transaction } from '../entities/transaction.entity';
+import { transactionService } from './transaction.service';
+import { addGroupBuyingToQueue } from '../utils/queue/endGrBuyingQueue';
 
 const repository = AppDataSource.getRepository(GroupBuying);
 class GroupBuyingService extends BaseService<GroupBuying> {
@@ -61,6 +68,10 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       Date.now() + masterConfig.groupBuyingRemainingTime
     );
     await groupBuying.save();
+    await addGroupBuyingToQueue(
+      groupBuyingId,
+      masterConfig.groupBuyingRemainingTime
+    );
   }
   async getOrderByGroupBuyingId(groupBuyingId: string, loginUser: string) {
     const groupBuying = await groupBuyingRepository.findOne({
@@ -523,7 +534,30 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       );
       await queryRunner.manager.save(StatusTracking, statusTrackings);
       await orderService.updateDecreaseStockQuantity(parentOrder, queryRunner);
+
+      const smallestCriteria = (
+        await criteriaRepository.find({
+          where: {
+            groupProduct: { id: groupBuying.groupProduct.id },
+          },
+          relations: {
+            voucher: true,
+          },
+          order: {
+            threshold: 'ASC',
+          },
+        })
+      )[0];
+      childOrder.voucher = smallestCriteria.voucher;
+      voucherService.applyShopVoucher(childOrder);
       voucherService.calculateOrderPrice(parentOrder);
+      const wallet = await walletRepository.findOne({
+        where: {
+          owner: { id: userId },
+        },
+      });
+      if (!wallet || parentOrder.totalPrice > wallet.balance)
+        throw new BadRequestError(`Wallet balance is not enough`);
 
       const createdParentOrder = await queryRunner.manager.save(
         Order,
@@ -549,6 +583,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
         where: { id: groupBuyingId },
         relations: {
           groupProduct: {
+            brand: true,
             criterias: { voucher: true },
           },
         },
@@ -637,6 +672,9 @@ class GroupBuyingService extends BaseService<GroupBuying> {
                 );
               await queryRunner.manager.save(StatusTracking, statusTrackings);
               await queryRunner.manager.save(Order, [order, order.parent]);
+              //create transaction
+              const transaction = transactionService.createTransactionFromOrderGroupBuying(order, groupBuying);
+              await queryRunner.manager.save(Transaction, transaction);
             } else {
               await this.cancelOneOrderInGroupbuying(order, queryRunner);
             }

@@ -20,6 +20,7 @@ import paymentRouter from "./payment.route";
 import systemServiceRouter from "./systemService.route";
 import walletRouter from "./wallet.route";
 import slotRouter from "./slot.route";
+import feedbackRouter from "./feedback.route";
 
 const router = express.Router();
 router.use("/accounts", accountRouter);
@@ -43,4 +44,5 @@ router.use("/system-services", systemServiceRouter);
 router.use("/payments", paymentRouter);
 router.use("/wallets", walletRouter);
 router.use('/slots', slotRouter);
+router.use('/feedbacks', feedbackRouter);
 export default router;
