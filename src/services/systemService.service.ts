@@ -3,7 +3,8 @@ import { ResultSheet } from "../entities/resultSheet.entity";
 import { ResultSheetSection } from "../entities/resultSheetSection.entity";
 import { ServiceImage } from "../entities/serviceImage.entity";
 import { SystemService } from "../entities/systemService.entity";
-import { BadRequestError } from "../errors/error";
+import { BadRequestError, NotFoundError } from "../errors/error";
+import { StatusEnum } from "../utils/enum";
 import { BaseService } from "./base.service";
 import { categoryService } from "./category.service";
 
@@ -39,7 +40,7 @@ class SystemServiceService extends BaseService<SystemService> {
         "resultSheetSections"
       )
       .where("systemService.id = :id", { id })
-      .getMany();
+      .getOne();
 
     return services;
   }
@@ -52,7 +53,17 @@ class SystemServiceService extends BaseService<SystemService> {
 
     if (body.category) {
       const checkCategory = await categoryService.findById(body.category);
-      if (!checkCategory) throw new BadRequestError("Category not found");
+      if (!checkCategory) throw new NotFoundError("Category not found");
+    }
+  }
+
+  async beforeUpdate(id: string, data: any) {
+    const systemService = await this.repository.findOne({
+      where: { id },
+    });
+
+    if (!systemService) {
+      throw new NotFoundError("System service not found.");
     }
   }
 
@@ -105,6 +116,96 @@ class SystemServiceService extends BaseService<SystemService> {
 
       await queryRunner.commitTransaction();
       return service;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async update(id: string, data: any): Promise<SystemService> {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      await this.beforeUpdate(id, data);
+
+      const systemServiceRepository =
+        queryRunner.manager.getRepository(SystemService);
+      const resultSheetRepository =
+        queryRunner.manager.getRepository(ResultSheet);
+      const resultSheetSectionRepository =
+        queryRunner.manager.getRepository(ResultSheetSection);
+      const serviceImageRepository =
+        queryRunner.manager.getRepository(ServiceImage);
+
+      const systemService = await this.getById(id);
+
+      const { resultSheetData, images, ...serviceData } = data;
+
+      if (resultSheetData) {
+        let resultSheet;
+        const { resultSheetSections, ...data } = resultSheetData;
+
+        if (systemService.resultSheet && data.id) {
+          await resultSheetRepository.update(data.id, data);
+          resultSheet = await resultSheetRepository.findOne({
+            where: { id: data.id },
+          });
+        } else {
+          if (systemService.resultSheet) {
+            await resultSheetRepository.update(systemService.resultSheet.id, {
+              status: StatusEnum.INACTIVE,
+            });
+          }
+
+          resultSheet = await resultSheetRepository.save(data);
+          serviceData.resultSheet = resultSheet;
+        }
+
+        if (
+          resultSheetData.resultSheetSections &&
+          resultSheetData.resultSheetSections.length > 0
+        ) {
+          for (const section of resultSheetData.resultSheetSections) {
+            section.resultSheet = resultSheet;
+
+            let sectionRes;
+            if (section.id) {
+              await resultSheetSectionRepository.update(section.id, section);
+              sectionRes = await resultSheetSectionRepository.findOne({
+                where: { id: section.id },
+              });
+            } else {
+              sectionRes = await resultSheetSectionRepository.save(section);
+            }
+          }
+        }
+      }
+
+      await systemServiceRepository.update(id, serviceData);
+
+      if (images && images.length > 0) {
+        for (const image of images) {
+          if (image.id) {
+            await serviceImageRepository.update(image.id, image);
+          } else {
+            await serviceImageRepository.save({
+              ...image,
+              systemService,
+            });
+          }
+        }
+      }
+
+      const updatedSystemService = await systemServiceRepository.findOne({
+        where: { id },
+        relations: ["resultSheet", "resultSheet.resultSheetSections", "images"],
+      });
+      await queryRunner.commitTransaction();
+      return updatedSystemService!;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
