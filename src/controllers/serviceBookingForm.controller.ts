@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { serviceBookingFormService } from "../services/serviceBookingForm.service";
 import { createNormalResponse } from "../utils/response";
 import { NotFoundError } from "../errors/error";
+import { StatusEnum } from "../utils/enum";
 export default class ServiceBookingFormController {
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
@@ -43,6 +44,34 @@ export default class ServiceBookingFormController {
       return createNormalResponse(res, "Create form success");
     } catch (err) {
       next(err);
+    }
+  }
+
+  static async updateServiceBookingForm(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { id, status } = req.params;
+      if (!Object.values(StatusEnum).includes(status as StatusEnum)) {
+        return res.status(400).json({ message: "Invalid status value" });
+      }
+      const statusEnum = StatusEnum[status as keyof typeof StatusEnum];
+
+      const updatedServiceBookingForm =
+        await serviceBookingFormService.updateServiceBookingForm(
+          id,
+          statusEnum
+        );
+
+      return createNormalResponse(
+        res,
+        "Service booking form updated successfully",
+        updatedServiceBookingForm
+      );
+    } catch (error) {
+      next(error);
     }
   }
 }

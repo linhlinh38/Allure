@@ -8,4 +8,4 @@ class ResultSheetSectionService extends BaseService<ResultSheetSection> {
     super(repository);
   }
 }
-export const questionService = new ResultSheetSectionService();
+export const resultSheetSectionService = new ResultSheetSectionService();

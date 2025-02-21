@@ -24,4 +24,9 @@ resultSheetRoute.put(
   validate(ResultSheetSectionUpdateSchema),
   resultSheetController.update
 );
+
+resultSheetRoute.put(
+  "/update-status/:id/:status",
+  resultSheetController.updateStatus
+);
 export default resultSheetRoute;
