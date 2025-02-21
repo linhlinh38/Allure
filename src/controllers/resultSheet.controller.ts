@@ -1,11 +1,11 @@
 import { NextFunction, Request, Response } from "express";
-import { serviceBookingFormService } from "../services/serviceBookingForm.service";
+import { resultSheetService } from "../services/resultSheet.service";
 import { createNormalResponse } from "../utils/response";
 import { NotFoundError } from "../errors/error";
-export default class ServiceBookingFormController {
+export default class ResultSheetController {
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
-      const serviceBookingForm = await serviceBookingFormService.getAll();
+      const serviceBookingForm = await resultSheetService.getAll();
       return createNormalResponse(
         res,
         "Get all serviceBookingForm success",
@@ -18,7 +18,7 @@ export default class ServiceBookingFormController {
 
   static async getById(req: Request, res: Response, next: NextFunction) {
     try {
-      const serviceBookingForm = await serviceBookingFormService.getById(
+      const serviceBookingForm = await resultSheetService.getById(
         req.params.id
       );
       if (!serviceBookingForm) throw new NotFoundError("form not found");
@@ -30,7 +30,7 @@ export default class ServiceBookingFormController {
 
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
-      await serviceBookingFormService.update(req.params.id, req.body);
+      await resultSheetService.update(req.params.id, req.body);
       return createNormalResponse(res, "Update form success");
     } catch (err) {
       next(err);
@@ -39,7 +39,7 @@ export default class ServiceBookingFormController {
 
   static async create(req: Request, res: Response, next: NextFunction) {
     try {
-      await serviceBookingFormService.create(req.body);
+      await resultSheetService.create(req.body);
       return createNormalResponse(res, "Create form success");
     } catch (err) {
       next(err);

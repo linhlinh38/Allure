@@ -6,6 +6,7 @@ import { Account } from "./account.entity";
 import { SystemService } from "./systemService.entity";
 import { ServiceBookingForm } from "./serviceBookingForm.entity";
 import { ServiceImage } from "./serviceImage.entity";
+import { Booking } from "./booking.entity";
 
 @Entity("consultant_services")
 export class ConsultantService extends BaseEntity {
@@ -29,6 +30,9 @@ export class ConsultantService extends BaseEntity {
 
   @OneToMany(() => ServiceImage, (image) => image.consultantService)
   images?: ServiceImage[];
+
+  @OneToMany(() => Booking, (booking) => booking.consultantService)
+  bookings?: Booking[];
 
   @Column({
     type: "enum",
