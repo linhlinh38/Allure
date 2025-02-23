@@ -39,4 +39,18 @@ export default class ServiceBookingFormController {
       next(err);
     }
   }
+
+  static async delete(req: Request, res: Response, next: NextFunction) {
+    try {
+      const account = await questionService.delete(
+        req.params.id as unknown as string
+      );
+      return res.status(204).send({
+        message: "Delete question success",
+        data: account,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

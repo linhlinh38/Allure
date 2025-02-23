@@ -8,9 +8,12 @@ import {
 } from "../dtos/request/serviceBookingForm.request";
 const serviceBookingFormRouter = express.Router();
 
-serviceBookingFormRouter.get("/", serviceBookingFormController.getAll);
-
 serviceBookingFormRouter.use(authentication);
+serviceBookingFormRouter.get("/", serviceBookingFormController.getAll);
+serviceBookingFormRouter.get(
+  "/get-by-id/:id",
+  serviceBookingFormController.getById
+);
 
 serviceBookingFormRouter.post(
   "/",
@@ -21,5 +24,9 @@ serviceBookingFormRouter.put(
   "/:id",
   validate(ServiceBookingFormUpdateSchema),
   serviceBookingFormController.update
+);
+serviceBookingFormRouter.put(
+  "/update-status/:id/:status",
+  serviceBookingFormController.updateServiceBookingForm
 );
 export default serviceBookingFormRouter;
