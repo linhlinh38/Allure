@@ -22,6 +22,16 @@ export enum StatusEnum {
   DENIED = 'DENIED',
 }
 
+export enum BrandStatusEnum {
+  PENDING_REVIEW, // chờ xét duyệt hồ sơ
+  NEED_ADDITIONAL_DOCUMENTS, // cần bổ sung hồ sơ
+  PRE_APPROVED_FOR_MEETING, // Được chấp thuận hồ sơ trước khi xác nhận lại trong buổi meeting
+  DENIED, // từ chối
+  ACTIVE,
+  INACTIVE,
+  BANNED,
+}
+
 export enum ShippingStatusEnum {
   JOIN_GROUP_BUYING = 'JOIN_GROUP_BUYING',
   TO_PAY = 'TO_PAY',
