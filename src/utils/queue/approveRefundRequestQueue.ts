@@ -1,29 +1,30 @@
-import { Queue, Worker } from 'bullmq';
-import { AppDataSource } from '../../dataSource';
-import { orderRepository } from '../../repositories/order.repository';
-import { orderService } from '../../services/order.service';
-import { RequestStatusEnum, ShippingStatusEnum } from '../enum';
-import { retrieveMasterConfig } from '../retrieveMasterConfig';
-import { refundRequestRepository } from '../../repositories/refundRequest.repository';
+import { Queue, Worker } from "bullmq";
+import { AppDataSource } from "../../dataSource";
+import { orderRepository } from "../../repositories/order.repository";
+import { orderService } from "../../services/order.service";
+import { RequestStatusEnum, ShippingStatusEnum } from "../enum";
+import { retrieveMasterConfig } from "../retrieveMasterConfig";
+import { refundRequestRepository } from "../../repositories/refundRequest.repository";
+import { config } from "../../configs/envConfig";
 
 export const approveRefundRequestQueue = new Queue(
-  'approveRefundRequestQueue',
+  "approveRefundRequestQueue",
   {
-    connection: { host: 'localhost', port: 6379 },
+    connection: { host: config.REDIS_HOST, port: config.REDIS_PORT },
   }
 );
 
 export async function addRefundRequestToQueue(id: string) {
   const masterConfig = await retrieveMasterConfig();
   await approveRefundRequestQueue.add(
-    'checkStatus',
+    "checkStatus",
     { id },
     { delay: masterConfig.autoApproveRefundRequestTime }
   );
 }
 
 const approveRefundRequestQueueWorker = new Worker(
-  'approveRefundRequestQueue',
+  "approveRefundRequestQueue",
   async (job) => {
     const { id } = job.data;
     console.log(`⏳ Kiểm tra trạng thái refund request ${id}...`);
@@ -69,14 +70,14 @@ const approveRefundRequestQueueWorker = new Worker(
     }
   },
   {
-    connection: { host: 'localhost', port: 6379 },
+    connection: { host: config.REDIS_HOST, port: config.REDIS_PORT },
   }
 );
 
-approveRefundRequestQueueWorker.on('completed', (job) => {
+approveRefundRequestQueueWorker.on("completed", (job) => {
   console.log(`✅ Job kiểm tra đơn hàng ${job.data.orderId} đã hoàn thành`);
 });
 
-approveRefundRequestQueueWorker.on('failed', (job, err) => {
+approveRefundRequestQueueWorker.on("failed", (job, err) => {
   console.log(`❌ Job ${job.data.orderId} thất bại: ${err.message}`);
 });

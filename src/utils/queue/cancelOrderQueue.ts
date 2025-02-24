@@ -4,23 +4,23 @@ import { orderRepository } from "../../repositories/order.repository";
 import { orderService } from "../../services/order.service";
 import { ShippingStatusEnum } from "../enum";
 import { retrieveMasterConfig } from "../retrieveMasterConfig";
+import { config } from "../../configs/envConfig";
 
-
-export const cancelOrderQueue = new Queue('cancelOrderQueue', {
-  connection: { host: 'localhost', port: 6379 },
+export const cancelOrderQueue = new Queue("cancelOrderQueue", {
+  connection: { host: config.REDIS_HOST, port: config.REDIS_PORT },
 });
 
 export async function addNormalOrderToQueue(orderId: string) {
   const masterConfig = await retrieveMasterConfig();
   await cancelOrderQueue.add(
-    'checkStatus',
+    "checkStatus",
     { orderId },
     { delay: masterConfig.autoCancelOrderTime }
   );
 }
 
 const cancelOrderQueueWorker = new Worker(
-  'cancelOrderQueue',
+  "cancelOrderQueue",
   async (job) => {
     const { orderId } = job.data;
     console.log(`⏳ Kiểm tra trạng thái đơn hàng ${orderId}...`);
@@ -67,14 +67,14 @@ const cancelOrderQueueWorker = new Worker(
     }
   },
   {
-    connection: { host: 'localhost', port: 6379 },
+    connection: { host: config.REDIS_HOST, port: config.REDIS_PORT },
   }
 );
 
-cancelOrderQueueWorker.on('completed', (job) => {
+cancelOrderQueueWorker.on("completed", (job) => {
   console.log(`✅ Job kiểm tra đơn hàng ${job.data.orderId} đã hoàn thành`);
 });
 
-cancelOrderQueueWorker.on('failed', (job, err) => {
+cancelOrderQueueWorker.on("failed", (job, err) => {
   console.log(`❌ Job ${job.data.orderId} thất bại: ${err.message}`);
 });

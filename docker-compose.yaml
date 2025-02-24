@@ -1,22 +1,76 @@
 version: "3.9"
+
 services:
   db:
     container_name: allure_db
-    image: postgres:14.13
+    image: postgres:latest
     ports:
-      - 5432:5432
+      - ${DB_PORT:-5432}:5432
     volumes:
-      - db_vol:/var/lib/postgresql/data
+      - db_vol:/var/lib/postgresql/data1
     environment:
-      POSTGRES_PASSWORD: Admin@123
-      POSTGRES_DB: allure
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-Admin@123}
+      POSTGRES_DB: ${DB_NAME:-allure}
+      POSTGRES_USER: ${DB_USER:-postgres}
+    networks:
+      - allure_network
+
+  redis:
+    image: redis:latest
+    container_name: redis_queue
+    restart: always
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_vol:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - allure_network
 
   adminer:
     image: adminer:4.8.1
     ports:
-      - 8080:8080
+      - ${ADMINER_PORT:-8080}:8080
     depends_on:
       - db
+    networks:
+      - allure_network
+
+  app:
+    image: minhpham11311/allure-app:latest
+    container_name: allure_app
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      - db
+      - redis
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - DB_HOST=allure_db
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-allure}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-Admin@123}
+      - REDIS_HOST=redis_queue
+      - REDIS_PORT=6379
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - allure_network
+
+networks:
+  allure_network:
+    name: allure_network
+    driver: bridge
 
 volumes:
   db_vol:
+    driver: local
+  redis_vol:
+    driver: local
