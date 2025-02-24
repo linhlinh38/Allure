@@ -47,7 +47,7 @@ export default class ServiceBookingFormController {
     }
   }
 
-  static async updateServiceBookingForm(
+  static async updateServiceBookingFormStatus(
     req: Request,
     res: Response,
     next: NextFunction
@@ -60,7 +60,7 @@ export default class ServiceBookingFormController {
       const statusEnum = StatusEnum[status as keyof typeof StatusEnum];
 
       const updatedServiceBookingForm =
-        await serviceBookingFormService.updateServiceBookingForm(
+        await serviceBookingFormService.updateServiceBookingFormStatus(
           id,
           statusEnum
         );

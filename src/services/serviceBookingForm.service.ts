@@ -75,7 +75,76 @@ class ServiceBookingFormService extends BaseService<ServiceBookingForm> {
     }
   }
 
-  async updateServiceBookingForm(
+  async update(id: string, data: any): Promise<ServiceBookingForm> {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const serviceBookingFormRepository =
+        queryRunner.manager.getRepository(ServiceBookingForm);
+      const questionRepository = queryRunner.manager.getRepository(Question);
+      const serviceImageRepository =
+        queryRunner.manager.getRepository(ServiceImage);
+
+      const serviceBookingForm = await serviceBookingFormRepository.findOne({
+        where: { id },
+      });
+
+      if (!serviceBookingForm) {
+        throw new Error(`Form with id ${id} not found`);
+      }
+
+      const { questions, ...formData } = data;
+
+      await serviceBookingFormRepository.update(id, formData);
+
+      if (questions && questions.length > 0) {
+        for (const question of questions) {
+          const { images: questionImages, ...questionFields } = question;
+
+          let questionRes;
+          if (question.id) {
+            await questionRepository.update(question.id, questionFields);
+            questionRes = await questionRepository.findOne({
+              where: { id: question.id },
+            });
+          } else {
+            questionFields.serviceBookingForm = serviceBookingForm;
+            questionRes = await questionRepository.save(questionFields);
+          }
+
+          if (questionImages && questionImages.length > 0) {
+            for (const image of questionImages) {
+              if (image.id) {
+                await serviceImageRepository.update(image.id, image);
+              } else {
+                await serviceImageRepository.save({
+                  ...image,
+                  question: questionRes,
+                });
+              }
+            }
+          }
+        }
+      }
+
+      const updatedServiceBookingForm =
+        await serviceBookingFormRepository.findOne({
+          where: { id },
+          relations: ["questions", "questions.images"],
+        });
+      await queryRunner.commitTransaction();
+      return updatedServiceBookingForm;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async updateServiceBookingFormStatus(
     id: string,
     status: StatusEnum
   ): Promise<ServiceBookingForm> {
