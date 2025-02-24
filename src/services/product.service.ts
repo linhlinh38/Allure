@@ -39,6 +39,7 @@ class ProductService extends BaseService<Product> {
     const products = await this.repository
       .createQueryBuilder("product")
       .leftJoinAndSelect("product.category", "category")
+      .leftJoinAndSelect("category.parentCategory", "parentCategory")
       .leftJoinAndSelect("product.brand", "brand")
       .leftJoinAndSelect(
         "product.productClassifications",
@@ -66,6 +67,7 @@ class ProductService extends BaseService<Product> {
     const product = await repository
       .createQueryBuilder("product")
       .leftJoinAndSelect("product.category", "category")
+      .leftJoinAndSelect("category.parentCategory", "parentCategory")
       .leftJoinAndSelect("product.brand", "brand")
       .leftJoinAndSelect(
         "product.productClassifications",
@@ -126,6 +128,7 @@ class ProductService extends BaseService<Product> {
     const products = await this.repository
       .createQueryBuilder("product")
       .leftJoinAndSelect("product.category", "category")
+      .leftJoinAndSelect("category.parentCategory", "parentCategory")
       .leftJoinAndSelect("product.brand", "brand")
       .leftJoinAndSelect(
         "product.productClassifications",
@@ -155,6 +158,7 @@ class ProductService extends BaseService<Product> {
     const products = await this.repository
       .createQueryBuilder("product")
       .leftJoinAndSelect("product.category", "category")
+      .leftJoinAndSelect("category.parentCategory", "parentCategory")
       .leftJoinAndSelect("product.brand", "brand")
       .leftJoinAndSelect(
         "product.productClassifications",
@@ -189,6 +193,7 @@ class ProductService extends BaseService<Product> {
     queryBuilder
       .leftJoinAndSelect("product.brand", "brand")
       .leftJoinAndSelect("product.category", "category")
+      .leftJoinAndSelect("category.parentCategory", "parentCategory")
       .leftJoinAndSelect(
         "product.productClassifications",
         "productClassifications",
