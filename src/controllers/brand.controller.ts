@@ -3,11 +3,10 @@ import { brandService } from '../services/brand.service';
 import { plainToClass, plainToInstance } from 'class-transformer';
 import { BrandResponse } from '../dtos/response/brand.response';
 import { Brand } from '../entities/brand.entity';
-import { AppDataSource } from '../dataSource';
 import { createBadResponse, createNormalResponse } from '../utils/response';
 import { AuthRequest } from '../middleware/authentication';
 import { SearchDTO as SearchDTO } from '../dtos/other/search.dto';
-import { BrandUpdateStatusRequest } from '../dtos/request/brand.request';
+import { BrandRequest, BrandUpdateStatusRequest } from '../dtos/request/brand.request';
 
 export default class BrandController {
   static async getStatusTrackings(
@@ -82,10 +81,10 @@ export default class BrandController {
 
   static async updateDetail(req: Request, res: Response, next: NextFunction) {
     try {
-      const brandBody = plainToInstance(Brand, req.body, {
+      const brandRequest = plainToInstance(BrandRequest, req.body, {
         excludeExtraneousValues: true,
       });
-      await brandService.updateDetail(req.params.id, brandBody);
+      await brandService.updateDetail(req.params.id, brandRequest);
 
       return createNormalResponse(res, 'Update success');
     } catch (err) {
@@ -99,10 +98,10 @@ export default class BrandController {
     next: NextFunction
   ) {
     try {
-      const brandBody = plainToInstance(Brand, req.body, {
+      const brandRequest = plainToInstance(BrandRequest, req.body, {
         excludeExtraneousValues: true,
       });
-      await brandService.requestCreateBrand(req.loginUser, brandBody);
+      await brandService.requestCreateBrand(req.loginUser, brandRequest);
       return createNormalResponse(res, 'Create request success');
     } catch (err) {
       next(err);

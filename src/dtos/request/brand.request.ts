@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { GenderEnum, RoleEnum, StatusEnum } from '../../utils/enum';
+import { BrandStatusEnum, StatusEnum } from '../../utils/enum';
 import { Expose } from 'class-transformer';
 
 export const BrandCreateSchema = z.object({
@@ -9,10 +9,12 @@ export const BrandCreateSchema = z.object({
       .min(1, 'Name is required')
       .max(100, 'Name cannot exceed 100 characters'),
     logo: z.string().max(255, 'Logo cannot exceed 255 characters').optional(),
-    document: z
-      .string()
-      .min(1, 'Document is required')
-      .max(255, 'Document cannot exceed 255 characters'),
+    documents: z.array(
+      z
+        .string()
+        .min(1, 'Document is required')
+        .max(255, 'Document cannot exceed 255 characters')
+    ),
     description: z
       .string()
       .max(255, 'Description cannot exceed 255 characters')
@@ -33,7 +35,6 @@ export const BrandCreateSchema = z.object({
     district: z.string().max(255),
     ward: z.string().max(255),
     businessRegistrationAddress: z.string().max(255).optional(),
-    status: z.nativeEnum(StatusEnum).optional().default(StatusEnum.PENDING),
   }),
 });
 
@@ -43,7 +44,7 @@ export const BrandUpdateSchema = z.object({
 
 export const BrandUpdateStatusSchema = z.object({
   body: z.object({
-    status: z.nativeEnum(StatusEnum),
+    status: z.nativeEnum(BrandStatusEnum),
     reason: z.string().min(1, 'Reason is required').optional(),
     brandId: z.string().uuid('Invalid brand id'),
   }),
@@ -55,5 +56,48 @@ export class BrandUpdateStatusRequest {
   @Expose()
   brandId: string;
   @Expose()
-  status: StatusEnum;
+  status: BrandStatusEnum;
+}
+
+export class BrandRequest {
+  @Expose()
+  name: string;
+
+  @Expose()
+  logo: string;
+
+  documents: string[];
+
+  @Expose()
+  description: string;
+
+  @Expose()
+  email: string;
+
+  @Expose()
+  phone: string;
+
+  @Expose()
+  address: string;
+
+  @Expose()
+  businessTaxCode: string;
+
+  @Expose()
+  businessRegistrationCode: string;
+
+  @Expose()
+  establishmentDate: Date;
+
+  @Expose()
+  province: string;
+
+  @Expose()
+  district: string;
+
+  @Expose()
+  ward: string;
+
+  @Expose()
+  businessRegistrationAddress: string;
 }
