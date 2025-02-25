@@ -1,7 +1,6 @@
 import { AppDataSource } from "../dataSource";
 import { ConsultationCriteria } from "../entities/consultationCriteria.entity";
 import { ConsultationCriteriaSection } from "../entities/consultationCriteriaSection.entity";
-import { ServiceImage } from "../entities/serviceImage.entity";
 import { StatusEnum } from "../utils/enum";
 import { BaseService } from "./base.service";
 
