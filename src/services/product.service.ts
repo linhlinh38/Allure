@@ -554,7 +554,7 @@ class ProductService extends BaseService<Product> {
         if (status === ProductEnum.BANNED) {
           await productClassificationRepository.update(
             { product: { id: productId } },
-            { status: StatusEnum.BANNED }
+            { status: StatusEnum.BANNED, isAvailable: false }
           );
         } else {
           await productClassificationRepository.update(
