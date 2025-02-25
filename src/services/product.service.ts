@@ -4,6 +4,7 @@ import { Product } from "../entities/product.entity";
 import { ProductClassification } from "../entities/productClassification.entity";
 import { BadRequestError } from "../errors/error";
 import {
+  BrandStatusEnum,
   ClassificationTypeEnum,
   PreOrderProductEnum,
   ProductDiscountEnum,
@@ -253,7 +254,7 @@ class ProductService extends BaseService<Product> {
     if (body.brand) {
       const checkBrand = await brandService.findById(body.brand);
 
-      if (!checkBrand || checkBrand.status !== StatusEnum.ACTIVE) {
+      if (!checkBrand || checkBrand.status !== BrandStatusEnum.ACTIVE) {
         throw new BadRequestError("Brand not found");
       }
     }
@@ -285,7 +286,7 @@ class ProductService extends BaseService<Product> {
     }
     if (body.brand) {
       const checkBrand = await brandService.findById(body.brand);
-      if (!checkBrand || checkBrand.status !== StatusEnum.ACTIVE)
+      if (!checkBrand || checkBrand.status !== BrandStatusEnum.ACTIVE)
         throw new BadRequestError("Brand not found");
     }
     if (

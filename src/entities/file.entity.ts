@@ -37,10 +37,10 @@ export class File extends BaseEntity {
   status: StatusEnum;
 
   @ManyToOne(() => Account, (account) => account.files)
-  @JoinColumn({ name: 'accountId' })
+  @JoinColumn({ name: 'account_id' })
   account: Account;
 
   @ManyToOne(() => Brand, (brand) => brand.documents)
-  @JoinColumn({ name: 'accountId' })
+  @JoinColumn({ name: 'brand_id' })
   brand: Brand;
 }

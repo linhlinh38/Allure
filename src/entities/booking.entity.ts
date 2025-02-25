@@ -4,67 +4,58 @@ import {
   JoinColumn,
   ManyToOne,
   OneToMany,
-  OneToOne,
 } from "typeorm";
 import { BaseEntity } from "./base.entity";
 import {
   BookingStatusEnum,
   BookingTypeEnum,
-  OrderEnum,
   PaymentMethodEnum,
-  ServiceTypeEnum,
-  ShippingStatusEnum,
-  StatusEnum,
 } from "../utils/enum";
-import { GroupBuying } from "./groupBuying.entity";
-import { LiveStream } from "./livestream.entity";
 import { Voucher } from "./voucher.entity";
 import { Account } from "./account.entity";
-import { OrderDetail } from "./orderDetail.entity";
 import { StatusTracking } from "./statusTracking.entity";
-import { CancelOrderRequest } from "./cancelOrderRequest.entity";
 import { ConsultantService } from "./consultantService.entity";
 import { Slot } from "./slot.entity";
 
-@Entity("bookings")
+@Entity('bookings')
 export class Booking extends BaseEntity {
-  @Column({ type: "double precision", default: 0 })
+  @Column({ type: 'double precision', default: 0 })
   totalPrice: number;
 
-  @Column({ type: "varchar", nullable: true })
-  startTime: string;
+  @Column({ type: 'timestamp' })
+  startTime: Date;
 
-  @Column({ type: "varchar", nullable: true })
-  endTime: string;
+  @Column({ type: 'timestamp' })
+  endTime: Date;
 
-  @Column({ type: "double precision", default: 0, name: "voucher_discount" })
+  @Column({ type: 'double precision', default: 0, name: 'voucher_discount' })
   voucherDiscount: number = 0;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: PaymentMethodEnum,
     default: PaymentMethodEnum.BANK_TRANSFER,
     nullable: true,
   })
   paymentMethod: PaymentMethodEnum;
 
-  @Column({ type: "varchar", length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   notes: string;
 
-  @Column({ type: "varchar", length: 255, nullable: true, name: "meet_url" })
+  @Column({ type: 'varchar', length: 255, nullable: true, name: 'meet_url' })
   meetUrl: string;
 
-  @Column({ type: "varchar", length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   record: string;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: BookingTypeEnum,
   })
   type: BookingTypeEnum;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: BookingStatusEnum,
   })
   status: BookingStatusEnum;
@@ -72,7 +63,7 @@ export class Booking extends BaseEntity {
   @ManyToOne(() => Voucher, (voucher) => voucher.orders, {
     nullable: true,
   })
-  @JoinColumn({ name: "voucher_id" })
+  @JoinColumn({ name: 'voucher_id' })
   voucher: Voucher;
 
   @ManyToOne(() => Slot, (slot) => slot.bookings, {

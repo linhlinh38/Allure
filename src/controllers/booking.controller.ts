@@ -1,17 +1,54 @@
-import { NextFunction, Request, Response } from "express";
-import { bookingService } from "../services/booking.service";
-import { createNormalResponse } from "../utils/response";
-import { NotFoundError } from "../errors/error";
-import { AuthRequest } from "../middleware/authentication";
+import { NextFunction, Request, Response } from 'express';
+import { bookingService } from '../services/booking.service';
+import { createNormalResponse } from '../utils/response';
+import { NotFoundError } from '../errors/error';
+import { AuthRequest } from '../middleware/authentication';
+import { plainToInstance } from 'class-transformer';
+import { BookingRequest } from '../dtos/request/booking.request';
+import { BookingStatusEnum } from '../utils/enum';
 export default class BookingController {
+  static async updateStatus(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      await bookingService.updateStatus(req.params.id, req.body.status);
+      return createNormalResponse(res, 'Update status booking success');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async getAvailableSlotsForInterview(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const slots = await bookingService.getAvailableSlotsForInterview(
+        req.body.startDate,
+        req.body.endDate
+      );
+      return createNormalResponse(res, 'Get slots success', slots);
+    } catch (err) {
+      next(err);
+    }
+  }
   static async getStatusBookingInterview(
     req: AuthRequest,
     res: Response,
     next: NextFunction
   ) {
     try {
-      const status = await bookingService.getStatusBookingInterview(req.loginUser);
-      return createNormalResponse(res, "Get status booking interview success", status);
+      const status = await bookingService.getStatusBookingInterview(
+        req.loginUser
+      );
+      return createNormalResponse(
+        res,
+        'Get status booking interview success',
+        status
+      );
     } catch (err) {
       next(err);
     }
@@ -45,9 +82,12 @@ export default class BookingController {
     }
   }
 
-  static async create(req: Request, res: Response, next: NextFunction) {
+  static async create(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      await bookingService.create(req.body);
+      const bookingRequest = plainToInstance(BookingRequest, req.body, {
+        excludeExtraneousValues: true,
+      });
+      await bookingService.createBooking(bookingRequest, req.loginUser);
       return createNormalResponse(res, 'Create booking success');
     } catch (err) {
       next(err);
