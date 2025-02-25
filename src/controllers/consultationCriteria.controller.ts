@@ -1,16 +1,16 @@
 import { NextFunction, Request, Response } from "express";
-import { serviceBookingFormService } from "../services/serviceBookingForm.service";
+import { consultationCriteriaService } from "../services/consultationCriteria.service";
 import { createNormalResponse } from "../utils/response";
 import { NotFoundError } from "../errors/error";
 import { StatusEnum } from "../utils/enum";
-export default class ServiceBookingFormController {
+export default class ConsultationCriteriaController {
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
-      const serviceBookingForm = await serviceBookingFormService.getAll();
+      const consultationCriteria = await consultationCriteriaService.getAll();
       return createNormalResponse(
         res,
-        "Get all serviceBookingForm success",
-        serviceBookingForm
+        "Get all Consultation Criteria success",
+        consultationCriteria
       );
     } catch (err) {
       next(err);
@@ -19,11 +19,16 @@ export default class ServiceBookingFormController {
 
   static async getById(req: Request, res: Response, next: NextFunction) {
     try {
-      const serviceBookingForm = await serviceBookingFormService.getById(
+      const consultationCriteria = await consultationCriteriaService.getById(
         req.params.id
       );
-      if (!serviceBookingForm) throw new NotFoundError("form not found");
-      return createNormalResponse(res, "Get form success", serviceBookingForm);
+      if (!consultationCriteria)
+        throw new NotFoundError("consultationCriteria not found");
+      return createNormalResponse(
+        res,
+        "Get Consultation Criteria success",
+        consultationCriteria
+      );
     } catch (err) {
       next(err);
     }
@@ -31,8 +36,8 @@ export default class ServiceBookingFormController {
 
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
-      await serviceBookingFormService.update(req.params.id, req.body);
-      return createNormalResponse(res, "Update form success");
+      await consultationCriteriaService.update(req.params.id, req.body);
+      return createNormalResponse(res, "Update Consultation Criteria success");
     } catch (err) {
       next(err);
     }
@@ -40,18 +45,14 @@ export default class ServiceBookingFormController {
 
   static async create(req: Request, res: Response, next: NextFunction) {
     try {
-      await serviceBookingFormService.create(req.body);
-      return createNormalResponse(res, "Create form success");
+      await consultationCriteriaService.create(req.body);
+      return createNormalResponse(res, "Create Consultation Criteria success");
     } catch (err) {
       next(err);
     }
   }
 
-  static async updateServiceBookingFormStatus(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) {
+  static async updateStatus(req: Request, res: Response, next: NextFunction) {
     try {
       const { id, status } = req.params;
       if (!Object.values(StatusEnum).includes(status as StatusEnum)) {
@@ -59,16 +60,16 @@ export default class ServiceBookingFormController {
       }
       const statusEnum = StatusEnum[status as keyof typeof StatusEnum];
 
-      const updatedServiceBookingForm =
-        await serviceBookingFormService.updateServiceBookingFormStatus(
+      const updated =
+        await consultationCriteriaService.updateConsultationCriteriaStatus(
           id,
           statusEnum
         );
 
       return createNormalResponse(
         res,
-        "Service booking form updated successfully",
-        updatedServiceBookingForm
+        "Consultation Criteria updated successfully",
+        updated
       );
     } catch (error) {
       next(error);

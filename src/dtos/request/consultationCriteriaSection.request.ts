@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const ResultSheetSectionCreateSchema = z.object({
+export const ConsultationCriteriaSectionCreateSchema = z.object({
   body: z.object({
     section: z.string(),
     description: z.string(),
@@ -9,10 +9,10 @@ export const ResultSheetSectionCreateSchema = z.object({
       .number()
       .int()
       .nonnegative("Order index must be a non-negative integer"),
-    resultSheetId: z.string().optional(),
+    consultationCriteria: z.string().optional(),
   }),
 });
 
-export const ResultSheetSectionUpdateSchema = z.object({
-  body: ResultSheetSectionCreateSchema.shape.body.partial(),
+export const ConsultationCriteriaSectionUpdateSchema = z.object({
+  body: ConsultationCriteriaSectionCreateSchema.partial(),
 });
