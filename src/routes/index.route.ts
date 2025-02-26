@@ -25,6 +25,7 @@ import consultationCriteriaRoute from "./consultationCriteria.route";
 import serviceBookingFormRouter from "./serviceBookingForm.route";
 import feedbackRouter from "./feedback.route";
 import consultationCriteriaSectionRouter from "./consultationCriteriaSection.route";
+import questionRouter from "./question.route";
 
 const router = express.Router();
 router.use("/accounts", accountRouter);
@@ -50,6 +51,7 @@ router.use("/wallets", walletRouter);
 router.use("/slots", slotRouter);
 router.use("/bookings", bookingRoute);
 router.use("/service-booking-forms", serviceBookingFormRouter);
+router.use("/questions", questionRouter);
 router.use("/consultation-criteria", consultationCriteriaRoute);
 router.use(
   "/consultation-criteria-sections",

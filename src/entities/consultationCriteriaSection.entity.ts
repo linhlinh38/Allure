@@ -21,6 +21,7 @@ export class ConsultationCriteriaSection extends BaseEntity {
     () => ConsultationCriteria,
     (sheet) => sheet.consultationCriteriaSections
   )
+  @JoinColumn({ name: "consultation_criteria_id" })
   consultationCriteria: ConsultationCriteria;
 
   @Column({

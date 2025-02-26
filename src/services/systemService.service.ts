@@ -24,6 +24,7 @@ class SystemServiceService extends BaseService<SystemService> {
       )
       .leftJoinAndSelect("systemService.images", "images")
       .leftJoinAndSelect("systemService.category", "category")
+      .leftJoinAndSelect("category.parentCategory", "parentCategory")
       .leftJoinAndSelect(
         "consultationCriteria.consultationCriteriaSections",
         "consultationCriteriaSections"
@@ -42,6 +43,7 @@ class SystemServiceService extends BaseService<SystemService> {
       )
       .leftJoinAndSelect("systemService.images", "images")
       .leftJoinAndSelect("systemService.category", "category")
+      .leftJoinAndSelect("category.parentCategory", "parentCategory")
       .leftJoinAndSelect(
         "consultationCriteria.consultationCriteriaSections",
         "consultationCriteriaSections"
