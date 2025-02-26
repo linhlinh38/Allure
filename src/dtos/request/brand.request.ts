@@ -22,7 +22,6 @@ export const BrandCreateSchema = z.object({
     email: z.string().email('Invalid email address'),
     phone: z
       .string()
-      .regex(/^[0-9]{10,15}$/, 'Phone must be a string with 10 to 15 digits')
       .optional(),
     address: z
       .string()
@@ -66,6 +65,7 @@ export class BrandRequest {
   @Expose()
   logo: string;
 
+  @Expose()
   documents: string[];
 
   @Expose()

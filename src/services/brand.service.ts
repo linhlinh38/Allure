@@ -1,22 +1,35 @@
-import { StatusTracking } from "../entities/statusTracking.entity";
-import { Not } from "typeorm";
-import { AppDataSource } from "../dataSource";
-import { SearchDTO } from "../dtos/other/search.dto";
-import { Brand } from "../entities/brand.entity";
-import { BadRequestError } from "../errors/error";
-import { accountRepository } from "../repositories/account.repository";
-import { brandRepository } from "../repositories/brand.repository";
-import { BaseService } from "./base.service";
-import { followRepository } from "../repositories/follow.repository";
-import { accountService } from "./account.service";
-import { BrandRequest, BrandUpdateStatusRequest } from "../dtos/request/brand.request";
-import { BrandStatusEnum, FileEnum, StatusEnum } from "../utils/enum";
-import { brandStatusTrackingRepository } from "../repositories/brandStatusTracking.repository";
-import { File } from "../entities/file.entity";
-import { retrieveMasterConfig } from "../utils/retrieveMasterConfig";
+import { StatusTracking } from '../entities/statusTracking.entity';
+import { Not } from 'typeorm';
+import { AppDataSource } from '../dataSource';
+import { SearchDTO } from '../dtos/other/search.dto';
+import { Brand } from '../entities/brand.entity';
+import { BadRequestError } from '../errors/error';
+import { accountRepository } from '../repositories/account.repository';
+import { brandRepository } from '../repositories/brand.repository';
+import { BaseService } from './base.service';
+import { followRepository } from '../repositories/follow.repository';
+import { accountService } from './account.service';
+import {
+  BrandRequest,
+  BrandUpdateStatusRequest,
+} from '../dtos/request/brand.request';
+import { BrandStatusEnum, FileEnum, StatusEnum } from '../utils/enum';
+import { brandStatusTrackingRepository } from '../repositories/brandStatusTracking.repository';
+import { File } from '../entities/file.entity';
+import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
 
 const repository = AppDataSource.getRepository(Brand);
 class BrandService extends BaseService<Brand> {
+  async getById(id: string) {
+    const brand = await repository.findOne({
+      where: { id },
+      relations: {
+        documents: true,
+      },
+    });
+    if (!brand) throw new BadRequestError('Brand not found');
+    return brand;
+  }
   async getStatusTrackings(brandId: string) {
     const brand = await brandRepository.findOne({
       where: { id: brandId },
@@ -45,16 +58,26 @@ class BrandService extends BaseService<Brand> {
       });
       if (!brand) throw new BadRequestError('Brand not found');
       if (
-        [BrandStatusEnum.DENIED, BrandStatusEnum.NEED_ADDITIONAL_DOCUMENTS].includes(brandUpdateStatusRequest.status)
-        &&
+        [
+          BrandStatusEnum.DENIED,
+          BrandStatusEnum.NEED_ADDITIONAL_DOCUMENTS,
+        ].includes(brandUpdateStatusRequest.status) &&
         !brandUpdateStatusRequest.reason
       ) {
         throw new BadRequestError('Reason is required');
       }
-      if(brandUpdateStatusRequest.status == BrandStatusEnum.NEED_ADDITIONAL_DOCUMENTS) {
+      if (
+        brandUpdateStatusRequest.status ==
+        BrandStatusEnum.NEED_ADDITIONAL_DOCUMENTS
+      ) {
         const masterConfig = await retrieveMasterConfig();
-        if(brand.currentUpdateProfileTime == masterConfig.maximumUpdateBrandProfileTime) {
-          throw new BadRequestError(`You can only update profile ${brand.currentUpdateProfileTime} times`);
+        if (
+          brand.currentUpdateProfileTime ==
+          masterConfig.maximumUpdateBrandProfileTime
+        ) {
+          throw new BadRequestError(
+            `You can only update profile ${brand.currentUpdateProfileTime} times`
+          );
         }
         brand.currentUpdateProfileTime++;
       }
@@ -128,12 +151,12 @@ class BrandService extends BaseService<Brand> {
     const brand = new Brand();
     Object.assign(brand, brandRequest);
     delete brand.documents;
-    brand.documents = brandRequest.documents.map(doc => {
+    brand.documents = brandRequest.documents.map((doc) => {
       const file = new File();
       file.fileUrl = doc;
       file.type = FileEnum.BRAND_DOCUMENT;
       return file;
-    })
+    });
     brand.accounts = [manager];
     return await brandRepository.save(brand);
   }
@@ -150,18 +173,20 @@ class BrandService extends BaseService<Brand> {
     if (existBrandByName) {
       throw new BadRequestError('Name already exists');
     }
-    if (existBrandByName.status != BrandStatusEnum.NEED_ADDITIONAL_DOCUMENTS) {
+    if (brand.status != BrandStatusEnum.NEED_ADDITIONAL_DOCUMENTS) {
       throw new BadRequestError("Can't update brand due to current status");
     }
     brand.status = BrandStatusEnum.PENDING_REVIEW;
     Object.assign(brand, brandRequest);
     delete brand.documents;
-    brand.documents = brandRequest.documents.map(doc => {
-      const file = new File();
-      file.fileUrl = doc;
-      file.type = FileEnum.BRAND_DOCUMENT;
-      return file;
-    })
+    if (brandRequest.documents && brandRequest.documents.length > 0) {
+      brand.documents = brandRequest.documents.map((doc) => {
+        const file = new File();
+        file.fileUrl = doc;
+        file.type = FileEnum.BRAND_DOCUMENT;
+        return file;
+      });
+    }
     await brand.save();
   }
 

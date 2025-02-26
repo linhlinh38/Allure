@@ -60,7 +60,7 @@ class ProductService extends BaseService<Product> {
         { productImageStatus: StatusEnum.ACTIVE }
       )
       .getMany();
-
+      
     return products;
   }
   async getById(id: string) {

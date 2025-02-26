@@ -39,10 +39,7 @@ export default class BrandController {
 
   static async getById(req: Request, res: Response, next: NextFunction) {
     try {
-      const brand: Brand = await brandService.findById(req.params.id);
-      const responseData = plainToClass(BrandResponse, brand);
-      if (!responseData) return createBadResponse(res, 'Brand not found!');
-      return createNormalResponse(res, 'Get brand success', responseData);
+      return createNormalResponse(res, 'Get brand success', await brandService.getById(req.params.id));
     } catch (err) {
       next(err);
     }
