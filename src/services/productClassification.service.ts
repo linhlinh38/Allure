@@ -141,6 +141,7 @@ class ProductClassificationService extends BaseService<ProductClassification> {
         oldClassificationId,
         {
           status: StatusEnum.INACTIVE,
+          isAvailable: false,
         }
       );
 

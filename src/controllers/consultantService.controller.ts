@@ -3,6 +3,7 @@ import { consultantServiceService } from "../services/consultantService.service"
 import { createNormalResponse } from "../utils/response";
 import { NotFoundError } from "../errors/error";
 import { AuthRequest } from "../middleware/authentication";
+import { StatusEnum } from "../utils/enum";
 export default class ConsultantServiceController {
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
@@ -42,6 +43,20 @@ export default class ConsultantServiceController {
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
       await consultantServiceService.update(req.params.id, req.body);
+      return createNormalResponse(res, "Update service success");
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async updateStatus(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id, status } = req.params;
+      if (!Object.values(StatusEnum).includes(status as StatusEnum)) {
+        return res.status(400).json({ message: "Invalid status value" });
+      }
+      const statusEnum = StatusEnum[status as keyof typeof StatusEnum];
+      await consultantServiceService.updateStatus(req.params.id, statusEnum);
       return createNormalResponse(res, "Update service success");
     } catch (err) {
       next(err);
