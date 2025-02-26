@@ -8,5 +8,12 @@ class MasterConfigService extends BaseService<MasterConfig> {
   constructor() {
     super(repository);
   }
+  async findAll() {
+    const config = await repository.find({
+      relations: ["banners"],
+    });
+
+    return config;
+  }
 }
 export const masterConfigService = new MasterConfigService();
