@@ -13,29 +13,34 @@ import {
   StatusEnum,
 } from "../utils/enum";
 import { Account } from "./account.entity";
+import { Brand } from "./brand.entity";
 
-@Entity("files")
+@Entity('files')
 export class File extends BaseEntity {
-  @Column({ type: "varchar", length: 100, nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   name?: string;
 
-  @Column({ type: "varchar", length: 100, nullable: false })
+  @Column({ type: 'varchar', length: 100, nullable: false })
   fileUrl: string;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: FileEnum,
   })
   type: FileEnum;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: StatusEnum,
     default: StatusEnum.ACTIVE,
   })
   status: StatusEnum;
 
   @ManyToOne(() => Account, (account) => account.files)
-  @JoinColumn({ name: "accountId" })
+  @JoinColumn({ name: 'account_id' })
   account: Account;
+
+  @ManyToOne(() => Brand, (brand) => brand.documents)
+  @JoinColumn({ name: 'brand_id' })
+  brand: Brand;
 }

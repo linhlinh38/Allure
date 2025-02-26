@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ServiceTypeEnum } from "../../utils/enum";
-import { ResultSheetCreateSchema } from "./resultSheet.request";
+import { ConsultationCriteriaCreateSchema } from "./consultationCriteria.request";
 import { ServiceImageCreateSchema } from "./serviceImageRequest";
 
 export const SystemServiceCreateSchema = z.object({
@@ -10,8 +10,9 @@ export const SystemServiceCreateSchema = z.object({
     images: z.array(ServiceImageCreateSchema.shape.body).optional(),
     category: z.string().optional(),
     type: z.nativeEnum(ServiceTypeEnum),
-    resultSheet: z.string().optional(),
-    resultSheetData: ResultSheetCreateSchema.shape.body.optional(),
+    consultationCriteria: z.string().optional(),
+    consultationCriteriaData:
+      ConsultationCriteriaCreateSchema.shape.body.optional(),
   }),
 });
 

@@ -8,7 +8,7 @@ import {
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { BaseEntity } from "./base.entity";
-import { StatusEnum } from "../utils/enum";
+import { BrandStatusEnum, StatusEnum } from "../utils/enum";
 import { Account } from "./account.entity";
 import { Follow } from "./follow.entity";
 import { Expose } from "class-transformer";
@@ -18,6 +18,7 @@ import { Product } from "./product.entity";
 import { Transaction } from "./transaction.entity";
 import { Order } from "./order.entity";
 import { GroupProduct } from "./groupProduct.entity";
+import { File } from "./file.entity";
 
 @Entity("brands")
 export class Brand extends BaseEntity {
@@ -29,9 +30,8 @@ export class Brand extends BaseEntity {
   @Column({ type: "varchar", length: 255 })
   logo: string;
 
-  @Expose()
-  @Column({ type: "varchar", length: 255, nullable: false })
-  document: string;
+  @OneToMany(() => File, (document) => document.brand, { cascade: true })
+  documents: File[];
 
   @Expose()
   @Column({ type: "varchar", length: 255 })
@@ -86,12 +86,15 @@ export class Brand extends BaseEntity {
   @Column({ type: "float", default: 0 })
   star: number;
 
+  @Column({ type: "integer", name: "current_update_profile_time", default: 0 })
+  currentUpdateProfileTime: number;
+
   @Column({
     type: "enum",
-    enum: StatusEnum,
-    default: StatusEnum.PENDING,
+    enum: BrandStatusEnum,
+    default: BrandStatusEnum.PENDING_REVIEW,
   })
-  status: StatusEnum;
+  status: BrandStatusEnum;
 
   @OneToMany(() => Voucher, (voucher) => voucher.brand)
   vouchers: Brand[];

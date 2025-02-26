@@ -63,6 +63,13 @@ export class MasterConfig extends BaseEntity {
   refundTimeExpired: number;
 
   @Column({
+    name: 'maximum_update_brand_profile_time',
+    type: 'int',
+    default: 3,
+  })
+  maximumUpdateBrandProfileTime: number;
+
+  @Column({
     type: 'enum',
     enum: StatusEnum,
     default: StatusEnum.ACTIVE,

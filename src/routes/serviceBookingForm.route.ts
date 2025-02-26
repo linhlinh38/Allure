@@ -25,4 +25,8 @@ serviceBookingFormRouter.put(
   validate(ServiceBookingFormUpdateSchema),
   serviceBookingFormController.update
 );
+serviceBookingFormRouter.put(
+  "/update-status/:id/:status",
+  serviceBookingFormController.updateServiceBookingFormStatus
+);
 export default serviceBookingFormRouter;

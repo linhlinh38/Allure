@@ -9,9 +9,11 @@ import { brandRepository } from "../repositories/brand.repository";
 import { BaseService } from "./base.service";
 import { followRepository } from "../repositories/follow.repository";
 import { accountService } from "./account.service";
-import { BrandUpdateStatusRequest } from "../dtos/request/brand.request";
-import { StatusEnum } from "../utils/enum";
+import { BrandRequest, BrandUpdateStatusRequest } from "../dtos/request/brand.request";
+import { BrandStatusEnum, FileEnum, StatusEnum } from "../utils/enum";
 import { brandStatusTrackingRepository } from "../repositories/brandStatusTracking.repository";
+import { File } from "../entities/file.entity";
+import { retrieveMasterConfig } from "../utils/retrieveMasterConfig";
 
 const repository = AppDataSource.getRepository(Brand);
 class BrandService extends BaseService<Brand> {
@@ -19,11 +21,11 @@ class BrandService extends BaseService<Brand> {
     const brand = await brandRepository.findOne({
       where: { id: brandId },
     });
-    if (!brand) throw new BadRequestError("Brand not found");
+    if (!brand) throw new BadRequestError('Brand not found');
     const statusTrackings = await brandStatusTrackingRepository.find({
       relations: { brand: true, updatedBy: true },
       where: { brand: { id: brandId } },
-      order: { createdAt: "DESC" },
+      order: { createdAt: 'DESC' },
     });
     return statusTrackings;
   }
@@ -41,22 +43,30 @@ class BrandService extends BaseService<Brand> {
       const brand = await brandRepository.findOne({
         where: { id: brandUpdateStatusRequest.brandId },
       });
-      if (!brand) throw new BadRequestError("Brand not found");
+      if (!brand) throw new BadRequestError('Brand not found');
       if (
-        brandUpdateStatusRequest.status == StatusEnum.DENIED &&
+        [BrandStatusEnum.DENIED, BrandStatusEnum.NEED_ADDITIONAL_DOCUMENTS].includes(brandUpdateStatusRequest.status)
+        &&
         !brandUpdateStatusRequest.reason
       ) {
-        throw new BadRequestError("Reason is required");
+        throw new BadRequestError('Reason is required');
       }
-      const brandStatusTracking = new StatusTracking();
-      brandStatusTracking.reason = brandUpdateStatusRequest.reason;
-      brandStatusTracking.status = brandUpdateStatusRequest.status;
-      brandStatusTracking.updatedBy = account;
-      brandStatusTracking.brand = brand;
-      await queryRunner.manager.save(StatusTracking, brandStatusTracking);
-
+      if(brandUpdateStatusRequest.status == BrandStatusEnum.NEED_ADDITIONAL_DOCUMENTS) {
+        const masterConfig = await retrieveMasterConfig();
+        if(brand.currentUpdateProfileTime == masterConfig.maximumUpdateBrandProfileTime) {
+          throw new BadRequestError(`You can only update profile ${brand.currentUpdateProfileTime} times`);
+        }
+        brand.currentUpdateProfileTime++;
+      }
       brand.status = brandUpdateStatusRequest.status;
       await queryRunner.manager.save(Brand, brand);
+
+      const statusTracking = new StatusTracking();
+      statusTracking.reason = brandUpdateStatusRequest.reason;
+      statusTracking.status = brandUpdateStatusRequest.status.toString();
+      statusTracking.updatedBy = account;
+      statusTracking.brand = brand;
+      await queryRunner.manager.save(StatusTracking, statusTracking);
 
       await queryRunner.commitTransaction();
     } catch (error) {
@@ -72,23 +82,23 @@ class BrandService extends BaseService<Brand> {
   }
 
   async search(searches: SearchDTO[]) {
-    const query = repository.createQueryBuilder("brand");
+    const query = repository.createQueryBuilder('brand');
 
     searches.forEach((search) => {
       const { option, value } = search;
 
       switch (option) {
-        case "name":
-          query.andWhere("brand.name ILIKE :name", { name: `%${value}%` });
+        case 'name':
+          query.andWhere('brand.name ILIKE :name', { name: `%${value}%` });
           break;
-        case "status":
-          query.andWhere("brand.status = :status", { status: value });
+        case 'status':
+          query.andWhere('brand.status = :status', { status: value });
           break;
-        case "email":
-          query.andWhere("brand.email = :email", { email: value });
+        case 'email':
+          query.andWhere('brand.email = :email', { email: value });
           break;
-        case "address":
-          query.andWhere("brand.address ILIKE :address", {
+        case 'address':
+          query.andWhere('brand.address ILIKE :address', {
             address: `%${value}%`,
           });
           break;
@@ -99,43 +109,60 @@ class BrandService extends BaseService<Brand> {
     return await query.getMany();
   }
 
-  async requestCreateBrand(managerId: string, brand: Brand) {
+  async requestCreateBrand(managerId: string, brandRequest: BrandRequest) {
     const existBrandByName = await brandRepository.findOneBy({
-      ["name"]: brand.name,
+      ['name']: brandRequest.name,
     });
     if (existBrandByName) {
-      throw new BadRequestError("Name already exists");
+      throw new BadRequestError('Name already exists');
     }
+
     const manager = await accountRepository.findOne({
       where: { id: managerId },
     });
 
     if (!manager) {
-      throw new BadRequestError("Manager not found");
+      throw new BadRequestError('Manager not found');
     }
 
-    const newBrand = brandRepository.create(brand);
-    newBrand.accounts = [manager];
-
-    return await brandRepository.save(newBrand);
+    const brand = new Brand();
+    Object.assign(brand, brandRequest);
+    delete brand.documents;
+    brand.documents = brandRequest.documents.map(doc => {
+      const file = new File();
+      file.fileUrl = doc;
+      file.type = FileEnum.BRAND_DOCUMENT;
+      return file;
+    })
+    brand.accounts = [manager];
+    return await brandRepository.save(brand);
   }
 
-  async updateDetail(id: string, brandBody: Brand) {
+  async updateDetail(id: string, brandRequest: BrandRequest) {
     const brand: Brand = await brandService.findById(id);
-    if (!brand) throw new BadRequestError("Brand not found");
+    if (!brand) throw new BadRequestError('Brand not found');
     const existBrandByName = await brandRepository.findOne({
       where: {
-        name: brandBody.name,
+        name: brandRequest.name,
         id: Not(id),
       },
     });
     if (existBrandByName) {
-      throw new BadRequestError("Name already exists");
+      throw new BadRequestError('Name already exists');
     }
-    if (brand.status == StatusEnum.DENIED) {
-      brandBody.status = StatusEnum.PENDING;
+    if (existBrandByName.status != BrandStatusEnum.NEED_ADDITIONAL_DOCUMENTS) {
+      throw new BadRequestError("Can't update brand due to current status");
     }
-    await this.update(id, brandBody);
+    brand.status = BrandStatusEnum.PENDING_REVIEW;
+    Object.assign(brand, brandRequest);
+    delete brand.documents;
+    brand.documents = brandRequest.documents.map(doc => {
+      const file = new File();
+      file.fileUrl = doc;
+      file.type = FileEnum.BRAND_DOCUMENT;
+      return file;
+    })
+    await brand.save();
   }
 
   async toggleFollowBrand(accountId: string, brandId: string) {
@@ -149,9 +176,9 @@ class BrandService extends BaseService<Brand> {
       await followRepository.remove(existingFollow);
     } else {
       const account = await accountService.findById(accountId);
-      if (!account) throw new BadRequestError("Account not found");
+      if (!account) throw new BadRequestError('Account not found');
       const brand = await brandService.findById(brandId);
-      if (!brand) throw new BadRequestError("Brand not found");
+      if (!brand) throw new BadRequestError('Brand not found');
       const newFollow = followRepository.create({ account, brand });
       await followRepository.save(newFollow);
     }
@@ -159,7 +186,7 @@ class BrandService extends BaseService<Brand> {
 
   async getFollowedBrands(accountId: string) {
     const account = await accountService.findById(accountId);
-    if (!account) throw new BadRequestError("Account not found");
+    if (!account) throw new BadRequestError('Account not found');
     const follows = await followRepository.find({
       where: { account: { id: accountId } },
       relations: {

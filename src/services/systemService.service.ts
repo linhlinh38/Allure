@@ -1,6 +1,7 @@
+import { Not } from "typeorm";
 import { AppDataSource } from "../dataSource";
-import { ResultSheet } from "../entities/resultSheet.entity";
-import { ResultSheetSection } from "../entities/resultSheetSection.entity";
+import { ConsultationCriteria } from "../entities/consultationCriteria.entity";
+import { ConsultationCriteriaSection } from "../entities/consultationCriteriaSection.entity";
 import { ServiceImage } from "../entities/serviceImage.entity";
 import { SystemService } from "../entities/systemService.entity";
 import { BadRequestError, NotFoundError } from "../errors/error";
@@ -17,12 +18,15 @@ class SystemServiceService extends BaseService<SystemService> {
   async getAll() {
     const services = await this.repository
       .createQueryBuilder("systemService")
-      .leftJoinAndSelect("systemService.resultSheet", "resultSheet")
+      .leftJoinAndSelect(
+        "systemService.consultationCriteria",
+        "consultationCriteria"
+      )
       .leftJoinAndSelect("systemService.images", "images")
       .leftJoinAndSelect("systemService.category", "category")
       .leftJoinAndSelect(
-        "resultSheet.resultSheetSections",
-        "resultSheetSections"
+        "consultationCriteria.consultationCriteriaSections",
+        "consultationCriteriaSections"
       )
       .getMany();
 
@@ -32,12 +36,15 @@ class SystemServiceService extends BaseService<SystemService> {
   async getById(id: string) {
     const services = await this.repository
       .createQueryBuilder("systemService")
-      .leftJoinAndSelect("systemService.resultSheet", "resultSheet")
+      .leftJoinAndSelect(
+        "systemService.consultationCriteria",
+        "consultationCriteria"
+      )
       .leftJoinAndSelect("systemService.images", "images")
       .leftJoinAndSelect("systemService.category", "category")
       .leftJoinAndSelect(
-        "resultSheet.resultSheetSections",
-        "resultSheetSections"
+        "consultationCriteria.consultationCriteriaSections",
+        "consultationCriteriaSections"
       )
       .where("systemService.id = :id", { id })
       .getOne();
@@ -77,26 +84,26 @@ class SystemServiceService extends BaseService<SystemService> {
     try {
       await this.beforeCreate(data);
 
-      const { resultSheetData, ...serviceData } = data;
+      const { consultationCriteriaData, ...serviceData } = data;
 
-      if (data.resultSheetData) {
+      if (data.consultationCriteriaData) {
         const sheet = await queryRunner.manager.save(
-          ResultSheet,
-          data.resultSheetData
+          ConsultationCriteria,
+          data.consultationCriteriaData
         );
 
-        for (const resultSheetSection of data.resultSheetData
-          .resultSheetSections) {
-          resultSheetSection.resultSheet = sheet;
+        for (const consultationCriteriaSection of data.consultationCriteriaData
+          .consultationCriteriaSections) {
+          consultationCriteriaSection.consultationCriteria = sheet;
           await queryRunner.manager.save(
-            ResultSheetSection,
-            resultSheetSection
+            ConsultationCriteriaSection,
+            consultationCriteriaSection
           );
         }
 
         service = await queryRunner.manager.save(SystemService, {
           ...serviceData,
-          resultSheet: sheet,
+          consultationCriteria: sheet,
         });
       } else {
         service = await queryRunner.manager.save(SystemService, serviceData);
@@ -134,52 +141,63 @@ class SystemServiceService extends BaseService<SystemService> {
 
       const systemServiceRepository =
         queryRunner.manager.getRepository(SystemService);
-      const resultSheetRepository =
-        queryRunner.manager.getRepository(ResultSheet);
-      const resultSheetSectionRepository =
-        queryRunner.manager.getRepository(ResultSheetSection);
+      const consultationCriteriaRepository =
+        queryRunner.manager.getRepository(ConsultationCriteria);
+      const consultationCriteriaSectionRepository =
+        queryRunner.manager.getRepository(ConsultationCriteriaSection);
       const serviceImageRepository =
         queryRunner.manager.getRepository(ServiceImage);
 
       const systemService = await this.getById(id);
 
-      const { resultSheetData, images, ...serviceData } = data;
+      const { consultationCriteriaData, images, ...serviceData } = data;
 
-      if (resultSheetData) {
-        let resultSheet;
-        const { resultSheetSections, ...data } = resultSheetData;
+      if (consultationCriteriaData) {
+        let consultationCriteria;
+        const { consultationCriteriaSections, ...data } =
+          consultationCriteriaData;
 
-        if (systemService.resultSheet && data.id) {
-          await resultSheetRepository.update(data.id, data);
-          resultSheet = await resultSheetRepository.findOne({
+        if (systemService.consultationCriteria && data.id) {
+          await consultationCriteriaRepository.update(data.id, data);
+          consultationCriteria = await consultationCriteriaRepository.findOne({
             where: { id: data.id },
           });
         } else {
-          if (systemService.resultSheet) {
-            await resultSheetRepository.update(systemService.resultSheet.id, {
-              status: StatusEnum.INACTIVE,
-            });
+          if (systemService.consultationCriteria) {
+            await consultationCriteriaRepository.update(
+              systemService.consultationCriteria.id,
+              {
+                status: StatusEnum.INACTIVE,
+              }
+            );
           }
 
-          resultSheet = await resultSheetRepository.save(data);
-          serviceData.resultSheet = resultSheet;
+          consultationCriteria = await consultationCriteriaRepository.save(
+            data
+          );
+          serviceData.consultationCriteria = consultationCriteria;
         }
 
         if (
-          resultSheetData.resultSheetSections &&
-          resultSheetData.resultSheetSections.length > 0
+          consultationCriteriaData.consultationCriteriaSections &&
+          consultationCriteriaData.consultationCriteriaSections.length > 0
         ) {
-          for (const section of resultSheetData.resultSheetSections) {
-            section.resultSheet = resultSheet;
+          for (const section of consultationCriteriaData.consultationCriteriaSections) {
+            section.consultationCriteria = consultationCriteria;
 
             let sectionRes;
             if (section.id) {
-              await resultSheetSectionRepository.update(section.id, section);
-              sectionRes = await resultSheetSectionRepository.findOne({
+              await consultationCriteriaSectionRepository.update(
+                section.id,
+                section
+              );
+              sectionRes = await consultationCriteriaSectionRepository.findOne({
                 where: { id: section.id },
               });
             } else {
-              sectionRes = await resultSheetSectionRepository.save(section);
+              sectionRes = await consultationCriteriaSectionRepository.save(
+                section
+              );
             }
           }
         }
@@ -202,10 +220,98 @@ class SystemServiceService extends BaseService<SystemService> {
 
       const updatedSystemService = await systemServiceRepository.findOne({
         where: { id },
-        relations: ["resultSheet", "resultSheet.resultSheetSections", "images"],
+        relations: [
+          "consultationCriteria",
+          "consultationCriteria.consultationCriteriaSections",
+          "images",
+        ],
       });
       await queryRunner.commitTransaction();
       return updatedSystemService!;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async updateStatus(id: string, status: StatusEnum): Promise<SystemService> {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const systemServiceRepository =
+        queryRunner.manager.getRepository(SystemService);
+      const consultationCriteriaRepository =
+        queryRunner.manager.getRepository(ConsultationCriteria);
+      const consultationCriteriaSectionRepository =
+        queryRunner.manager.getRepository(ConsultationCriteriaSection);
+
+      const systemService = await systemServiceRepository.findOne({
+        where: { id },
+        relations: [
+          "consultationCriteria",
+          "consultationCriteria.consultationCriteriaSections",
+        ],
+      });
+
+      if (!systemService) {
+        throw new NotFoundError("System service not found.");
+      }
+
+      if (status === StatusEnum.INACTIVE) {
+        const activeServicesUsingCriteria = await systemServiceRepository.count(
+          {
+            where: {
+              consultationCriteria: {
+                id: systemService.consultationCriteria.id,
+              },
+              status: StatusEnum.ACTIVE,
+              id: Not(id),
+            },
+          }
+        );
+        if (activeServicesUsingCriteria === 0) {
+          await consultationCriteriaRepository.update(
+            systemService.consultationCriteria.id,
+            { status: StatusEnum.INACTIVE }
+          );
+
+          for (const section of systemService.consultationCriteria
+            .consultationCriteriaSections) {
+            await consultationCriteriaSectionRepository.update(section.id, {
+              status: StatusEnum.INACTIVE,
+            });
+          }
+        }
+      } else if (status === StatusEnum.ACTIVE) {
+        await consultationCriteriaRepository.update(
+          systemService.consultationCriteria.id,
+          { status: StatusEnum.ACTIVE }
+        );
+
+        for (const section of systemService.consultationCriteria
+          .consultationCriteriaSections) {
+          await consultationCriteriaSectionRepository.update(section.id, {
+            status: StatusEnum.ACTIVE,
+          });
+        }
+      }
+
+      await systemServiceRepository.update(id, { status });
+
+      const updatedSystemService = await systemServiceRepository.findOne({
+        where: { id },
+        relations: [
+          "consultationCriteria",
+          "consultationCriteria.consultationCriteriaSections",
+          "images",
+        ],
+      });
+      await queryRunner.commitTransaction();
+      return updatedSystemService;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;

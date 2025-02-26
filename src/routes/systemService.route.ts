@@ -23,4 +23,8 @@ systemServiceRouter.put(
   validate(SystemServiceUpdateSchema),
   systemServiceController.update
 );
+systemServiceRouter.put(
+  "/update-status/:id/:status",
+  systemServiceController.updateStatus
+);
 export default systemServiceRouter;
