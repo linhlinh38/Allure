@@ -1,3 +1,4 @@
+import { Not } from "typeorm";
 import { AppDataSource } from "../dataSource";
 import { ConsultantService } from "../entities/consultantService.entity";
 import { Question } from "../entities/question.entity";
@@ -294,6 +295,107 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
           ],
         });
 
+      await queryRunner.commitTransaction();
+      return updatedConsultantService!;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async updateStatus(
+    id: string,
+    status: StatusEnum
+  ): Promise<ConsultantService> {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const consultantServiceRepository =
+        queryRunner.manager.getRepository(ConsultantService);
+      const serviceBookingFormRepository =
+        queryRunner.manager.getRepository(ServiceBookingForm);
+      const questionRepository = queryRunner.manager.getRepository(Question);
+      const serviceImageRepository =
+        queryRunner.manager.getRepository(ServiceImage);
+
+      const consultantService = await consultantServiceRepository.findOne({
+        where: { id },
+        relations: [
+          "serviceBookingForm",
+          "serviceBookingForm.questions",
+          "serviceBookingForm.questions.images",
+        ],
+      });
+
+      if (!consultantService) {
+        throw new NotFoundError("Consultant service not found.");
+      }
+      if (status === StatusEnum.INACTIVE) {
+        const activeServicesUsingForm = await consultantServiceRepository.count(
+          {
+            where: {
+              serviceBookingForm: {
+                id: consultantService.serviceBookingForm.id,
+              },
+              status: StatusEnum.ACTIVE,
+              id: Not(id),
+            },
+          }
+        );
+
+        if (activeServicesUsingForm === 0) {
+          await serviceBookingFormRepository.update(
+            consultantService.serviceBookingForm.id,
+            { status: StatusEnum.INACTIVE }
+          );
+
+          for (const question of consultantService.serviceBookingForm
+            .questions) {
+            await questionRepository.update(question.id, {
+              status: StatusEnum.INACTIVE,
+            });
+
+            for (const image of question.images) {
+              await serviceImageRepository.update(image.id, {
+                status: StatusEnum.INACTIVE,
+              });
+            }
+          }
+        }
+      } else if (status === StatusEnum.ACTIVE) {
+        await serviceBookingFormRepository.update(
+          consultantService.serviceBookingForm.id,
+          { status: StatusEnum.ACTIVE }
+        );
+
+        for (const question of consultantService.serviceBookingForm.questions) {
+          await questionRepository.update(question.id, {
+            status: StatusEnum.ACTIVE,
+          });
+
+          for (const image of question.images) {
+            await serviceImageRepository.update(image.id, {
+              status: StatusEnum.ACTIVE,
+            });
+          }
+        }
+      }
+
+      await consultantServiceRepository.update(id, { status });
+
+      const updatedConsultantService =
+        await consultantServiceRepository.findOne({
+          where: { id },
+          relations: [
+            "serviceBookingForm",
+            "serviceBookingForm.questions",
+            "serviceBookingForm.questions.images",
+          ],
+        });
       await queryRunner.commitTransaction();
       return updatedConsultantService!;
     } catch (error) {

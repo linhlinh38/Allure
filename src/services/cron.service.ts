@@ -77,7 +77,7 @@ const endPreOrderCheck = () => {
         )
         .leftJoinAndSelect("preOrderProduct.product", "product")
         .where("preOrderProduct.status = :status", {
-          status: StatusEnum.ACTIVE,
+          status: PreOrderProductEnum.ACTIVE,
         })
         .getMany();
       const currentDate = new Date();
@@ -198,7 +198,7 @@ const endProductDiscount = () => {
           "productClassifications"
         )
         .where("productDiscount.status = :status", {
-          status: StatusEnum.ACTIVE,
+          status: ProductDiscountEnum.ACTIVE,
         })
         .getMany();
       const currentDate = new Date();

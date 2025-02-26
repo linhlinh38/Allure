@@ -32,4 +32,8 @@ consultantServiceRouter.put(
   validate(ConsultantServiceUpdateSchema),
   consultantServiceController.update
 );
+consultantServiceRouter.put(
+  "/update-status/:id/:status",
+  consultantServiceController.updateStatus
+);
 export default consultantServiceRouter;

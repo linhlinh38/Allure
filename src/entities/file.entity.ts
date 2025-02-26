@@ -8,39 +8,41 @@ import {
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { BaseEntity } from "./base.entity";
-import {
-  FileEnum,
-  StatusEnum,
-} from "../utils/enum";
+import { FileEnum, StatusEnum } from "../utils/enum";
 import { Account } from "./account.entity";
 import { Brand } from "./brand.entity";
+import { Product } from "./product.entity";
 
-@Entity('files')
+@Entity("files")
 export class File extends BaseEntity {
-  @Column({ type: 'varchar', length: 100, nullable: true })
+  @Column({ type: "varchar", length: 100, nullable: true })
   name?: string;
 
-  @Column({ type: 'varchar', length: 100, nullable: false })
+  @Column({ type: "varchar", length: 100, nullable: false })
   fileUrl: string;
 
   @Column({
-    type: 'enum',
+    type: "enum",
     enum: FileEnum,
   })
   type: FileEnum;
 
   @Column({
-    type: 'enum',
+    type: "enum",
     enum: StatusEnum,
     default: StatusEnum.ACTIVE,
   })
   status: StatusEnum;
 
   @ManyToOne(() => Account, (account) => account.files)
-  @JoinColumn({ name: 'account_id' })
+  @JoinColumn({ name: "account_id" })
   account: Account;
 
   @ManyToOne(() => Brand, (brand) => brand.documents)
-  @JoinColumn({ name: 'brand_id' })
+  @JoinColumn({ name: "brand_id" })
   brand: Brand;
+
+  @ManyToOne(() => Product, (product) => product.certificates)
+  @JoinColumn({ name: "product_id" })
+  product: Product;
 }

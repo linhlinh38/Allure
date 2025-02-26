@@ -6,6 +6,7 @@ import { BadRequestError } from "../errors/error";
 import {
   BrandStatusEnum,
   ClassificationTypeEnum,
+  FileEnum,
   PreOrderProductEnum,
   ProductDiscountEnum,
   ProductEnum,
@@ -17,6 +18,7 @@ import { categoryService } from "./category.service";
 import { ProductImage } from "../entities/productImage.entity";
 import { PreOrderProduct } from "../entities/preOrderProduct.entity";
 import { ProductDiscount } from "../entities/productDiscount.entity";
+import { File } from "../entities/file.entity";
 
 const repository = AppDataSource.getRepository(Product);
 
@@ -40,6 +42,7 @@ class ProductService extends BaseService<Product> {
     const products = await this.repository
       .createQueryBuilder("product")
       .leftJoinAndSelect("product.category", "category")
+      .leftJoinAndSelect("category.parentCategory", "parentCategory")
       .leftJoinAndSelect("product.brand", "brand")
       .leftJoinAndSelect(
         "product.productClassifications",
@@ -67,7 +70,9 @@ class ProductService extends BaseService<Product> {
     const product = await repository
       .createQueryBuilder("product")
       .leftJoinAndSelect("product.category", "category")
+      .leftJoinAndSelect("category.parentCategory", "parentCategory")
       .leftJoinAndSelect("product.brand", "brand")
+      .leftJoinAndSelect("product.certificates", "certificates")
       .leftJoinAndSelect(
         "product.productClassifications",
         "productClassifications",
@@ -127,7 +132,9 @@ class ProductService extends BaseService<Product> {
     const products = await this.repository
       .createQueryBuilder("product")
       .leftJoinAndSelect("product.category", "category")
+      .leftJoinAndSelect("category.parentCategory", "parentCategory")
       .leftJoinAndSelect("product.brand", "brand")
+      .leftJoinAndSelect("product.certificates", "certificates")
       .leftJoinAndSelect(
         "product.productClassifications",
         "productClassifications",
@@ -156,7 +163,9 @@ class ProductService extends BaseService<Product> {
     const products = await this.repository
       .createQueryBuilder("product")
       .leftJoinAndSelect("product.category", "category")
+      .leftJoinAndSelect("category.parentCategory", "parentCategory")
       .leftJoinAndSelect("product.brand", "brand")
+      .leftJoinAndSelect("product.certificates", "certificates")
       .leftJoinAndSelect(
         "product.productClassifications",
         "productClassifications",
@@ -189,7 +198,9 @@ class ProductService extends BaseService<Product> {
 
     queryBuilder
       .leftJoinAndSelect("product.brand", "brand")
+      .leftJoinAndSelect("product.certificates", "certificates")
       .leftJoinAndSelect("product.category", "category")
+      .leftJoinAndSelect("category.parentCategory", "parentCategory")
       .leftJoinAndSelect(
         "product.productClassifications",
         "productClassifications",
@@ -336,8 +347,10 @@ class ProductService extends BaseService<Product> {
 
     try {
       await this.beforeCreate(productData);
+      const { productClassifications, images, certificates, ...productFields } =
+        productData;
 
-      const product = await queryRunner.manager.save(Product, productData);
+      const product = await queryRunner.manager.save(Product, productFields);
 
       for (const classification of productData.productClassifications) {
         const { images, ...classificationFields } = classification;
@@ -359,13 +372,21 @@ class ProductService extends BaseService<Product> {
         }
       }
 
-      let images: ProductImage[] = [];
       if (productData.images && productData.images.length > 0) {
         const productImages = productData.images.map((image) => ({
           ...image,
           product,
         }));
-        images = await queryRunner.manager.save(ProductImage, productImages);
+        await queryRunner.manager.save(ProductImage, productImages);
+      }
+      if (productData.certificates && productData.certificates.length > 0) {
+        const certificates = productData.certificates.map((certificate) => ({
+          ...certificate,
+          product,
+          type: FileEnum.CERTIFICATE,
+        }));
+
+        await queryRunner.manager.save(File, certificates);
       }
       await queryRunner.commitTransaction();
       return product;
@@ -395,6 +416,7 @@ class ProductService extends BaseService<Product> {
         queryRunner.manager.getRepository(ProductDiscount);
       const productImageRepository =
         queryRunner.manager.getRepository(ProductImage);
+      const fileRepository = queryRunner.manager.getRepository(File);
 
       const product = await productRepository.findOne({
         where: { id },
@@ -488,8 +510,22 @@ class ProductService extends BaseService<Product> {
           }
         }
       }
+      if (productData.certificates && productData.certificates.length > 0) {
+        for (const certificate of productData.certificates) {
+          if (certificate.id) {
+            await fileRepository.update(certificate.id, certificate);
+          } else {
+            await fileRepository.save({
+              ...certificate,
+              product,
+              type: FileEnum.CERTIFICATE,
+            });
+          }
+        }
+      }
 
-      const { productClassifications, images, ...productFields } = productData;
+      const { productClassifications, images, certificates, ...productFields } =
+        productData;
       await productRepository.update(id, productFields);
 
       await queryRunner.commitTransaction();
@@ -550,7 +586,7 @@ class ProductService extends BaseService<Product> {
         if (status === ProductEnum.BANNED) {
           await productClassificationRepository.update(
             { product: { id: productId } },
-            { status: StatusEnum.BANNED }
+            { status: StatusEnum.BANNED, isAvailable: false }
           );
         } else {
           await productClassificationRepository.update(
@@ -558,6 +594,16 @@ class ProductService extends BaseService<Product> {
             { status: StatusEnum.INACTIVE }
           );
         }
+      }
+      if (status === ProductEnum.OFFICIAL) {
+        await productClassificationRepository.update(
+          {
+            product: { id: productId },
+            status: StatusEnum.INACTIVE,
+            isAvailable: true,
+          },
+          { status: StatusEnum.ACTIVE }
+        );
       }
 
       await queryRunner.commitTransaction();

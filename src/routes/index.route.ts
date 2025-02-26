@@ -21,10 +21,12 @@ import systemServiceRouter from "./systemService.route";
 import walletRouter from "./wallet.route";
 import slotRouter from "./slot.route";
 import bookingRoute from "./booking.route";
-import resultSheetRoute from "./resultSheet.route";
+import consultationCriteriaRoute from "./consultationCriteria.route";
 import serviceBookingFormRouter from "./serviceBookingForm.route";
 import feedbackRouter from "./feedback.route";
-import resultSheetSectionRouter from "./resultSheetSection.route";
+import consultationCriteriaSectionRouter from "./consultationCriteriaSection.route";
+import questionRouter from "./question.route";
+import masterConfigRouter from "./masterConfig.route";
 
 const router = express.Router();
 router.use("/accounts", accountRouter);
@@ -50,7 +52,12 @@ router.use("/wallets", walletRouter);
 router.use("/slots", slotRouter);
 router.use("/bookings", bookingRoute);
 router.use("/service-booking-forms", serviceBookingFormRouter);
-router.use("/result-sheets", resultSheetRoute);
-router.use("/result-sheet-sections", resultSheetSectionRouter);
+router.use("/questions", questionRouter);
+router.use("/consultation-criteria", consultationCriteriaRoute);
+router.use(
+  "/consultation-criteria-sections",
+  consultationCriteriaSectionRouter
+);
 router.use("/feedbacks", feedbackRouter);
+router.use("/master-config", masterConfigRouter);
 export default router;
