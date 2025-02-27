@@ -6,6 +6,7 @@ import { PreOrderProduct } from "./preOrderProduct.entity";
 import { CartItem } from "./cartItem.entity";
 import { ProductImage } from "./productImage.entity";
 import { ProductDiscount } from "./productDiscount.entity";
+import { OrderDetail } from "./orderDetail.entity";
 
 @Entity("product_classifications")
 export class ProductClassification extends BaseEntity {
@@ -63,6 +64,12 @@ export class ProductClassification extends BaseEntity {
   })
   @JoinColumn({ name: "cart_items" })
   cartItems?: CartItem[];
+
+  @OneToMany(
+    () => OrderDetail,
+    (orderDetail) => orderDetail.productClassification
+  )
+  orderDetails: OrderDetail[];
 
   @Column({
     type: "enum",
