@@ -15,6 +15,7 @@ import { BaseEntity } from "./base.entity";
 import { PreOrderProduct } from "./preOrderProduct.entity";
 import { ProductDiscount } from "./productDiscount.entity";
 import { GroupProduct } from "./groupProduct.entity";
+import { File } from "./file.entity";
 
 @Entity("products")
 export class Product extends BaseEntity {
@@ -38,8 +39,10 @@ export class Product extends BaseEntity {
   @Column({ type: "varchar", nullable: true, default: null })
   sku: string;
 
-  @Column({ type: "varchar", nullable: true })
-  certificate: string;
+  @OneToMany(() => File, (certificate) => certificate.product, {
+    cascade: true,
+  })
+  certificates: File[];
 
   @OneToMany(
     () => ProductClassification,

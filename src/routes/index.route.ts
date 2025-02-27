@@ -26,6 +26,7 @@ import serviceBookingFormRouter from "./serviceBookingForm.route";
 import feedbackRouter from "./feedback.route";
 import consultationCriteriaSectionRouter from "./consultationCriteriaSection.route";
 import questionRouter from "./question.route";
+import masterConfigRouter from "./masterConfig.route";
 
 const router = express.Router();
 router.use("/accounts", accountRouter);
@@ -58,4 +59,5 @@ router.use(
   consultationCriteriaSectionRouter
 );
 router.use("/feedbacks", feedbackRouter);
+router.use("/master-config", masterConfigRouter);
 export default router;

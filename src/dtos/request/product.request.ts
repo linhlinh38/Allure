@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ProductClassificationCreateSchema } from "./productClassification.request";
 import { ProductImageCreateSchema } from "./productImage.request";
+import { FileCreateSchema } from "./file.request";
 
 export const ProductCreateSchema = z.object({
   body: z.object({
@@ -14,7 +15,7 @@ export const ProductCreateSchema = z.object({
       .array(ProductClassificationCreateSchema.shape.body)
       .optional(),
     images: z.array(ProductImageCreateSchema.shape.body).optional(),
-    certificate: z.string(),
+    certificates: z.array(FileCreateSchema.shape.body).optional(),
   }),
 });
 

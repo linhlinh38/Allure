@@ -20,13 +20,7 @@ export const BrandCreateSchema = z.object({
       .max(255, "Description cannot exceed 255 characters")
       .optional(),
     email: z.string().email("Invalid email address"),
-    phone: z
-      .string()
-      .regex(
-        /^([+]?[\s0-9]+)?(\d{3}|[(]?[0-9]+[)])?([-]?[\s]?[0-9])+$/,
-        "Phone must be a string with 10 to 15 digits"
-      )
-      .optional(),
+    phone: z.string().optional(),
     address: z
       .string()
       .max(255, "Address cannot exceed 255 characters")
@@ -69,6 +63,7 @@ export class BrandRequest {
   @Expose()
   logo: string;
 
+  @Expose()
   documents: string[];
 
   @Expose()
