@@ -94,7 +94,7 @@ class BookingService extends BaseService<Booking> {
     const booking = bookings[0];
     if (!booking) throw new BadRequestError('Booking not found');
     if (
-      booking.startTime.getTime() >= Date.now() &&
+      booking.startTime.getTime() <= Date.now() &&
       booking.status == BookingStatusEnum.WAIT_FOR_CONFIRMATION
     ) {
       booking.status = BookingStatusEnum.CANCELLED;
