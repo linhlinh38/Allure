@@ -41,7 +41,7 @@ interface ProductFilter {
 }
 
 class ProductService extends BaseService<Product> {
-  async recommendProducts(
+  async getProducts(
     paging: Paging,
     recommendProductsRequest: RecommendProductsRequest
   ) {
@@ -49,7 +49,7 @@ class ProductService extends BaseService<Product> {
       ? `AND (p.name ILIKE '%${recommendProductsRequest.search}%' OR p.sku ILIKE '%${recommendProductsRequest.search}%' OR p.description ILIKE '%${recommendProductsRequest.search}%')`
       : '';
     let orderBy = 'total_sales ASC';
-    
+
     if (recommendProductsRequest.tag) {
       switch (recommendProductsRequest.tag) {
         case ProductTagEnum.BEST_SELLER:

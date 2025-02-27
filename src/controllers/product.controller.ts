@@ -8,11 +8,7 @@ import { Paging } from '../dtos/other/paging.dto';
 import { plainToInstance } from 'class-transformer';
 import { RecommendProductsRequest } from '../dtos/request/product.request';
 export default class ProductController {
-  static async recommendProducts(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) {
+  static async getProducts(req: Request, res: Response, next: NextFunction) {
     const paging = {
       page: Number(req.query.page) ? Number(req.query.page) : 1,
       limit: Number(req.query.limit) ? Number(req.query.limit) : 10,
@@ -28,7 +24,7 @@ export default class ProductController {
       return createNormalResponse(
         res,
         'Get products success',
-        await productService.recommendProducts(paging, recommendProductsRequest)
+        await productService.getProducts(paging, recommendProductsRequest)
       );
     } catch (err) {
       next(err);
