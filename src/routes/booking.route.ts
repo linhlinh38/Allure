@@ -5,6 +5,7 @@ import validate from '../utils/validate';
 import {
   BookingCreateSchema,
   BookingUpdateStatusSchema,
+  GetAvailableSlotsSchema,
 } from '../dtos/request/booking.request';
 const bookingRoute = express.Router();
 
@@ -26,8 +27,9 @@ bookingRoute.get(
   '/get-status-booking-interview',
   BookingController.getStatusBookingInterview
 );
-bookingRoute.get(
+bookingRoute.post(
   '/get-available-slots-for-interview',
+  validate(GetAvailableSlotsSchema),
   BookingController.getAvailableSlotsForInterview
 );
 export default bookingRoute;
