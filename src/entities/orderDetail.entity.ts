@@ -73,6 +73,7 @@ export class OrderDetail extends BaseEntity {
   @ManyToOne(() => Order, (order) => order.orderDetails, {
     nullable: true,
   })
+  @JoinColumn({ name: 'order_id' })
   order: Order;
 
   @OneToOne(() => Feedback, (feedback) => feedback.orderDetail, {

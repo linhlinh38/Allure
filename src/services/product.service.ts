@@ -11,6 +11,7 @@ import {
   ProductDiscountEnum,
   ProductEnum,
   ProductTagEnum,
+  ShippingStatusEnum,
   StatusEnum,
 } from '../utils/enum';
 import { BaseService } from './base.service';
@@ -93,8 +94,10 @@ class ProductService extends BaseService<Product> {
           COUNT(fb.id) AS total_ratings,
           AVG(fb.rating) AS average_rating
         FROM order_details od
+        JOIN orders o ON od.order_id = o.id
         JOIN product_classifications pc1 ON od."product_classification_id" = pc1.id
         LEFT JOIN feedbacks fb ON fb.id = od.feedback_id
+        WHERE o.status NOT IN ('${ShippingStatusEnum.CANCELLED}', '${ShippingStatusEnum.TO_PAY}', '${ShippingStatusEnum.JOIN_GROUP_BUYING}')
         GROUP BY pc1.product_id
 
         UNION ALL
@@ -107,9 +110,11 @@ class ProductService extends BaseService<Product> {
           COUNT(fb.id) AS total_ratings,
           AVG(fb.rating) AS average_rating
         FROM order_details od
+        JOIN orders o ON od.order_id = o.id
         JOIN product_classifications pc2 ON od."product_classification_id" = pc2.id
         JOIN product_discounts pd ON pc2.product_discount_id = pd.id
         LEFT JOIN feedbacks fb ON fb.id = od.feedback_id
+        WHERE o.status NOT IN ('${ShippingStatusEnum.CANCELLED}', '${ShippingStatusEnum.TO_PAY}', '${ShippingStatusEnum.JOIN_GROUP_BUYING}')
         GROUP BY pd.product_id
 
         UNION ALL
@@ -122,9 +127,11 @@ class ProductService extends BaseService<Product> {
           COUNT(fb.id) AS total_ratings,
           AVG(fb.rating) AS average_rating
         FROM order_details od
+        JOIN orders o ON od.order_id = o.id
         JOIN product_classifications pc3 ON od."product_classification_id" = pc3.id
         JOIN pre_order_products pp ON pc3.pre_order_product_id = pp.id
         LEFT JOIN feedbacks fb ON fb.id = od.feedback_id
+        WHERE o.status NOT IN ('${ShippingStatusEnum.CANCELLED}', '${ShippingStatusEnum.TO_PAY}', '${ShippingStatusEnum.JOIN_GROUP_BUYING}')
         GROUP BY pp.product_id
       ) AS sales ON pc.product_id = sales.product_id
       WHERE TRUE ${searchCondition}
@@ -132,6 +139,7 @@ class ProductService extends BaseService<Product> {
       ORDER BY ${orderBy}
       LIMIT ${limit} OFFSET ${offset};
     `;
+
     const totalResult = await orderDetailRepository.query(rawTotalQuery);
     const total = totalResult[0]?.total || 0;
     const totalPages = Math.ceil(total / paging.limit);

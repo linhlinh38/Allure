@@ -10,6 +10,10 @@ productDiscountRouter.get(
   ProductDiscountController.getProductDiscountActiveOfBrand
 );
 productDiscountRouter.get(
+  '/get-sold-amount/:id',
+  ProductDiscountController.getSoldAmount
+);
+productDiscountRouter.get(
   "/get-product-discount-of-brand/:brandId",
   ProductDiscountController.getProductDiscountOfBrand
 );
