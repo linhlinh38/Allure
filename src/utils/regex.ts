@@ -1,1 +1,1 @@
-export const regexFile = /jpeg|jpg|png|doc|docx|pdf|mp4|mov|avi|mkv|wmv|flv/;
+export const regexFile = /jpeg|jpg|png|doc|docx|pdf|xls|xlsx|mp4|mov|avi|mkv|wmv|flv/;
