@@ -97,6 +97,7 @@ export class Order extends BaseEntity {
   account: Account;
 
   @ManyToOne(() => Order, (order) => order.children, { nullable: true })
+  @JoinColumn({ name: 'parent_id' })
   parent: Order;
 
   @ManyToOne(() => Brand, (brand) => brand.orders, { nullable: true })
