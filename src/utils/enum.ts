@@ -202,3 +202,9 @@ export enum FeedbackFilterEnum {
   IMAGE_VIDEO = "IMAGE_VIDEO",
   CLASSIFICATION = "CLASSIFICATION",
 }
+
+export enum ProductTagEnum {
+  BEST_SELLER = 'BEST_SELLER',
+  HOT = 'HOT',
+  NEW = 'NEW'
+}
