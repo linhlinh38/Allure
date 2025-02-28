@@ -12,7 +12,6 @@ import {
   OrderEnum,
   PaymentMethodEnum,
   ShippingStatusEnum,
-  StatusEnum,
 } from '../utils/enum';
 import { GroupBuying } from './groupBuying.entity';
 import { LiveStream } from './livestream.entity';
@@ -99,6 +98,7 @@ export class Order extends BaseEntity {
   @ManyToOne(() => Order, (order) => order.children, { nullable: true })
   @JoinColumn({ name: 'parent_id' })
   parent: Order;
+  
 
   @ManyToOne(() => Brand, (brand) => brand.orders, { nullable: true })
   @JoinColumn({ name: 'brand_id' })
