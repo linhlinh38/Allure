@@ -16,10 +16,10 @@ export class Booking extends BaseEntity {
   @Column({ type: "double precision", default: 0 })
   totalPrice: number;
 
-  @Column({ type: "timestamp", name: "start_time" })
+  @Column({ type: "timestamp", name: "start_time", nullable: true })
   startTime: Date;
 
-  @Column({ type: "timestamp", name: "end_time" })
+  @Column({ type: "timestamp", name: "end_time", nullable: true })
   endTime: Date;
 
   @Column({ type: "double precision", default: 0, name: "voucher_discount" })
