@@ -32,7 +32,7 @@ import { addressRepository } from '../repositories/address.repository';
 import { orderRepository } from '../repositories/order.repository';
 import { cartRepository } from '../repositories/cart.repository';
 import { VoucherWallet } from '../entities/voucherWallet.entity';
-import nextShippingStatusMap from '../utils/util';
+import { nextShippingStatusMap } from '../utils/nextStatusMap';
 import { StatusTracking } from '../entities/statusTracking.entity';
 import { Account } from '../entities/account.entity';
 import { voucherWalletRepository } from '../repositories/voucherWallet.reposirory';
@@ -170,9 +170,8 @@ class OrderService extends BaseService<Order> {
         return fileEntity;
       }
     );
-    const createdRefundRequestEntity = await refundRequestRepository.save(
-      createdRefundRequest
-    );
+    const createdRefundRequestEntity =
+      await refundRequestRepository.save(createdRefundRequest);
     await addRefundRequestToQueue(createdRefundRequestEntity.id);
   }
   async getCancelRequestById(requestId: string) {
