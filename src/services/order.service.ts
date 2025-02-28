@@ -375,6 +375,7 @@ class OrderService extends BaseService<Order> {
       where: { id: orderId },
       relations: {
         orderDetails: {
+          feedback: true,
           productClassification: {
             images: true,
             product: { brand: true, images: true },
@@ -739,6 +740,7 @@ class OrderService extends BaseService<Order> {
       relations: {
         account: true,
         orderDetails: {
+          feedback: true,
           productClassification: {
             images: true,
             product: { brand: true, images: true },
@@ -852,6 +854,7 @@ class OrderService extends BaseService<Order> {
       relations: {
         account: true,
         orderDetails: {
+          feedback: true,
           productClassification: { product: true, images: true },
         },
         voucher: true,
