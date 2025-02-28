@@ -208,3 +208,8 @@ export enum ProductTagEnum {
   HOT = 'HOT',
   NEW = 'NEW'
 }
+
+export enum StatisticsTimeEnum {
+  ALL_TIME = 'ALL_TIME',
+  SPECIFIC_TIME = 'SPECIFIC_TIME',
+}
