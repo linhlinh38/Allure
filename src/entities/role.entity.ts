@@ -6,24 +6,24 @@ import {
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
-} from "typeorm";
-import { BaseEntity } from "./base.entity";
+} from 'typeorm';
+import { BaseEntity } from './base.entity';
 import {
   AddressEnum,
   FileEnum,
   GenderEnum,
   RoleEnum,
   StatusEnum,
-} from "../utils/enum";
-import { Account } from "./account.entity";
+} from '../utils/enum';
+import { Account } from './account.entity';
 
-@Entity("roles")
+@Entity('roles')
 export class Role extends BaseEntity {
-  @Column({ type: "varchar", length: 100 })
-  role: string;
+  @Column({ type: 'enum', enum: RoleEnum, default: RoleEnum.CUSTOMER })
+  role: RoleEnum;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: StatusEnum,
     default: StatusEnum.ACTIVE,
   })

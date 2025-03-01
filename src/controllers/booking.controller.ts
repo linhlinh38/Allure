@@ -7,6 +7,17 @@ import { plainToInstance } from 'class-transformer';
 import { BookingRequest } from '../dtos/request/booking.request';
 import { BookingStatusEnum } from '../utils/enum';
 export default class BookingController {
+  static async getBookingInterviews(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(res, 'Get booking interviews successfully', await bookingService.getBookingInterviews(req.loginUser));
+    } catch (err) {
+      next(err);
+    }
+  }
   static async updateStatus(
     req: AuthRequest,
     res: Response,

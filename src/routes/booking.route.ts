@@ -11,6 +11,10 @@ const bookingRoute = express.Router();
 
 bookingRoute.use(authentication);
 bookingRoute.get('/', BookingController.getAll);
+bookingRoute.get(
+  '/get-booking-interviews',
+  BookingController.getBookingInterviews
+);
 bookingRoute.post('/', validate(BookingCreateSchema), BookingController.create);
 bookingRoute.put('/:id', BookingController.update);
 bookingRoute.put(

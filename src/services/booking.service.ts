@@ -6,11 +6,49 @@ import { Booking } from '../entities/booking.entity';
 import { BadRequestError } from '../errors/error';
 import { bookingRepository } from '../repositories/booking.repository';
 import { slotRepository } from '../repositories/slot.repository';
-import { BookingStatusEnum, BookingTypeEnum } from '../utils/enum';
+import { BookingStatusEnum, BookingTypeEnum, RoleEnum } from '../utils/enum';
 import { BaseService } from './base.service';
+import { accountRepository } from '../repositories/account.repository';
 
 const repository = AppDataSource.getRepository(Booking);
 class BookingService extends BaseService<Booking> {
+  async getBookingInterviews(loginUser: string) {
+    const account = await accountRepository.findOne({
+      where: {
+        id: loginUser,
+      },
+      relations: {
+        role: true,
+        brands: true,
+      },
+    });
+    if (
+      account.role.role == RoleEnum.ADMIN ||
+      account.role.role == RoleEnum.OPERATOR
+    ) {
+      return await bookingRepository.find({
+        where: {
+          type: BookingTypeEnum.INTERVIEW,
+          slot: true,
+        },
+        order: {
+          createdAt: 'DESC',
+        },
+      });
+    } else if (account.role.role == RoleEnum.MANAGER) {
+      return await bookingRepository.find({
+        where: {
+          type: BookingTypeEnum.INTERVIEW,
+          account: { id: loginUser },
+          slot: true,
+        },
+        order: {
+          createdAt: 'DESC',
+        },
+      });
+    }
+    return [];
+  }
   async getAvailableSlotsForInterview(startDate: Date, endDate: Date) {
     startDate = new Date(startDate);
     endDate = new Date(endDate);
