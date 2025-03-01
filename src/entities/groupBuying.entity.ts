@@ -10,15 +10,11 @@ import { BaseEntity } from "./base.entity";
 import { StatusEnum } from "../utils/enum";
 import { Account } from "./account.entity";
 import { Order } from "./order.entity";
-import { GroupBuyingCriteria } from "./groupBuyingCriteria.entity";
 import { GroupProduct } from "./groupProduct.entity";
 import { CartItem } from "./cartItem.entity";
 
 @Entity('group_buyings')
 export class GroupBuying extends BaseEntity {
-  @Column({ type: 'timestamp' })
-  startTime: Date;
-
   @Column({ type: 'timestamp' })
   endTime: Date;
 

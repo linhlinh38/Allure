@@ -6,6 +6,7 @@ import {
   GroupProductUpdateSchema,
 } from '../dtos/request/groupProduct.request';
 import validate from '../utils/validate';
+import { GroupBuyingCreateSchema } from '../dtos/request/groupBuying.request';
 
 const groupProductRouter = express.Router();
 groupProductRouter.get('/', GroupProductController.getAll);
@@ -37,7 +38,11 @@ groupProductRouter.post(
   '/toggle-status/:groupProductId',
   GroupProductController.toggleStatus
 );
-groupProductRouter.post('/start-event', GroupProductController.startEvent);
+groupProductRouter.post(
+  '/start-event',
+  validate(GroupBuyingCreateSchema),
+  GroupProductController.startEvent
+);
 groupProductRouter.get(
   '/is-in-any-events/:groupProductId',
   GroupProductController.isInAnyEvents
