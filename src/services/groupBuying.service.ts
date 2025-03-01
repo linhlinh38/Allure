@@ -23,12 +23,11 @@ import { Transaction } from '../entities/transaction.entity';
 import { transactionService } from './transaction.service';
 import { addGroupBuyingToQueue } from '../utils/queue/endGrBuyingQueue';
 import Logging from '../utils/Logging';
+import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
 
 const repository = AppDataSource.getRepository(GroupBuying);
 class GroupBuyingService extends BaseService<GroupBuying> {
   async startToEnd(groupBuyingId: string, loginUser: string) {
-    console.log(loginUser);
-    
     const groupBuying = await groupBuyingRepository.findOne({
       where: {
         id: groupBuyingId,
@@ -39,14 +38,12 @@ class GroupBuyingService extends BaseService<GroupBuying> {
         groupProduct: true,
       },
     });
-    console.log(groupBuying.creator);
-    
     if (!groupBuying) throw new BadRequestError('GroupBuying not found');
     if (loginUser != groupBuying.creator.id)
       throw new BadRequestError('Only creator can start to end group buying');
     if (groupBuying.endTime < new Date())
       throw new BadRequestError('Group buying has ended');
-    const masterConfig = await masterConfigRepository.findOne({});
+    const masterConfig = await retrieveMasterConfig();
     //nhỏ hơn groupBuyingRemainingTime
     if (
       groupBuying.endTime.getTime() - Date.now() <
