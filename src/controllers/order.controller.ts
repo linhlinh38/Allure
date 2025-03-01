@@ -115,7 +115,8 @@ export default class OrderController {
     try {
       let isApproved = await orderService.makeDecisionOnRequest(
         req.params.requestId,
-        req.body.status
+        req.body.status,
+        req.body.reasonRejected
       );
       return createNormalResponse(
         res,
