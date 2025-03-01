@@ -604,6 +604,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       const orders = await orderRepository.find({
         where: { groupBuying: { id: groupBuyingId }, parent: Not(IsNull()) },
         relations: {
+          account: true,
           parent: {
             account: true,
             children: {
