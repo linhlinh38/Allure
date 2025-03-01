@@ -5,6 +5,7 @@ import { orderService } from '../../services/order.service';
 import { RequestStatusEnum, ShippingStatusEnum } from '../enum';
 import { retrieveMasterConfig } from '../retrieveMasterConfig';
 import { refundRequestRepository } from '../../repositories/refundRequest.repository';
+import Logging from '../Logging';
 
 export const approveRefundRequestQueue = new Queue(
   'approveRefundRequestQueue',
@@ -63,7 +64,7 @@ const approveRefundRequestQueueWorker = new Worker(
       await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      throw error;
+      Logging.error(error);
     } finally {
       await queryRunner.release();
     }

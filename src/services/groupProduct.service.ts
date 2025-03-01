@@ -105,6 +105,8 @@ class GroupProductService extends BaseService<GroupProduct> {
     const newGroupBuying = new GroupBuying();
     newGroupBuying.startTime = new Date(groupBuyingBody.startTime);
     newGroupBuying.endTime = new Date(groupBuyingBody.endTime);
+    if (newGroupBuying.endTime.getTime() < Date.now())
+      throw new BadRequestError('End time must after current time');
     const creator = await accountRepository.findOne({
       where: { id: loginUser },
     });
@@ -113,8 +115,7 @@ class GroupProductService extends BaseService<GroupProduct> {
     const createdGroupBuying = await groupBuyingRepository.save(newGroupBuying);
     await addGroupBuyingToQueue(
       createdGroupBuying.id,
-      createdGroupBuying.endTime.getTime() -
-        createdGroupBuying.startTime.getTime()
+      createdGroupBuying.endTime.getTime() - Date.now()
     );
     return createdGroupBuying;
   }
