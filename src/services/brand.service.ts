@@ -13,10 +13,16 @@ import {
   BrandRequest,
   BrandUpdateStatusRequest,
 } from '../dtos/request/brand.request';
-import { BrandStatusEnum, FileEnum, StatusEnum } from '../utils/enum';
+import {
+  BookingStatusEnum,
+  BrandStatusEnum,
+  FileEnum,
+  StatusEnum,
+} from '../utils/enum';
 import { brandStatusTrackingRepository } from '../repositories/brandStatusTracking.repository';
 import { File } from '../entities/file.entity';
 import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
+import { bookingRepository } from '../repositories/booking.repository';
 
 const repository = AppDataSource.getRepository(Brand);
 class BrandService extends BaseService<Brand> {
@@ -80,6 +86,23 @@ class BrandService extends BaseService<Brand> {
           );
         }
         brand.currentUpdateProfileTime++;
+      }
+      if (brandUpdateStatusRequest.status == BrandStatusEnum.DONE_MEETING) {
+        const bookings = await bookingRepository.find({
+          where: {
+            account,
+            status: BookingStatusEnum.BOOKING_CONFIRMED,
+          },
+          order: {
+            createdAt: 'DESC',
+          },
+        });
+        const booking = bookings.length > 0 && bookings[0];
+        if (!booking) {
+          throw new BadRequestError('No booking found');
+        }
+        booking.status = BookingStatusEnum.COMPLETED;
+        await bookingRepository.save(booking);
       }
       brand.status = brandUpdateStatusRequest.status;
       await queryRunner.manager.save(Brand, brand);
