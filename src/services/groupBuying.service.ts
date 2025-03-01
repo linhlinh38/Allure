@@ -606,7 +606,12 @@ class GroupBuyingService extends BaseService<GroupBuying> {
         relations: {
           parent: {
             account: true,
-            children: true,
+            children: {
+              orderDetails: {
+                productClassification: { product: true, images: true },
+              },
+              account: true
+            },
           },
           orderDetails: {
             productClassification: { product: true, images: true },
@@ -672,7 +677,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
                   ShippingStatusEnum.WAIT_FOR_CONFIRMATION
                 );
               await queryRunner.manager.save(StatusTracking, statusTrackings);
-              await queryRunner.manager.save(Order, [order, order.parent]);
+              await queryRunner.manager.save(Order, order.parent);
               //create transaction
               const transaction =
                 transactionService.createTransactionFromOrderGroupBuying(
