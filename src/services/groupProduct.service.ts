@@ -103,7 +103,6 @@ class GroupProductService extends BaseService<GroupProduct> {
     });
     if (!groupProduct) throw new BadRequestError('Group product not found');
     const newGroupBuying = new GroupBuying();
-    newGroupBuying.startTime = new Date(groupBuyingBody.startTime);
     newGroupBuying.endTime = new Date(groupBuyingBody.endTime);
     if (newGroupBuying.endTime.getTime() < Date.now())
       throw new BadRequestError('End time must after current time');
@@ -126,7 +125,6 @@ class GroupProductService extends BaseService<GroupProduct> {
     const groupBuying = await groupBuyingRepository.findOne({
       where: {
         groupProduct: { id: groupProductId },
-        startTime: LessThanOrEqual(currentTime),
         endTime: MoreThanOrEqual(currentTime),
         status: StatusEnum.ACTIVE,
       },
