@@ -19,6 +19,7 @@ groupBuyingRouter.get(
   '/get-by-id/:groupBuyingId',
   GroupBuyingController.getById
 );
+groupBuyingRouter.use(authentication);
 groupBuyingRouter.post(
   '/update-order/:orderId',
   validate(GroupBuyingJoinEventSchema),
@@ -32,7 +33,6 @@ groupBuyingRouter.post(
   '/start-to-end/:groupBuyingId',
   GroupBuyingController.startToEnd
 );
-groupBuyingRouter.use(authentication);
 groupBuyingRouter.post(
   '/buy/:groupBuyingId',
   validate(GroupBuyingJoinEventSchema),

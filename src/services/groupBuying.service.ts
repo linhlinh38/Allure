@@ -27,6 +27,8 @@ import Logging from '../utils/Logging';
 const repository = AppDataSource.getRepository(GroupBuying);
 class GroupBuyingService extends BaseService<GroupBuying> {
   async startToEnd(groupBuyingId: string, loginUser: string) {
+    console.log(loginUser);
+    
     const groupBuying = await groupBuyingRepository.findOne({
       where: {
         id: groupBuyingId,
@@ -37,6 +39,8 @@ class GroupBuyingService extends BaseService<GroupBuying> {
         groupProduct: true,
       },
     });
+    console.log(groupBuying.creator);
+    
     if (!groupBuying) throw new BadRequestError('GroupBuying not found');
     if (loginUser != groupBuying.creator.id)
       throw new BadRequestError('Only creator can start to end group buying');
