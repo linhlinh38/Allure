@@ -1,5 +1,6 @@
 import { Queue, Worker } from 'bullmq';
 import { groupBuyingService } from '../../services/groupBuying.service';
+import Logging from '../Logging';
 
 export const endGrBuyingQueue = new Queue('endGrBuyingQueue', {
   connection: { host: 'localhost', port: 6379 },
@@ -19,9 +20,18 @@ export async function addGroupBuyingToQueue(
 const endGrBuyingQueueWorker = new Worker(
   'endGrBuyingQueue',
   async (job) => {
-    const { groupBuyingId } = job.data;
-    console.log(`⏳ Kiểm tra trạng thái groupBuying ${groupBuyingId}...`);
-    await groupBuyingService.endGroupBuying(groupBuyingId);
+    try {
+      const { groupBuyingId } = job.data;
+      console.log(`⏳ Kiểm tra trạng thái groupBuying ${groupBuyingId}...`);
+      const isEventEndSuccess = await groupBuyingService.endGroupBuying(groupBuyingId);
+      Logging.warning(
+        !isEventEndSuccess
+          ? 'Group buyings can not meet criteria. Cancel all orders'
+          : 'End group buying success'
+      );
+    } catch (err) {
+      Logging.error(err);
+    }
   },
   {
     connection: { host: 'localhost', port: 6379 },

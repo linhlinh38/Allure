@@ -1,10 +1,10 @@
-import { Queue, Worker } from "bullmq";
-import { AppDataSource } from "../../dataSource";
-import { orderRepository } from "../../repositories/order.repository";
-import { orderService } from "../../services/order.service";
-import { ShippingStatusEnum } from "../enum";
-import { retrieveMasterConfig } from "../retrieveMasterConfig";
-
+import { Queue, Worker } from 'bullmq';
+import { AppDataSource } from '../../dataSource';
+import { orderRepository } from '../../repositories/order.repository';
+import { orderService } from '../../services/order.service';
+import { ShippingStatusEnum } from '../enum';
+import { retrieveMasterConfig } from '../retrieveMasterConfig';
+import Logging from '../Logging';
 
 export const cancelOrderQueue = new Queue('cancelOrderQueue', {
   connection: { host: 'localhost', port: 6379 },
@@ -61,7 +61,7 @@ const cancelOrderQueueWorker = new Worker(
       await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      throw error;
+      Logging.error(error);
     } finally {
       await queryRunner.release();
     }
