@@ -55,7 +55,8 @@ const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
   async makeDecisionOnRefundRequest(
     requestId: string,
-    status: RequestStatusEnum
+    status: RequestStatusEnum,
+    reasonRejected: string
   ) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
@@ -74,7 +75,10 @@ class OrderService extends BaseService<Order> {
       if (refundRequest.status != RequestStatusEnum.PENDING)
         throw new BadRequestError('Request has already been processed');
       if (status === RequestStatusEnum.REJECTED) {
+        if (!reasonRejected)
+          throw new BadRequestError('Reason Rejected required when rejected');
         refundRequest.status = status;
+        refundRequest.reasonRejected = reasonRejected;
         await queryRunner.manager.save(RefundRequest, refundRequest);
         isApproved = false;
       } else if (status === RequestStatusEnum.APPROVED) {
@@ -257,7 +261,11 @@ class OrderService extends BaseService<Order> {
     return cancelRequests;
   }
 
-  async makeDecisionOnRequest(requestId: string, status: RequestStatusEnum) {
+  async makeDecisionOnRequest(
+    requestId: string,
+    status: RequestStatusEnum,
+    reasonRejected: string
+  ) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -273,7 +281,10 @@ class OrderService extends BaseService<Order> {
       });
       if (!cancelOrderRequest) throw new BadRequestError('Request not found');
       if (status === RequestStatusEnum.REJECTED) {
+        if (!reasonRejected)
+          throw new BadRequestError('Reason Rejected required when rejected');
         cancelOrderRequest.status = status;
+        cancelOrderRequest.reasonRejected = reasonRejected;
         await queryRunner.manager.save(CancelOrderRequest, cancelOrderRequest);
         isApproved = false;
       } else if (status === RequestStatusEnum.APPROVED) {

@@ -18,6 +18,9 @@ export class RefundRequest extends BaseEntity {
   })
   mediaFiles: MediaFile[];
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  reasonRejected: string;
+
   @Column({
     type: 'enum',
     enum: RequestStatusEnum,
