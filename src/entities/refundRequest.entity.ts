@@ -18,7 +18,12 @@ export class RefundRequest extends BaseEntity {
   })
   mediaFiles: MediaFile[];
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+    name: 'reason_rejected',
+  })
   reasonRejected: string;
 
   @Column({
