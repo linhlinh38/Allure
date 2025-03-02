@@ -1,9 +1,10 @@
 import { Queue, Worker } from 'bullmq';
 import { groupBuyingService } from '../../services/groupBuying.service';
 import Logging from '../Logging';
+import { connection } from './connection';
 
 export const endGrBuyingQueue = new Queue('endGrBuyingQueue', {
-  connection: { host: 'localhost', port: 6379 },
+  connection,
 });
 
 export async function addGroupBuyingToQueue(
