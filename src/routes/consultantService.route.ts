@@ -33,7 +33,7 @@ consultantServiceRouter.put(
   consultantServiceController.update
 );
 consultantServiceRouter.put(
-  "/update-status/:id/:status",
+  "/update-status/:id",
   consultantServiceController.updateStatus
 );
 export default consultantServiceRouter;
