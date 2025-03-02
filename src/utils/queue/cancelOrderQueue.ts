@@ -5,9 +5,10 @@ import { orderService } from '../../services/order.service';
 import { ShippingStatusEnum } from '../enum';
 import { retrieveMasterConfig } from '../retrieveMasterConfig';
 import Logging from '../Logging';
+import { connection } from './connection';
 
 export const cancelOrderQueue = new Queue('cancelOrderQueue', {
-  connection: { host: 'localhost', port: 6379 },
+  connection,
 });
 
 export async function addNormalOrderToQueue(orderId: string) {

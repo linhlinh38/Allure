@@ -6,11 +6,12 @@ import { RequestStatusEnum, ShippingStatusEnum } from '../enum';
 import { retrieveMasterConfig } from '../retrieveMasterConfig';
 import { refundRequestRepository } from '../../repositories/refundRequest.repository';
 import Logging from '../Logging';
+import { connection } from './connection';
 
 export const approveRefundRequestQueue = new Queue(
   'approveRefundRequestQueue',
   {
-    connection: { host: 'localhost', port: 6379 },
+    connection,
   }
 );
 
