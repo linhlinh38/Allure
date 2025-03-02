@@ -21,7 +21,6 @@ import { ProductImage } from '../entities/productImage.entity';
 import { PreOrderProduct } from '../entities/preOrderProduct.entity';
 import { ProductDiscount } from '../entities/productDiscount.entity';
 import { File } from '../entities/file.entity';
-import { ParsedQs } from 'qs';
 import { Paging } from '../dtos/other/paging.dto';
 import { orderDetailRepository } from '../repositories/orderDetail.repository';
 import { RecommendProductsRequest } from '../dtos/request/product.request';

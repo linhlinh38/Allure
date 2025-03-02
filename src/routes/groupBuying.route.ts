@@ -12,14 +12,14 @@ groupBuyingRouter.post(
   GroupBuyingController.getByBrand
 );
 groupBuyingRouter.get(
-  '/get-order/:groupBuyingId',
-  GroupBuyingController.getOrderByGroupBuyingId
-);
-groupBuyingRouter.get(
   '/get-by-id/:groupBuyingId',
   GroupBuyingController.getById
 );
 groupBuyingRouter.use(authentication);
+groupBuyingRouter.get(
+  '/get-order/:groupBuyingId',
+  GroupBuyingController.getOrderByGroupBuyingId
+);
 groupBuyingRouter.post(
   '/update-order/:orderId',
   validate(GroupBuyingJoinEventSchema),
