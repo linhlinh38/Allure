@@ -53,7 +53,7 @@ class ReportService extends BaseService<Report> {
       },
     });
     if (!report) throw new BadRequestError(`Report not found`);
-    if (report.assignee.id != loginUser)
+    if (!report.assignee || report.assignee.id != loginUser)
       throw new BadRequestError('Only assignee can note result');
     report.resultNote = resultNote;
     await repository.save(report);
@@ -67,8 +67,14 @@ class ReportService extends BaseService<Report> {
   }
 
   async assign(reportId: string, assigneeId: string) {
-    const report = await repository.findOneBy({ id: reportId });
+    const report = await repository.findOne({
+      where: { id: reportId },
+      relations: {
+        assignee: true,
+      },
+    });
     if (!report) throw new BadRequestError(`Report not found`);
+    if (report.assignee?.id == assigneeId) return;
     const assignee = await accountRepository.findOneBy({ id: assigneeId });
     if (!assignee) throw new BadRequestError(`Assignee not found`);
     report.assignee = assignee;

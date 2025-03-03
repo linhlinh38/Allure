@@ -1,4 +1,4 @@
-import { In, LessThanOrEqual, MoreThanOrEqual, Not } from 'typeorm';
+import { In, MoreThanOrEqual, Not } from 'typeorm';
 import { AppDataSource } from '../dataSource';
 import {
   GroupProductCreateRequest,
