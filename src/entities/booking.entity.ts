@@ -67,7 +67,15 @@ export class Booking extends BaseEntity {
   slot: Slot;
 
   @ManyToOne(() => Account, (account) => account.bookings)
+  @JoinColumn({ name: 'account_id' })
   account: Account;
+
+  @ManyToOne(() => Account, {nullable: true})
+  @JoinColumn({ name: 'assignee_to_interview_id' })
+  assigneeToInterview: Account;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  resultNote: string;
 
   @ManyToOne(() => ConsultantService, (service) => service.bookings, {
     nullable: true,

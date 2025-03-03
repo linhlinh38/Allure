@@ -1,4 +1,4 @@
-import { Between } from 'typeorm';
+import { Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { AppDataSource } from '../dataSource';
 import { BookingRequest } from '../dtos/request/booking.request';
 import { Account } from '../entities/account.entity';
@@ -12,6 +12,45 @@ import { accountRepository } from '../repositories/account.repository';
 
 const repository = AppDataSource.getRepository(Booking);
 class BookingService extends BaseService<Booking> {
+  async noteResult(id: string, resultNote: string, loginUser: string) {
+    const booking = await bookingRepository.findOne({
+      where: { id },
+      relations: {
+        assigneeToInterview: true,
+      },
+    });
+    if (!booking) throw new BadRequestError(`Booking not found`);
+    if (
+      !booking.assigneeToInterview ||
+      booking.assigneeToInterview.id != loginUser
+    )
+      throw new BadRequestError('Only assignee can note result');
+    booking.resultNote = resultNote;
+    await repository.save(booking);
+  }
+
+  async assignForInterview(id: string, assigneeId: string) {
+    const booking = await bookingRepository.findOne({
+      where: { id },
+      relations: {
+        assigneeToInterview: true
+      }
+    });
+    if (!booking) throw new BadRequestError('Booking not found');
+    if (booking.assigneeToInterview?.id == assigneeId) return;
+    const assignee = await accountRepository.findOneBy({ id: assigneeId });
+    if (!assignee) throw new BadRequestError(`Assignee not found`);
+    const existedBookingThatTime = await bookingRepository.findOne({
+      where: {
+        startTime: LessThanOrEqual(booking.endTime),
+        endTime: MoreThanOrEqual(booking.startTime),
+        assigneeToInterview: { id: assigneeId },
+      },
+    });
+    if (existedBookingThatTime) throw new BadRequestError('Overlap time slot');
+    booking.assigneeToInterview = { id: assigneeId } as Account;
+    await booking.save();
+  }
   async getBookingInterviews(loginUser: string) {
     const account = await accountRepository.findOne({
       where: {
@@ -22,14 +61,30 @@ class BookingService extends BaseService<Booking> {
         brands: true,
       },
     });
-    if (
-      account.role.role == RoleEnum.ADMIN ||
-      account.role.role == RoleEnum.OPERATOR
-    ) {
+    if (account.role.role == RoleEnum.ADMIN) {
       return await bookingRepository.find({
         where: {
           type: BookingTypeEnum.INTERVIEW,
+        },
+        relations: {
+          account: true,
           slot: true,
+          assigneeToInterview: true,
+        },
+        order: {
+          createdAt: 'DESC',
+        },
+      });
+    } else if (account.role.role == RoleEnum.OPERATOR) {
+      return await bookingRepository.find({
+        where: {
+          type: BookingTypeEnum.INTERVIEW,
+          assigneeToInterview: { id: loginUser },
+        },
+        relations: {
+          account: true,
+          slot: true,
+          assigneeToInterview: true,
         },
         order: {
           createdAt: 'DESC',
@@ -40,7 +95,11 @@ class BookingService extends BaseService<Booking> {
         where: {
           type: BookingTypeEnum.INTERVIEW,
           account: { id: loginUser },
+        },
+        relations: {
+          account: true,
           slot: true,
+          assigneeToInterview: true,
         },
         order: {
           createdAt: 'DESC',
