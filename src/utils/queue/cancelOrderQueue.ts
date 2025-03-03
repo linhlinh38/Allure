@@ -4,10 +4,11 @@ import { orderRepository } from "../../repositories/order.repository";
 import { orderService } from "../../services/order.service";
 import { ShippingStatusEnum } from "../enum";
 import { retrieveMasterConfig } from "../retrieveMasterConfig";
-import { config } from "../../configs/envConfig";
+import Logging from "../Logging";
+import { connection } from "./connection";
 
 export const cancelOrderQueue = new Queue("cancelOrderQueue", {
-  connection: { host: config.REDIS_HOST, port: config.REDIS_PORT },
+  connection,
 });
 
 export async function addNormalOrderToQueue(orderId: string) {
@@ -61,7 +62,7 @@ const cancelOrderQueueWorker = new Worker(
       await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      throw error;
+      Logging.error(error);
     } finally {
       await queryRunner.release();
     }

@@ -170,5 +170,47 @@ class ProductClassificationService extends BaseService<ProductClassification> {
       await queryRunner.release();
     }
   }
+
+  async updateClassificationsQuantity(
+    updates: { classificationId: string; quantity: number }[]
+  ): Promise<void> {
+    const queryRunner = AppDataSource.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      for (const update of updates) {
+        const classification = await queryRunner.manager.findOne(
+          ProductClassification,
+          {
+            where: { id: update.classificationId },
+          }
+        );
+
+        if (!classification) {
+          throw new BadRequestError("Classification invalid!");
+        }
+        if (update.quantity < 1) {
+          throw new BadRequestError(
+            "Classification quantity must be greater than 0!"
+          );
+        }
+        const { classificationId, quantity } = update;
+        await queryRunner.manager.update(
+          ProductClassification,
+          { id: classificationId },
+          { quantity }
+        );
+      }
+
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
 }
 export const productClassificationService = new ProductClassificationService();

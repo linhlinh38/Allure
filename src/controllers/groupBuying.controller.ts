@@ -65,13 +65,13 @@ export default class GroupBuyingController {
     res: Response,
     next: NextFunction
   ) {
-    const isEventEndSuccess = await groupBuyingService.endGroupBuying(
-      req.params.groupBuyingId
-    );
     try {
+      const isEventEndSuccess = await groupBuyingService.endGroupBuying(
+        req.params.groupBuyingId
+      );
       return createNormalResponse(
         res,
-        isEventEndSuccess
+        !isEventEndSuccess
           ? 'Group buyings can not meet criteria. Cancel all orders'
           : 'End group buying success'
       );

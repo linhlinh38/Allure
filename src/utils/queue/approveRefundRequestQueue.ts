@@ -5,12 +5,13 @@ import { orderService } from "../../services/order.service";
 import { RequestStatusEnum, ShippingStatusEnum } from "../enum";
 import { retrieveMasterConfig } from "../retrieveMasterConfig";
 import { refundRequestRepository } from "../../repositories/refundRequest.repository";
-import { config } from "../../configs/envConfig";
+import Logging from "../Logging";
+import { connection } from "./connection";
 
 export const approveRefundRequestQueue = new Queue(
   "approveRefundRequestQueue",
   {
-    connection: { host: config.REDIS_HOST, port: config.REDIS_PORT },
+    connection,
   }
 );
 
@@ -64,7 +65,7 @@ const approveRefundRequestQueueWorker = new Worker(
       await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      throw error;
+      Logging.error(error);
     } finally {
       await queryRunner.release();
     }

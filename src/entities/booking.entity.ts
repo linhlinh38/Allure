@@ -1,4 +1,11 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from "typeorm";
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  OneToOne,
+} from "typeorm";
 import { BaseEntity } from "./base.entity";
 import {
   BookingStatusEnum,
@@ -10,16 +17,17 @@ import { Account } from "./account.entity";
 import { StatusTracking } from "./statusTracking.entity";
 import { ConsultantService } from "./consultantService.entity";
 import { Slot } from "./slot.entity";
+import { Report } from "./report.entity";
 
 @Entity("bookings")
 export class Booking extends BaseEntity {
   @Column({ type: "double precision", default: 0 })
   totalPrice: number;
 
-  @Column({ type: "timestamp", name: "start_time", nullable: true })
+  @Column({ type: "timestamp", name: "start_time" })
   startTime: Date;
 
-  @Column({ type: "timestamp", name: "end_time", nullable: true })
+  @Column({ type: "timestamp", name: "end_time" })
   endTime: Date;
 
   @Column({ type: "double precision", default: 0, name: "voucher_discount" })
@@ -66,7 +74,15 @@ export class Booking extends BaseEntity {
   slot: Slot;
 
   @ManyToOne(() => Account, (account) => account.bookings)
+  @JoinColumn({ name: "account_id" })
   account: Account;
+
+  @ManyToOne(() => Account, { nullable: true })
+  @JoinColumn({ name: "assignee_to_interview_id" })
+  assigneeToInterview: Account;
+
+  @Column({ type: "varchar", length: 255, nullable: true })
+  resultNote: string;
 
   @ManyToOne(() => ConsultantService, (service) => service.bookings, {
     nullable: true,
@@ -75,4 +91,7 @@ export class Booking extends BaseEntity {
 
   @OneToMany(() => StatusTracking, (statusTracking) => statusTracking.booking)
   statusTrackings: StatusTracking[];
+
+  @OneToOne(() => Report, (report) => report.booking)
+  report: Report;
 }

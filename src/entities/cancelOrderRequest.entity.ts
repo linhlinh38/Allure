@@ -8,6 +8,14 @@ export class CancelOrderRequest extends BaseEntity {
   @Column({ type: 'varchar', length: 255 })
   reason: string;
 
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+    name: 'reason_rejected',
+  })
+  reasonRejected: string;
+
   @OneToOne(() => Order, (order) => order.cancelOrderRequest)
   @JoinColumn({ name: 'order_id' })
   order: Order;

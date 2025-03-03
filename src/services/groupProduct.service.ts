@@ -1,4 +1,4 @@
-import { In, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import { In, MoreThanOrEqual, Not } from 'typeorm';
 import { AppDataSource } from '../dataSource';
 import {
   GroupProductCreateRequest,
@@ -103,8 +103,9 @@ class GroupProductService extends BaseService<GroupProduct> {
     });
     if (!groupProduct) throw new BadRequestError('Group product not found');
     const newGroupBuying = new GroupBuying();
-    newGroupBuying.startTime = new Date(groupBuyingBody.startTime);
     newGroupBuying.endTime = new Date(groupBuyingBody.endTime);
+    if (newGroupBuying.endTime.getTime() < Date.now())
+      throw new BadRequestError('End time must after current time');
     const creator = await accountRepository.findOne({
       where: { id: loginUser },
     });
@@ -113,8 +114,7 @@ class GroupProductService extends BaseService<GroupProduct> {
     const createdGroupBuying = await groupBuyingRepository.save(newGroupBuying);
     await addGroupBuyingToQueue(
       createdGroupBuying.id,
-      createdGroupBuying.endTime.getTime() -
-        createdGroupBuying.startTime.getTime()
+      createdGroupBuying.endTime.getTime() - Date.now()
     );
     return createdGroupBuying;
   }
@@ -125,7 +125,6 @@ class GroupProductService extends BaseService<GroupProduct> {
     const groupBuying = await groupBuyingRepository.findOne({
       where: {
         groupProduct: { id: groupProductId },
-        startTime: LessThanOrEqual(currentTime),
         endTime: MoreThanOrEqual(currentTime),
         status: StatusEnum.ACTIVE,
       },
@@ -164,6 +163,9 @@ class GroupProductService extends BaseService<GroupProduct> {
       where: {
         id: In(chosenCriteriaIds),
       },
+      relations: {
+        voucher: true,
+      },
     });
     for (const criteria of groupProductUpdateBody.criterias) {
       if (criteria.id) {
@@ -172,6 +174,11 @@ class GroupProductService extends BaseService<GroupProduct> {
         );
         if (findCriteria) {
           findCriteria.threshold = criteria.threshold;
+          if (criteria.voucher)
+            findCriteria.voucher = await this.updateVoucherInGroup(
+              criteria.voucher,
+              findCriteria.voucher
+            );
         }
       } else {
         await this.addNewCriteria(
@@ -182,6 +189,31 @@ class GroupProductService extends BaseService<GroupProduct> {
       }
     }
     await repository.save(groupProduct);
+  }
+
+  async updateVoucherInGroup(voucherRequest: VoucherRequest, voucher: Voucher) {
+    // validate voucher
+    const existVoucherByName = await voucherRepository.findOne({
+      where: {
+        id: Not(voucher.id),
+        name: voucherRequest.name,
+      },
+    });
+    if (existVoucherByName) {
+      throw new BadRequestError('Voucher name already exists');
+    }
+    const existVoucherByCode = await voucherRepository.findOne({
+      where: {
+        id: Not(voucher.id),
+        code: voucherRequest.code,
+      },
+    });
+    if (existVoucherByCode) {
+      throw new BadRequestError('Voucher code already exists');
+    }
+    Object.assign(voucher, voucherRequest);
+    voucher.visibility = VoucherVisibilityEnum.GROUP;
+    return voucher;
   }
 
   async getAll() {

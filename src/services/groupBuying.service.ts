@@ -4,11 +4,7 @@ import { AppDataSource } from '../dataSource';
 import { BadRequestError } from '../errors/error';
 import { BaseService } from './base.service';
 import { groupBuyingRepository } from '../repositories/groupBuying.repository';
-import {
-  OrderEnum,
-  ShippingStatusEnum,
-  StatusEnum,
-} from '../utils/enum';
+import { OrderEnum, ShippingStatusEnum, StatusEnum } from '../utils/enum';
 import { GroupBuyingJoinEventRequest } from '../dtos/request/groupBuying.request';
 import { GroupBuying } from '../entities/groupBuying.entity';
 import { accountRepository } from '../repositories/account.repository';
@@ -26,6 +22,8 @@ import { criteriaRepository } from '../repositories/criteria.repository';
 import { Transaction } from '../entities/transaction.entity';
 import { transactionService } from './transaction.service';
 import { addGroupBuyingToQueue } from '../utils/queue/endGrBuyingQueue';
+import Logging from '../utils/Logging';
+import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
 
 const repository = AppDataSource.getRepository(GroupBuying);
 class GroupBuyingService extends BaseService<GroupBuying> {
@@ -45,7 +43,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       throw new BadRequestError('Only creator can start to end group buying');
     if (groupBuying.endTime < new Date())
       throw new BadRequestError('Group buying has ended');
-    const masterConfig = await masterConfigRepository.findOne({});
+    const masterConfig = await retrieveMasterConfig();
     //nhỏ hơn groupBuyingRemainingTime
     if (
       groupBuying.endTime.getTime() - Date.now() <
@@ -606,7 +604,16 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       const orders = await orderRepository.find({
         where: { groupBuying: { id: groupBuyingId }, parent: Not(IsNull()) },
         relations: {
-          parent: true,
+          account: true,
+          parent: {
+            account: true,
+            children: {
+              orderDetails: {
+                productClassification: { product: true, images: true },
+              },
+              account: true,
+            },
+          },
           orderDetails: {
             productClassification: { product: true, images: true },
           },
@@ -671,9 +678,13 @@ class GroupBuyingService extends BaseService<GroupBuying> {
                   ShippingStatusEnum.WAIT_FOR_CONFIRMATION
                 );
               await queryRunner.manager.save(StatusTracking, statusTrackings);
-              await queryRunner.manager.save(Order, [order, order.parent]);
+              await queryRunner.manager.save(Order, order.parent);
               //create transaction
-              const transaction = transactionService.createTransactionFromOrderGroupBuying(order, groupBuying);
+              const transaction =
+                transactionService.createTransactionFromOrderGroupBuying(
+                  order,
+                  groupBuying
+                );
               await queryRunner.manager.save(Transaction, transaction);
             } else {
               await this.cancelOneOrderInGroupbuying(order, queryRunner);
@@ -703,7 +714,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       ShippingStatusEnum.CANCELLED
     );
     await queryRunner.manager.save(StatusTracking, statusTrackings);
-    await queryRunner.manager.save(Order, [order, order.parent]);
+    await queryRunner.manager.save(Order, order.parent);
     await orderService.returnBackStockQuantity(order, queryRunner);
   }
 
@@ -712,7 +723,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
     queryRunner: QueryRunner
   ) {
     for (const order of orders) {
-      this.cancelOneOrderInGroupbuying(order, queryRunner);
+      await this.cancelOneOrderInGroupbuying(order, queryRunner);
     }
   }
 

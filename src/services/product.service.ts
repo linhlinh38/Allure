@@ -21,7 +21,6 @@ import { ProductImage } from '../entities/productImage.entity';
 import { PreOrderProduct } from '../entities/preOrderProduct.entity';
 import { ProductDiscount } from '../entities/productDiscount.entity';
 import { File } from '../entities/file.entity';
-import { ParsedQs } from 'qs';
 import { Paging } from '../dtos/other/paging.dto';
 import { orderDetailRepository } from '../repositories/orderDetail.repository';
 import { RecommendProductsRequest } from '../dtos/request/product.request';
@@ -59,7 +58,7 @@ class ProductService extends BaseService<Product> {
           orderBy = 'sales_last_30_days DESC';
           break;
         case ProductTagEnum.NEW:
-          orderBy = 'p."createdAt" DESC';
+          orderBy = 'p.created_at DESC';
           break;
         default:
           break;
@@ -90,7 +89,7 @@ class ProductService extends BaseService<Product> {
         SELECT 
           pc1.product_id, 
           SUM(od.quantity) AS total_quantity,
-          SUM(CASE WHEN od."createdAt" >= NOW() - INTERVAL '30 days' THEN od.quantity ELSE 0 END) AS sales_last_30_days,
+          SUM(CASE WHEN od.created_at >= NOW() - INTERVAL '30 days' THEN od.quantity ELSE 0 END) AS sales_last_30_days,
           COUNT(fb.id) AS total_ratings,
           AVG(fb.rating) AS average_rating
         FROM order_details od
@@ -106,7 +105,7 @@ class ProductService extends BaseService<Product> {
         SELECT 
           pd.product_id, 
           SUM(od.quantity) AS total_quantity,
-          SUM(CASE WHEN od."createdAt" >= NOW() - INTERVAL '30 days' THEN od.quantity ELSE 0 END) AS sales_last_30_days,
+          SUM(CASE WHEN od.created_at >= NOW() - INTERVAL '30 days' THEN od.quantity ELSE 0 END) AS sales_last_30_days,
           COUNT(fb.id) AS total_ratings,
           AVG(fb.rating) AS average_rating
         FROM order_details od
@@ -123,7 +122,7 @@ class ProductService extends BaseService<Product> {
         SELECT 
           pp.product_id, 
           SUM(od.quantity) AS total_quantity,
-          SUM(CASE WHEN od."createdAt" >= NOW() - INTERVAL '30 days' THEN od.quantity ELSE 0 END) AS sales_last_30_days,
+          SUM(CASE WHEN od.created_at >= NOW() - INTERVAL '30 days' THEN od.quantity ELSE 0 END) AS sales_last_30_days,
           COUNT(fb.id) AS total_ratings,
           AVG(fb.rating) AS average_rating
         FROM order_details od
@@ -135,7 +134,7 @@ class ProductService extends BaseService<Product> {
         GROUP BY pp.product_id
       ) AS sales ON pc.product_id = sales.product_id
       WHERE TRUE ${searchCondition}
-      GROUP BY pc.product_id, p."createdAt"
+      GROUP BY pc.product_id, p.created_at
       ORDER BY ${orderBy}
       LIMIT ${limit} OFFSET ${offset};
     `;

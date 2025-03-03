@@ -43,9 +43,6 @@ export class OrderDetail extends BaseEntity {
   })
   type: OrderEnum;
 
-  @Column({ type: 'boolean', default: false })
-  isFeedback: boolean;
-
   @ManyToOne(() => ProductDiscount, {
     nullable: true,
   })

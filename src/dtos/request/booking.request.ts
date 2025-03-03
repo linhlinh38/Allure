@@ -29,13 +29,19 @@ export const BookingCreateSchema = z.object({
 
 export const BookingUpdateStatusSchema = z.object({
   body: z.object({
-    startTime: z
+    status: z.nativeEnum(BookingStatusEnum),
+  }),
+});
+
+export const GetAvailableSlotsSchema = z.object({
+  body: z.object({
+    startDate: z
       .string()
       .refine(
         (value) => !isNaN(Date.parse(value)),
         'Start time must be a valid date string'
       ),
-    endTime: z
+    endDate: z
       .string()
       .refine(
         (value) => !isNaN(Date.parse(value)),
@@ -44,9 +50,9 @@ export const BookingUpdateStatusSchema = z.object({
   }),
 });
 
-export const GetAvailableSlotsSchema = z.object({
+export const NoteResultSchema = z.object({
   body: z.object({
-    status: z.nativeEnum(BookingStatusEnum),
+    resultNote: z.string(),
   }),
 });
 

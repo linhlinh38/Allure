@@ -27,6 +27,8 @@ import feedbackRouter from "./feedback.route";
 import consultationCriteriaSectionRouter from "./consultationCriteriaSection.route";
 import questionRouter from "./question.route";
 import masterConfigRouter from "./masterConfig.route";
+import transactionRouter from "./transaction.route";
+import reportRouter from "./report.route";
 
 const router = express.Router();
 router.use("/accounts", accountRouter);
@@ -60,4 +62,6 @@ router.use(
 );
 router.use("/feedbacks", feedbackRouter);
 router.use("/master-config", masterConfigRouter);
+router.use('/transactions', transactionRouter);
+router.use('/reports', reportRouter);
 export default router;
