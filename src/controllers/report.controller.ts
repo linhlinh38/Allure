@@ -11,10 +11,11 @@ import { ReportStatusEnum } from '../utils/enum';
 export default class ReportController {
   static async getById(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      await reportService.getById(
-        req.params.id,
+      return createNormalResponse(
+        res,
+        'Get report success',
+        await reportService.getById(req.params.id)
       );
-      return createNormalResponse(res, 'Get report success');
     } catch (err) {
       next(err);
     }
