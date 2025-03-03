@@ -168,8 +168,6 @@ class GroupProductService extends BaseService<GroupProduct> {
       },
     });
     for (const criteria of groupProductUpdateBody.criterias) {
-      console.log(criteria);
-
       if (criteria.id) {
         const findCriteria = groupProduct.criterias.find(
           (criteriaElement) => criteriaElement.id == criteria.id
@@ -194,8 +192,6 @@ class GroupProductService extends BaseService<GroupProduct> {
   }
 
   async updateVoucherInGroup(voucherRequest: VoucherRequest, voucher: Voucher) {
-    console.log(voucherRequest);
-
     // validate voucher
     const existVoucherByName = await voucherRepository.findOne({
       where: {
