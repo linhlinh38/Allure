@@ -1,14 +1,14 @@
-import { z } from 'zod';
-import { ProductClassificationCreateSchema } from './productClassification.request';
-import { ProductImageCreateSchema } from './productImage.request';
-import { FileCreateSchema } from './file.request';
-import { ProductTagEnum } from '../../utils/enum';
-import { Expose } from 'class-transformer';
+import { z } from "zod";
+import { ProductClassificationCreateSchema } from "./productClassification.request";
+import { ProductImageCreateSchema } from "./productImage.request";
+import { FileCreateSchema } from "./file.request";
+import { ProductTagEnum } from "../../utils/enum";
+import { Expose } from "class-transformer";
 
 export const ProductCreateSchema = z.object({
   body: z.object({
-    name: z.string().min(1, 'Name is required'),
-    sku: z.string().optional(),
+    name: z.string().min(1, "Name is required"),
+    sku: z.string(),
     brand: z.string().uuid(),
     category: z.string().uuid().nullable().optional(),
     description: z.string().optional(),
