@@ -1,4 +1,4 @@
-import { In, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import { In, LessThanOrEqual, MoreThanOrEqual, Not } from 'typeorm';
 import { AppDataSource } from '../dataSource';
 import {
   GroupProductCreateRequest,
@@ -163,14 +163,24 @@ class GroupProductService extends BaseService<GroupProduct> {
       where: {
         id: In(chosenCriteriaIds),
       },
+      relations: {
+        voucher: true,
+      },
     });
     for (const criteria of groupProductUpdateBody.criterias) {
+      console.log(criteria);
+
       if (criteria.id) {
         const findCriteria = groupProduct.criterias.find(
           (criteriaElement) => criteriaElement.id == criteria.id
         );
         if (findCriteria) {
           findCriteria.threshold = criteria.threshold;
+          if (criteria.voucher)
+            findCriteria.voucher = await this.updateVoucherInGroup(
+              criteria.voucher,
+              findCriteria.voucher
+            );
         }
       } else {
         await this.addNewCriteria(
@@ -181,6 +191,33 @@ class GroupProductService extends BaseService<GroupProduct> {
       }
     }
     await repository.save(groupProduct);
+  }
+
+  async updateVoucherInGroup(voucherRequest: VoucherRequest, voucher: Voucher) {
+    console.log(voucherRequest);
+
+    // validate voucher
+    const existVoucherByName = await voucherRepository.findOne({
+      where: {
+        id: Not(voucher.id),
+        name: voucherRequest.name,
+      },
+    });
+    if (existVoucherByName) {
+      throw new BadRequestError('Voucher name already exists');
+    }
+    const existVoucherByCode = await voucherRepository.findOne({
+      where: {
+        id: Not(voucher.id),
+        code: voucherRequest.code,
+      },
+    });
+    if (existVoucherByCode) {
+      throw new BadRequestError('Voucher code already exists');
+    }
+    Object.assign(voucher, voucherRequest);
+    voucher.visibility = VoucherVisibilityEnum.GROUP;
+    return voucher;
   }
 
   async getAll() {
