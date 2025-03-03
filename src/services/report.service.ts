@@ -92,6 +92,8 @@ class ReportService extends BaseService<Report> {
     report.reporter = new Account();
     report.reporter.id = loginUser;
     if (report.type == ReportTypeEnum.BOOKING) {
+      if (!createReportRequest.bookingId)
+        throw new BadRequestError('Booking id required');
       const booking = await bookingRepository.findOne({
         where: {
           id: createReportRequest.bookingId,
@@ -110,6 +112,8 @@ class ReportService extends BaseService<Report> {
         throw new BadRequestError('You only report once for this booking');
       report.booking = booking;
     } else if (report.type == ReportTypeEnum.ORDER) {
+      if (!createReportRequest.orderId)
+        throw new BadRequestError('Order id required');
       const order = await orderRepository.findOne({
         where: {
           id: createReportRequest.orderId,
@@ -140,7 +144,7 @@ class ReportService extends BaseService<Report> {
 
   async queryBuilderForOrder(queryBuilder: SelectQueryBuilder<Report>) {
     queryBuilder
-      .leftJoinAndSelect('order.orderDetails', 'orderDetails')
+      .leftJoinAndSelect('order.orderDetails', 'orderDetail')
       .leftJoinAndSelect(
         'orderDetail.productClassification',
         'productClassification'
@@ -169,7 +173,7 @@ class ReportService extends BaseService<Report> {
   }
 
   async filterReports(filterReportsRequest: FilterReportsRequest) {
-    const { type, reason, status, assigneeId } = filterReportsRequest;
+    const { type, status, assigneeId } = filterReportsRequest;
 
     const queryBuilder = repository
       .createQueryBuilder('report')
@@ -183,12 +187,6 @@ class ReportService extends BaseService<Report> {
 
     if (type) {
       queryBuilder.andWhere('report.type = :type', { type });
-    }
-
-    if (reason) {
-      queryBuilder.andWhere('report.reason ILIKE :reason', {
-        reason: `%${reason}%`,
-      });
     }
 
     if (status) {

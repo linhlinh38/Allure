@@ -30,7 +30,7 @@ export class Report extends BaseEntity {
   @JoinColumn({ name: 'reporter_id' })
   reporter: Account;
 
-  @Column({ type: 'varchar', name: 'result_note' })
+  @Column({ type: 'varchar', name: 'result_note', nullable: true })
   resultNote: string;
 
   @Column({
@@ -41,8 +41,10 @@ export class Report extends BaseEntity {
   status: ReportStatusEnum;
 
   @OneToOne(() => Order, (order) => order.report, { nullable: true })
+  @JoinColumn({ name: 'order_id' })
   order: Order;
 
   @OneToOne(() => Booking, (booking) => booking.report, { nullable: true })
+  @JoinColumn({ name: 'booking_id' })
   booking: Booking;
 }
