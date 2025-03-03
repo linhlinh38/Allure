@@ -26,7 +26,7 @@ serviceBookingFormRouter.put(
   serviceBookingFormController.update
 );
 serviceBookingFormRouter.put(
-  "/update-status/:id/:status",
+  "/update-status/:id",
   serviceBookingFormController.updateServiceBookingFormStatus
 );
 export default serviceBookingFormRouter;
