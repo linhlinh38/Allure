@@ -22,6 +22,7 @@ import { StatusTracking } from './statusTracking.entity';
 import { CancelOrderRequest } from './cancelOrderRequest.entity';
 import { Brand } from './brand.entity';
 import { RefundRequest } from './refundRequest.entity';
+import { Report } from './report.entity';
 
 @Entity('orders')
 export class Order extends BaseEntity {
@@ -98,7 +99,6 @@ export class Order extends BaseEntity {
   @ManyToOne(() => Order, (order) => order.children, { nullable: true })
   @JoinColumn({ name: 'parent_id' })
   parent: Order;
-  
 
   @ManyToOne(() => Brand, (brand) => brand.orders, { nullable: true })
   @JoinColumn({ name: 'brand_id' })
@@ -129,4 +129,7 @@ export class Order extends BaseEntity {
   @OneToOne(() => RefundRequest, (refundRequest) => refundRequest.order)
   @JoinColumn({ name: 'refund_request_id' })
   refundRequest: RefundRequest;
+
+  @OneToOne(() => Report, (report) => report.order)
+  report: Report;
 }

@@ -50,6 +50,12 @@ export const GetAvailableSlotsSchema = z.object({
   }),
 });
 
+export const NoteResultSchema = z.object({
+  body: z.object({
+    resultNote: z.string(),
+  }),
+});
+
 export class BookingRequest {
   @Expose()
   startTime: Date;

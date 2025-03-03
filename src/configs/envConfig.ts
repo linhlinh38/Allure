@@ -43,6 +43,10 @@ const PAYOS_CHECKSUM_KEY = process.env.PAYOS_CHECKSUM_KEY;
 const PAYOS_RETURN_URL = process.env.PAYOS_RETURN_URL;
 const PAYOS_CANCEL_URL = process.env.PAYOS_CANCEL_URL;
 
+//Redis
+const REDIS_HOST = process.env.REDIS_HOST || "localhost";
+const REDIS_PORT = parseInt(process.env.REDIS_PORT || "6379");
+
 export const config = {
   DB_HOST,
   DB_PORT,
@@ -73,4 +77,6 @@ export const config = {
   PAYOS_CHECKSUM_KEY,
   PAYOS_RETURN_URL,
   PAYOS_CANCEL_URL,
+  REDIS_HOST,
+  REDIS_PORT,
 };

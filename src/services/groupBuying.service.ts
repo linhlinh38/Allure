@@ -611,7 +611,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
               orderDetails: {
                 productClassification: { product: true, images: true },
               },
-              account: true
+              account: true,
             },
           },
           orderDetails: {
