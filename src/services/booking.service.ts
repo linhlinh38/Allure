@@ -37,6 +37,8 @@ class BookingService extends BaseService<Booking> {
       }
     });
     if (!booking) throw new BadRequestError('Booking not found');
+    if (booking.status == BookingStatusEnum.COMPLETED)
+      throw new BadRequestError(`Booking is completed. Can not assign`);
     if (booking.assigneeToInterview?.id == assigneeId) return;
     const assignee = await accountRepository.findOneBy({ id: assigneeId });
     if (!assignee) throw new BadRequestError(`Assignee not found`);
