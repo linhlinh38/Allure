@@ -1,13 +1,12 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
   Column,
   ManyToOne,
   JoinColumn,
   OneToMany,
 } from "typeorm";
 import { Product } from "./product.entity";
-import { PreOrderProductEnum, StatusEnum } from "../utils/enum";
+import { PreOrderProductEnum } from "../utils/enum";
 import { BaseEntity } from "./base.entity";
 import { ProductClassification } from "./productClassification.entity";
 

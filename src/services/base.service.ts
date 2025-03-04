@@ -1,4 +1,4 @@
-import { EntityRepository, FindOptionsWhere, ILike, Repository } from "typeorm";
+import { FindOptionsWhere, ILike, Repository } from "typeorm";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { ICRUDService } from "../utils/ICRUDService";
 

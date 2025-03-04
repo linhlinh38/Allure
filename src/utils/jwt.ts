@@ -1,4 +1,4 @@
-import jwt, { VerifyOptions, SignOptions } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { config } from "../configs/envConfig";
 

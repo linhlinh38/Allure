@@ -2,11 +2,8 @@ import {
   Column,
   Entity,
   JoinColumn,
-  ManyToMany,
   ManyToOne,
   OneToMany,
-  OneToOne,
-  PrimaryGeneratedColumn,
 } from "typeorm";
 import { BaseEntity } from "./base.entity";
 import { Account } from "./account.entity";

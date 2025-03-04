@@ -1,5 +1,5 @@
-import { FindOptionsWhere, Repository } from "typeorm";
-import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
+import { Repository } from 'typeorm';
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 
 export interface ICRUDService<T> {
   repository: Repository<T>;

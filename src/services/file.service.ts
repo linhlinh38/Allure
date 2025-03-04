@@ -2,7 +2,6 @@ import path from "path";
 import { BadRequestError } from "../errors/error";
 import bucket from "../configs/firebaseConfig";
 import xlsx from "xlsx";
-import { log } from "console";
 
 export default class FileService {
   static async upload(files: Express.Multer.File[]) {

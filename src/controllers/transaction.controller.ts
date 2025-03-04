@@ -1,7 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { createNormalResponse } from '../utils/response';
 import { AuthRequest } from '../middleware/authentication';
-import { Request, NextFunction, Response } from 'express';
+import { NextFunction, Response } from 'express';
 import { GetStatisticsRequest } from '../dtos/request/transaction.request';
 import { transactionService } from '../services/transaction.service';
 

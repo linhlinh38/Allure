@@ -3,7 +3,6 @@ import {
   RequestStatusEnum,
   PaymentMethodEnum,
   ShippingStatusEnum,
-  StatusEnum,
 } from '../../utils/enum';
 import { Expose } from 'class-transformer';
 
