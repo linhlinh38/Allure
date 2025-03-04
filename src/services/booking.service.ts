@@ -1,4 +1,9 @@
-import { Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import {
+  Between,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+  SelectQueryBuilder,
+} from 'typeorm';
 import { AppDataSource } from '../dataSource';
 import { BookingRequest } from '../dtos/request/booking.request';
 import { Account } from '../entities/account.entity';
@@ -29,12 +34,19 @@ class BookingService extends BaseService<Booking> {
     await repository.save(booking);
   }
 
+  queryBuilderForBooking(queryBuilder: SelectQueryBuilder<any>) {
+    queryBuilder
+      .leftJoinAndSelect('booking.consultantService', 'consultantService')
+      .leftJoinAndSelect('consultantService.account', 'consultant')
+      .leftJoinAndSelect('consultantService.images', 'consultantServiceImages');
+  }
+
   async assignForInterview(id: string, assigneeId: string) {
     const booking = await bookingRepository.findOne({
       where: { id },
       relations: {
-        assigneeToInterview: true
-      }
+        assigneeToInterview: true,
+      },
     });
     if (!booking) throw new BadRequestError('Booking not found');
     if (booking.status == BookingStatusEnum.COMPLETED)

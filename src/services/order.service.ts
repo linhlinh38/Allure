@@ -1,5 +1,5 @@
 import { statusTrackingRepository } from './../repositories/statusTracking.repository';
-import { ILike, In, IsNull, Not, QueryRunner } from 'typeorm';
+import { ILike, In, IsNull, Not, QueryRunner, SelectQueryBuilder } from 'typeorm';
 import { AppDataSource } from '../dataSource';
 import { BadRequestError } from '../errors/error';
 import { BaseService } from './base.service';
@@ -220,6 +220,37 @@ class OrderService extends BaseService<Order> {
       },
     });
   }
+
+  queryBuilderForOrder(queryBuilder: SelectQueryBuilder<any>) {
+      queryBuilder
+        .leftJoinAndSelect('order.orderDetails', 'orderDetail')
+        .leftJoinAndSelect(
+          'orderDetail.productClassification',
+          'productClassification'
+        )
+        .leftJoinAndSelect(
+          'productClassification.images',
+          'productClassificationImages'
+        )
+        .leftJoinAndSelect('productClassification.product', 'product')
+        .leftJoinAndSelect('product.brand', 'productBrand')
+        .leftJoinAndSelect('product.images', 'productImages')
+        .leftJoinAndSelect(
+          'productClassification.productDiscount',
+          'productDiscount'
+        )
+        .leftJoinAndSelect('productDiscount.product', 'discountProduct')
+        .leftJoinAndSelect('discountProduct.brand', 'discountProductBrand')
+        .leftJoinAndSelect('discountProduct.images', 'discountProductImages')
+        .leftJoinAndSelect(
+          'productClassification.preOrderProduct',
+          'preOrderProduct'
+        )
+        .leftJoinAndSelect('preOrderProduct.product', 'preOrderProductItem')
+        .leftJoinAndSelect('preOrderProductItem.brand', 'preOrderProductBrand')
+        .leftJoinAndSelect('preOrderProductItem.images', 'preOrderProductImages');
+    }
+    
   async getCancelRequestOfBrand(brandId: string, status: RequestStatusEnum) {
     console.log(status);
 
