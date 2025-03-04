@@ -17,11 +17,11 @@ import { Reply } from '../entities/reply.entity';
 import { Account } from '../entities/account.entity';
 import { replyRepository } from '../repositories/reply.repository';
 import { MediaFile } from '../entities/mediaFile.entity';
+import { Paging } from '../dtos/other/paging.dto';
 
 const repository = AppDataSource.getRepository(Feedback);
 class FeedbackService extends BaseService<Feedback> {
-  async getById(id: string)
-  {
+  async getById(id: string) {
     const feedback = await feedbackRepository.findOne({
       where: {
         id,
@@ -42,14 +42,13 @@ class FeedbackService extends BaseService<Feedback> {
     if (!feedback) throw new BadRequestError('Feedback not found');
     return feedback;
   }
-  async reply(content: string, feedbackId: string, loginUser: string)
-  {
+  async reply(content: string, feedbackId: string, loginUser: string) {
     const feedback = await feedbackRepository.findOne({
       where: {
         id: feedbackId,
-      }
-    })
-    if(!feedback) throw new BadRequestError('Feedback not found');
+      },
+    });
+    if (!feedback) throw new BadRequestError('Feedback not found');
     const reply = new Reply();
     reply.content = content;
     reply.feedback = feedback;
@@ -57,18 +56,24 @@ class FeedbackService extends BaseService<Feedback> {
     reply.account.id = loginUser;
     return await replyRepository.save(reply);
   }
+
   async filter(
     feedbackFilterRequest: FeedbackFilterRequest,
-    productId: string
+    productId: string,
+    paging: Paging
   ) {
+    const limit = paging.limit;
+    const offset = (paging.page - 1) * paging.limit;
     const product = await productRepository.findOne({
       where: { id: productId },
     });
     if (!product) throw new BadRequestError('Product not found');
-    const query = this.retrieveQueryGetAllFeedbacksOfProduct(productId).orderBy(
-      'feedback.createdAt',
-      'DESC'
-    );
+    const numberTotalFeedbacks =  await this.countAllFeedbacksOfProduct(productId);
+    const totalPages = Math.ceil(numberTotalFeedbacks / paging.limit);
+    const query = this.retrieveQueryGetAllFeedbacksOfProduct(productId)
+      .orderBy('feedback.createdAt', 'DESC')
+      .take(limit)
+      .skip(offset);
     switch (feedbackFilterRequest.type) {
       case FeedbackFilterEnum.ALL:
         break;
@@ -76,7 +81,8 @@ class FeedbackService extends BaseService<Feedback> {
         query.andWhere('mediaFiles.id IS NOT NULL');
         break;
       case FeedbackFilterEnum.RATING:
-        if(!feedbackFilterRequest.value) throw new BadRequestError('Rating must be provided');
+        if (!feedbackFilterRequest.value)
+          throw new BadRequestError('Rating must be provided');
         const rating = parseInt(feedbackFilterRequest.value);
         if (rating < 0 || rating > 5)
           throw new BadRequestError('Rating must be between 0 and 5');
@@ -92,7 +98,11 @@ class FeedbackService extends BaseService<Feedback> {
       default:
         throw new BadRequestError('Invalid filter type');
     }
-    return query.getMany();
+    return {
+      total: numberTotalFeedbacks,
+      totalPages,
+      items: await query.getMany()
+    }
   }
 
   retrieveQueryGetAllFeedbacksOfProduct(productId: string) {
@@ -126,6 +136,25 @@ class FeedbackService extends BaseService<Feedback> {
         })
       );
   }
+
+  async countAllFeedbacksOfProduct(productId: string) {
+    return await feedbackRepository
+      .createQueryBuilder('feedback')
+      .leftJoin('feedback.orderDetail', 'orderDetail')
+      .leftJoin('orderDetail.productClassification', 'productClassification')
+      .leftJoin('productClassification.product', 'product')
+      .leftJoin('productClassification.productDiscount', 'productDiscount')
+      .leftJoin('productClassification.preOrderProduct', 'preOrderProduct')
+      .where(
+        new Brackets((qb) => {
+          qb.where('product.id = :productId', { productId })
+            .orWhere('productDiscount.product.id = :productId', { productId })
+            .orWhere('preOrderProduct.product.id = :productId', { productId });
+        })
+      )
+      .getCount();
+  }
+
   async reviewGeneralOfProduct(productId: string) {
     const product = await productRepository.findOne({
       where: { id: productId },
@@ -166,7 +195,7 @@ class FeedbackService extends BaseService<Feedback> {
       where: { orderDetail: { order: { account: { id: loginUser } } } },
       relations: {
         mediaFiles: true,
-        replies: {account: true},
+        replies: { account: true },
         orderDetail: {
           order: { account: true },
           productClassification: {

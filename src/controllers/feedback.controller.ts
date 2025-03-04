@@ -4,6 +4,7 @@ import { AuthRequest } from '../middleware/authentication';
 import { plainToInstance } from 'class-transformer';
 import { FeedbackCreateRequest, FeedbackFilterRequest } from '../dtos/request/feedback.request';
 import { feedbackService } from '../services/feedback.service';
+import { Paging } from '../dtos/other/paging.dto';
 export default class FeedbackController {
   static async getById(req: AuthRequest, res: Response, next: NextFunction) {
     try {
@@ -33,6 +34,10 @@ export default class FeedbackController {
   }
   static async filter(req: Request, res: Response, next: NextFunction) {
     try {
+      const paging = {
+            page: Number(req.query.page) ? Number(req.query.page) : 1,
+            limit: Number(req.query.limit) ? Number(req.query.limit) : 10,
+          } as Paging;
       const feedbackFilterRequest = plainToInstance(
         FeedbackFilterRequest,
         req.body,
@@ -45,7 +50,8 @@ export default class FeedbackController {
         'Filter feedbacks success',
         await feedbackService.filter(
           feedbackFilterRequest,
-          req.params.productId
+          req.params.productId,
+          paging
         )
       );
     } catch (err) {
