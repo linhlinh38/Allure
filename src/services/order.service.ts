@@ -384,8 +384,14 @@ class OrderService extends BaseService<Order> {
     const order = await orderRepository.findOne({
       where: { id: orderId },
       relations: {
+        account: true,
         orderDetails: {
-          feedback: true,
+          feedback: {
+            mediaFiles: true,
+            replies: {
+              account: { role: true },
+            },
+          },
           productClassification: {
             images: true,
             product: { brand: true, images: true },
@@ -752,8 +758,8 @@ class OrderService extends BaseService<Order> {
         orderDetails: {
           feedback: {
             replies: {
-              account: true
-            }
+              account: true,
+            },
           },
           productClassification: {
             images: true,
