@@ -68,7 +68,10 @@ class FeedbackService extends BaseService<Feedback> {
       where: { id: productId },
     });
     if (!product) throw new BadRequestError('Product not found');
-    const numberTotalFeedbacks =  await this.countAllFeedbacksOfProduct(productId);
+    const numberTotalFeedbacks = await this.countAllFeedbacksOfProduct(
+      productId,
+      feedbackFilterRequest
+    );
     const totalPages = Math.ceil(numberTotalFeedbacks / paging.limit);
     const query = this.retrieveQueryGetAllFeedbacksOfProduct(productId)
       .orderBy('feedback.createdAt', 'DESC')
@@ -101,8 +104,8 @@ class FeedbackService extends BaseService<Feedback> {
     return {
       total: numberTotalFeedbacks,
       totalPages,
-      items: await query.getMany()
-    }
+      items: await query.getMany(),
+    };
   }
 
   retrieveQueryGetAllFeedbacksOfProduct(productId: string) {
@@ -137,8 +140,11 @@ class FeedbackService extends BaseService<Feedback> {
       );
   }
 
-  async countAllFeedbacksOfProduct(productId: string) {
-    return await feedbackRepository
+  async countAllFeedbacksOfProduct(
+    productId: string,
+    feedbackFilterRequest: FeedbackFilterRequest
+  ) {
+    const query = feedbackRepository
       .createQueryBuilder('feedback')
       .leftJoin('feedback.orderDetail', 'orderDetail')
       .leftJoin('orderDetail.productClassification', 'productClassification')
@@ -151,8 +157,32 @@ class FeedbackService extends BaseService<Feedback> {
             .orWhere('productDiscount.product.id = :productId', { productId })
             .orWhere('preOrderProduct.product.id = :productId', { productId });
         })
-      )
-      .getCount();
+      );
+    switch (feedbackFilterRequest.type) {
+      case FeedbackFilterEnum.ALL:
+        break;
+      case FeedbackFilterEnum.IMAGE_VIDEO:
+        query.andWhere('mediaFiles.id IS NOT NULL');
+        break;
+      case FeedbackFilterEnum.RATING:
+        if (!feedbackFilterRequest.value)
+          throw new BadRequestError('Rating must be provided');
+        const rating = parseInt(feedbackFilterRequest.value);
+        if (rating < 0 || rating > 5)
+          throw new BadRequestError('Rating must be between 0 and 5');
+        query.andWhere('feedback.rating = :rating', { rating });
+        break;
+      case FeedbackFilterEnum.CLASSIFICATION:
+        if (!feedbackFilterRequest.value)
+          throw new BadRequestError('Classification must be provided');
+        query.andWhere('productClassification.id = :classificationId', {
+          classificationId: feedbackFilterRequest.value,
+        });
+        break;
+      default:
+        throw new BadRequestError('Invalid filter type');
+    }
+    return await query.getCount();
   }
 
   async reviewGeneralOfProduct(productId: string) {
