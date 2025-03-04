@@ -191,6 +191,7 @@ class FeedbackService extends BaseService<Feedback> {
     });
     if (!product) throw new BadRequestError('Product not found');
     const result = await this.retrieveQueryGetAllFeedbacksOfProduct(productId)
+      .groupBy('feedback.id')
       .select([
         'AVG(feedback.rating) AS average_rating',
         'COUNT(feedback.rating) AS total_count',
@@ -202,13 +203,13 @@ class FeedbackService extends BaseService<Feedback> {
       ])
       .getRawOne();
 
-    const averageRating = parseFloat(result.average_rating).toFixed(1);
-    const totalCount = result.total_count;
-    const rating1Count = result.rating1;
-    const rating2Count = result.rating2;
-    const rating3Count = result.rating3;
-    const rating4Count = result.rating4;
-    const rating5Count = result.rating5;
+    const averageRating = parseFloat(result.average_rating || 0).toFixed(1);
+    const totalCount = result.total_count || 0;
+    const rating1Count = result.rating1 || 0;
+    const rating2Count = result.rating2 || 0;
+    const rating3Count = result.rating3 || 0;
+    const rating4Count = result.rating4 || 0;
+    const rating5Count = result.rating5 || 0;
 
     return {
       averageRating,

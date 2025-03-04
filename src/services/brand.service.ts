@@ -133,7 +133,7 @@ class BrandService extends BaseService<Brand> {
         );
         if (!manager) throw new BadRequestError('Manager not found');
         sendConfirmActiveBrandEmail(
-          'thotv.t1.1821@gmail.com',
+          manager.email,
           brand.name,
           brandUpdateStatusRequest.url
         );
