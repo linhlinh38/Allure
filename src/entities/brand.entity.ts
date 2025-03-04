@@ -1,14 +1,11 @@
 import {
   Column,
   Entity,
-  JoinColumn,
   ManyToMany,
   OneToMany,
-  OneToOne,
-  PrimaryGeneratedColumn,
 } from "typeorm";
 import { BaseEntity } from "./base.entity";
-import { BrandStatusEnum, StatusEnum } from "../utils/enum";
+import { BrandStatusEnum } from "../utils/enum";
 import { Account } from "./account.entity";
 import { Follow } from "./follow.entity";
 import { Expose } from "class-transformer";

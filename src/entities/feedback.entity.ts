@@ -1,4 +1,4 @@
-import { Entity, Column, OneToMany, OneToOne, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, OneToMany, OneToOne } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { OrderDetail } from './orderDetail.entity';
 import { Reply } from './reply.entity';

@@ -4,10 +4,9 @@ import { ConsultantService } from "../entities/consultantService.entity";
 import { Question } from "../entities/question.entity";
 import { ServiceBookingForm } from "../entities/serviceBookingForm.entity";
 import { ServiceImage } from "../entities/serviceImage.entity";
-import { BadRequestError, NotFoundError } from "../errors/error";
+import { NotFoundError } from "../errors/error";
 import { StatusEnum } from "../utils/enum";
 import { BaseService } from "./base.service";
-import { categoryService } from "./category.service";
 
 const repository = AppDataSource.getRepository(ConsultantService);
 class ConsultantServiceService extends BaseService<ConsultantService> {

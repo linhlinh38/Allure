@@ -1,11 +1,7 @@
 import express from "express";
 import authentication from "../middleware/authentication";
-import validate from "../utils/validate";
-import {
-  RoleCreateSchema,
-  RoleUpdateSchema,
-} from "../dtos/request/role.request";
-import RoleController from "../controllers/role.controller";
+
+
 import CartItemController from "../controllers/cartItem.controller";
 const cartItemRouter = express.Router();
 cartItemRouter.use(authentication);

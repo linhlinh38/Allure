@@ -1,17 +1,10 @@
 import {
   Column,
   Entity,
-  JoinColumn,
-  ManyToOne,
   OneToMany,
-  OneToOne,
-  PrimaryGeneratedColumn,
 } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import {
-  AddressEnum,
-  FileEnum,
-  GenderEnum,
   RoleEnum,
   StatusEnum,
 } from '../utils/enum';

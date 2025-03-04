@@ -1,4 +1,4 @@
-import { Entity, Column, ManyToOne, JoinColumn, OneToMany } from "typeorm";
+import { Entity, Column, ManyToOne, JoinColumn } from "typeorm";
 import { StatusEnum } from "../utils/enum";
 import { BaseEntity } from "./base.entity";
 import { ConsultationCriteria } from "./consultationCriteria.entity";

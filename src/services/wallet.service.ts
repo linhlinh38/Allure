@@ -1,5 +1,4 @@
 import { QueryRunner } from 'typeorm';
-import { config } from '../configs/envConfig';
 import { AppDataSource } from '../dataSource';
 import {
   DepositRequest,
@@ -10,7 +9,6 @@ import { Wallet } from '../entities/wallet.entity';
 import { BadRequestError } from '../errors/error';
 import { accountRepository } from '../repositories/account.repository';
 import { walletRepository } from '../repositories/wallet.reposirory';
-import { isValidData } from '../utils/checkSignature';
 import { payos } from '../utils/payos';
 import { BaseService } from './base.service';
 import { PaymentMethodEnum } from '../utils/enum';

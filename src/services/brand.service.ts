@@ -18,7 +18,6 @@ import {
   BrandStatusEnum,
   FileEnum,
   RoleEnum,
-  StatusEnum,
 } from '../utils/enum';
 import { brandStatusTrackingRepository } from '../repositories/brandStatusTracking.repository';
 import { File } from '../entities/file.entity';

@@ -5,7 +5,6 @@ import { ProductImage } from "../entities/productImage.entity";
 import { BaseService } from "./base.service";
 import { PreOrderProductEnum, ProductEnum, StatusEnum } from "../utils/enum";
 import { BadRequestError } from "../errors/error";
-import { productService } from "./product.service";
 import { productRepository } from "../repositories/product.repository";
 
 const repository = AppDataSource.getRepository(ProductClassification);

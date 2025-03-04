@@ -1,5 +1,4 @@
-import { Role } from "../../entities/role.entity";
-import { GenderEnum, RoleEnum, StatusEnum } from "../../utils/enum";
+import { GenderEnum, StatusEnum } from "../../utils/enum";
 import { Exclude } from "class-transformer";
 
 export class AccountResponse {

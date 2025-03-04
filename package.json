@@ -7,6 +7,7 @@
     "build": "tsc --outDir build",
     "start": "node ./build/index.js",
     "dev": "ts-node-dev src/index.ts",
+    "lint:fix": "eslint . --fix --ext .ts",
     "migration:generate": "typeorm-ts-node-commonjs -d ./src/dataSource.ts migration:generate ./src/migrations/default",
     "migration:run": "typeorm-ts-node-commonjs -d ./src/dataSource.ts migration:run"
   },
@@ -51,6 +52,7 @@
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node-cron": "^3.0.11",
     "@types/swagger-ui-express": "^4.1.6",
-    "@types/xlsx": "^0.0.36"
+    "@types/xlsx": "^0.0.36",
+    "eslint-plugin-unused-imports": "^4.1.4"
   }
 }

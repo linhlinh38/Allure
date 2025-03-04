@@ -1,5 +1,5 @@
 import { CreatePaymentUrlRequest } from './../dtos/request/payment.request';
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Response } from 'express';
 import { AuthRequest } from '../middleware/authentication';
 import { plainToInstance } from 'class-transformer';
 import { paymentService } from '../services/payment.service';

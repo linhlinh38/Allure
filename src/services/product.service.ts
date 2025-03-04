@@ -5,7 +5,6 @@ import { ProductClassification } from '../entities/productClassification.entity'
 import { BadRequestError } from '../errors/error';
 import {
   BrandStatusEnum,
-  ClassificationTypeEnum,
   FileEnum,
   PreOrderProductEnum,
   ProductDiscountEnum,

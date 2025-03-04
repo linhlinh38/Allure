@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BrandStatusEnum, StatusEnum } from '../../utils/enum';
+import { BrandStatusEnum } from '../../utils/enum';
 import { Expose } from 'class-transformer';
 
 export const BrandCreateSchema = z.object({

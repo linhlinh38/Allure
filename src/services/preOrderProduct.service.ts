@@ -5,7 +5,6 @@ import { ProductClassification } from "../entities/productClassification.entity"
 import { ProductImage } from "../entities/productImage.entity";
 import { BadRequestError } from "../errors/error";
 import {
-  ClassificationTypeEnum,
   PreOrderProductEnum,
   ProductEnum,
   StatusEnum,
