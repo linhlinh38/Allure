@@ -17,12 +17,14 @@ import {
   BookingStatusEnum,
   BrandStatusEnum,
   FileEnum,
+  RoleEnum,
   StatusEnum,
 } from '../utils/enum';
 import { brandStatusTrackingRepository } from '../repositories/brandStatusTracking.repository';
 import { File } from '../entities/file.entity';
 import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
 import { bookingRepository } from '../repositories/booking.repository';
+import { sendConfirmActiveBrandEmail } from './mail.service';
 
 const repository = AppDataSource.getRepository(Brand);
 class BrandService extends BaseService<Brand> {
@@ -61,8 +63,15 @@ class BrandService extends BaseService<Brand> {
       });
       const brand = await brandRepository.findOne({
         where: { id: brandUpdateStatusRequest.brandId },
+        relations: {
+          accounts: {
+            role: true,
+          },
+        },
       });
       if (!brand) throw new BadRequestError('Brand not found');
+      if (brand.status == brandUpdateStatusRequest.status)
+        throw new BadRequestError(`Status is already ${brand.status}`);
       if (
         [
           BrandStatusEnum.DENIED,
@@ -104,6 +113,10 @@ class BrandService extends BaseService<Brand> {
         booking.status = BookingStatusEnum.COMPLETED;
         await bookingRepository.save(booking);
       }
+      if (brandUpdateStatusRequest.status == BrandStatusEnum.ACTIVE) {
+        if (!brandUpdateStatusRequest.url)
+          throw new BadRequestError('Url required');
+      }
       brand.status = brandUpdateStatusRequest.status;
       await queryRunner.manager.save(Brand, brand);
 
@@ -112,8 +125,20 @@ class BrandService extends BaseService<Brand> {
       statusTracking.status = brandUpdateStatusRequest.status.toString();
       statusTracking.updatedBy = account;
       statusTracking.brand = brand;
+
       await queryRunner.manager.save(StatusTracking, statusTracking);
 
+      if (brandUpdateStatusRequest.status == BrandStatusEnum.ACTIVE) {
+        const manager = brand.accounts.find(
+          (account) => account.role.role == RoleEnum.MANAGER
+        );
+        if (!manager) throw new BadRequestError('Manager not found');
+        sendConfirmActiveBrandEmail(
+          'thotv.t1.1821@gmail.com',
+          brand.name,
+          brandUpdateStatusRequest.url
+        );
+      }
       await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();

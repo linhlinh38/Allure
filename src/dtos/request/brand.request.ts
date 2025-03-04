@@ -56,6 +56,8 @@ export class BrandUpdateStatusRequest {
   brandId: string;
   @Expose()
   status: BrandStatusEnum;
+  @Expose()
+  url: string;
 }
 
 export class BrandRequest {
