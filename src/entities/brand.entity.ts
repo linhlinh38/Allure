@@ -80,9 +80,6 @@ export class Brand extends BaseEntity {
   @Column({ type: 'varchar', length: 255 })
   businessRegistrationAddress: string;
 
-  @Column({ type: 'float', default: 0 })
-  star: number;
-
   @Column({ type: 'integer', name: 'current_update_profile_time', default: 0 })
   currentUpdateProfileTime: number;
 

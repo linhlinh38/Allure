@@ -25,7 +25,7 @@ export class LiveStream extends BaseEntity {
   })
   status: StatusEnum;
 
-  @ManyToOne(() => Account, (account) => account.files)
+  @ManyToOne(() => Account)
   @JoinColumn({ name: "account_id" })
   account: Account;
 

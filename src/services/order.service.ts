@@ -1,5 +1,12 @@
 import { statusTrackingRepository } from './../repositories/statusTracking.repository';
-import { ILike, In, IsNull, Not, QueryRunner, SelectQueryBuilder } from 'typeorm';
+import {
+  ILike,
+  In,
+  IsNull,
+  Not,
+  QueryRunner,
+  SelectQueryBuilder,
+} from 'typeorm';
 import { AppDataSource } from '../dataSource';
 import { BadRequestError } from '../errors/error';
 import { BaseService } from './base.service';
@@ -53,6 +60,22 @@ import { addRefundRequestToQueue } from '../utils/queue/approveRefundRequestQueu
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
+  async getBothRequestRefundCancel(orderId: string) {
+    const order = await orderRepository.findOne({
+      where: {
+        id: orderId,
+      },
+      relations: {
+        cancelOrderRequest: true,
+        refundRequest: true,
+      },
+    });
+    if (!order) throw new BadRequestError(`Order not found`);
+    return {
+      cancelOrderRequest: order.cancelOrderRequest,
+      refundRequest: order.refundRequest,
+    };
+  }
   async makeDecisionOnRefundRequest(
     requestId: string,
     status: RequestStatusEnum,
@@ -174,8 +197,9 @@ class OrderService extends BaseService<Order> {
         return fileEntity;
       }
     );
-    const createdRefundRequestEntity =
-      await refundRequestRepository.save(createdRefundRequest);
+    const createdRefundRequestEntity = await refundRequestRepository.save(
+      createdRefundRequest
+    );
     await addRefundRequestToQueue(createdRefundRequestEntity.id);
   }
   async getCancelRequestById(requestId: string) {
@@ -222,35 +246,35 @@ class OrderService extends BaseService<Order> {
   }
 
   queryBuilderForOrder(queryBuilder: SelectQueryBuilder<any>) {
-      queryBuilder
-        .leftJoinAndSelect('order.orderDetails', 'orderDetail')
-        .leftJoinAndSelect(
-          'orderDetail.productClassification',
-          'productClassification'
-        )
-        .leftJoinAndSelect(
-          'productClassification.images',
-          'productClassificationImages'
-        )
-        .leftJoinAndSelect('productClassification.product', 'product')
-        .leftJoinAndSelect('product.brand', 'productBrand')
-        .leftJoinAndSelect('product.images', 'productImages')
-        .leftJoinAndSelect(
-          'productClassification.productDiscount',
-          'productDiscount'
-        )
-        .leftJoinAndSelect('productDiscount.product', 'discountProduct')
-        .leftJoinAndSelect('discountProduct.brand', 'discountProductBrand')
-        .leftJoinAndSelect('discountProduct.images', 'discountProductImages')
-        .leftJoinAndSelect(
-          'productClassification.preOrderProduct',
-          'preOrderProduct'
-        )
-        .leftJoinAndSelect('preOrderProduct.product', 'preOrderProductItem')
-        .leftJoinAndSelect('preOrderProductItem.brand', 'preOrderProductBrand')
-        .leftJoinAndSelect('preOrderProductItem.images', 'preOrderProductImages');
-    }
-    
+    queryBuilder
+      .leftJoinAndSelect('order.orderDetails', 'orderDetail')
+      .leftJoinAndSelect(
+        'orderDetail.productClassification',
+        'productClassification'
+      )
+      .leftJoinAndSelect(
+        'productClassification.images',
+        'productClassificationImages'
+      )
+      .leftJoinAndSelect('productClassification.product', 'product')
+      .leftJoinAndSelect('product.brand', 'productBrand')
+      .leftJoinAndSelect('product.images', 'productImages')
+      .leftJoinAndSelect(
+        'productClassification.productDiscount',
+        'productDiscount'
+      )
+      .leftJoinAndSelect('productDiscount.product', 'discountProduct')
+      .leftJoinAndSelect('discountProduct.brand', 'discountProductBrand')
+      .leftJoinAndSelect('discountProduct.images', 'discountProductImages')
+      .leftJoinAndSelect(
+        'productClassification.preOrderProduct',
+        'preOrderProduct'
+      )
+      .leftJoinAndSelect('preOrderProduct.product', 'preOrderProductItem')
+      .leftJoinAndSelect('preOrderProductItem.brand', 'preOrderProductBrand')
+      .leftJoinAndSelect('preOrderProductItem.images', 'preOrderProductImages');
+  }
+
   async getCancelRequestOfBrand(brandId: string, status: RequestStatusEnum) {
     console.log(status);
 

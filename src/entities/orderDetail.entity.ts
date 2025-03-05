@@ -76,6 +76,5 @@ export class OrderDetail extends BaseEntity {
   @OneToOne(() => Feedback, (feedback) => feedback.orderDetail, {
     nullable: true,
   })
-  @JoinColumn({ name: 'feedback_id' })
   feedback: Feedback;
 }
