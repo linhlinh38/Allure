@@ -69,6 +69,10 @@ orderRouter.post(
   validate(RequestRefundSchema),
   OrderController.requestRefund
 );
+orderRouter.get(
+  '/get-both-request-refund-cancel/:orderId',
+  OrderController.getBothRequestRefundCancel
+);
 orderRouter.post(
   '/make-decision-on-refund-request/:requestId',
   validate(RequestStatusSchema),

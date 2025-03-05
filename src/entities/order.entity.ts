@@ -127,7 +127,6 @@ export class Order extends BaseEntity {
   transaction: Transaction;
 
   @OneToOne(() => RefundRequest, (refundRequest) => refundRequest.order)
-  @JoinColumn({ name: 'refund_request_id' })
   refundRequest: RefundRequest;
 
   @OneToOne(() => Report, (report) => report.order)

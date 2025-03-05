@@ -1,4 +1,4 @@
-import { Entity, Column, OneToMany, OneToOne } from 'typeorm';
+import { Entity, Column, OneToMany, OneToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { OrderDetail } from './orderDetail.entity';
 import { Reply } from './reply.entity';
@@ -13,13 +13,12 @@ export class Feedback extends BaseEntity {
   content: string;
 
   @OneToOne(() => OrderDetail, (orderDetail) => orderDetail.feedback)
+  @JoinColumn({ name: 'order_detail_id' })
   orderDetail: OrderDetail;
 
-  @OneToMany(
-    () => MediaFile,
-    (mediaFile) => mediaFile.feedback,
-    { cascade: true }
-  )
+  @OneToMany(() => MediaFile, (mediaFile) => mediaFile.feedback, {
+    cascade: true,
+  })
   mediaFiles: MediaFile[];
 
   @OneToMany(() => Reply, (reply) => reply.feedback)

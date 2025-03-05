@@ -27,13 +27,13 @@ export class StatusTracking extends BaseEntity {
   @ManyToOne(() => Account, (account) => account.statusTrackings, {
     nullable: true,
   })
-  @JoinColumn({ name: "account" })
+  @JoinColumn({ name: "account_id" })
   account: Account;
 
   @ManyToOne(() => Brand, (brand) => brand.statusTrackings, {
     nullable: true,
   })
-  @JoinColumn({ name: "brand" })
+  @JoinColumn({ name: "brand_id" })
   brand: Brand;
 
   @ManyToOne(() => Order, (order) => order.statusTrackings, {

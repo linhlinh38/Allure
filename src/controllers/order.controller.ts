@@ -11,6 +11,21 @@ import {
 import { AuthRequest } from '../middleware/authentication';
 
 export default class OrderController {
+  static async getBothRequestRefundCancel(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get both requests success',
+        await orderService.getBothRequestRefundCancel(req.params.orderId)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async makeDecisionOnRefundRequest(
     req: AuthRequest,
     res: Response,
@@ -24,7 +39,7 @@ export default class OrderController {
     try {
       return createNormalResponse(
         res,
-        isApproved ? 'Approved request success' : 'Reject request success',
+        isApproved ? 'Approved request success' : 'Reject request success'
       );
     } catch (err) {
       next(err);
