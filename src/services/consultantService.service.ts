@@ -34,29 +34,30 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
 
   async getAll() {
     const services = await this.repository
-      .createQueryBuilder("consultantService")
-      .leftJoinAndSelect("consultantService.systemService", "systemService")
-      .leftJoinAndSelect("systemService.category", "category")
+      .createQueryBuilder('consultantService')
+      .leftJoinAndSelect('consultantService.systemService', 'systemService')
+      .leftJoinAndSelect('systemService.category', 'category')
+      .leftJoinAndSelect('systemService.images', 'systemServiceImages')
       .leftJoinAndSelect(
-        "consultantService.images",
-        "images",
-        "images.status = :imageStatus",
+        'consultantService.images',
+        'images',
+        'images.status = :imageStatus',
         { imageStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "consultantService.serviceBookingForm",
-        "serviceBookingForm"
+        'consultantService.serviceBookingForm',
+        'serviceBookingForm'
       )
       .leftJoinAndSelect(
-        "serviceBookingForm.questions",
-        "questions",
-        "questions.status = :questionStatus",
+        'serviceBookingForm.questions',
+        'questions',
+        'questions.status = :questionStatus',
         { questionStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "questions.images",
-        "questionImages",
-        "questionImages.status = :questionImageStatus",
+        'questions.images',
+        'questionImages',
+        'questionImages.status = :questionImageStatus',
         { questionImageStatus: StatusEnum.ACTIVE }
       )
       .getMany();

@@ -28,4 +28,10 @@ export class MediaFile extends BaseEntity {
   })
   @JoinColumn({ name: 'refund_request_id' })
   refundRequest: RefundRequest;
+
+  @ManyToOne(() => RefundRequest, (refundRequest) => refundRequest.mediaFilesRejected, {
+    nullable: true,
+  })
+  @JoinColumn({ name: 'refund_request_rejected_id' })
+  refundRequestRejected: RefundRequest;
 }
