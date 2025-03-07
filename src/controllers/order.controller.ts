@@ -7,6 +7,7 @@ import {
   PreOrderRequest,
   UpdateOrderStatusRequest,
   OrderNormalRequest,
+  MakeDicisionRefundRequest,
 } from '../dtos/request/order.request';
 import { AuthRequest } from '../middleware/authentication';
 
@@ -31,10 +32,16 @@ export default class OrderController {
     res: Response,
     next: NextFunction
   ) {
+    const makeDicisionRefundRequest = plainToInstance(
+      MakeDicisionRefundRequest,
+      req.body,
+      {
+        excludeExtraneousValues: true,
+      }
+    );
     const isApproved = await orderService.makeDecisionOnRefundRequest(
       req.params.requestId,
-      req.body.status,
-      req.body.reasonRejected
+      makeDicisionRefundRequest
     );
     try {
       return createNormalResponse(

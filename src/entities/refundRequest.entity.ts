@@ -26,6 +26,11 @@ export class RefundRequest extends BaseEntity {
   })
   reasonRejected: string;
 
+  @OneToMany(() => MediaFile, (mediaFile) => mediaFile.refundRequestRejected, {
+    cascade: true,
+  })
+  mediaFilesRejected: MediaFile[];
+
   @Column({
     type: 'enum',
     enum: RequestStatusEnum,

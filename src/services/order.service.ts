@@ -16,6 +16,7 @@ import {
   PreOrderRequest,
   UpdateOrderStatusRequest,
   OrderNormalRequest,
+  MakeDicisionRefundRequest,
 } from '../dtos/request/order.request';
 import { voucherRepository } from '../repositories/voucher.repository';
 import { productClassificationRepository } from '../repositories/productClassification.repository';
@@ -67,7 +68,7 @@ class OrderService extends BaseService<Order> {
       },
       relations: {
         cancelOrderRequest: true,
-        refundRequest: {mediaFiles: true},
+        refundRequest: { mediaFiles: true, mediaFilesRejected: true },
       },
     });
     if (!order) throw new BadRequestError(`Order not found`);
@@ -78,13 +79,13 @@ class OrderService extends BaseService<Order> {
   }
   async makeDecisionOnRefundRequest(
     requestId: string,
-    status: RequestStatusEnum,
-    reasonRejected: string
+    makeDicisionRefundRequest: MakeDicisionRefundRequest
   ) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
+      const { reasonRejected, status, mediaFiles } = makeDicisionRefundRequest;
       let isApproved = false;
       const refundRequest = await refundRequestRepository.findOne({
         where: {
@@ -100,6 +101,13 @@ class OrderService extends BaseService<Order> {
           throw new BadRequestError('Reason Rejected required when rejected');
         refundRequest.status = status;
         refundRequest.reasonRejected = reasonRejected;
+        if (mediaFiles && mediaFiles.length > 0) {
+          refundRequest.mediaFilesRejected = mediaFiles.map((file) => {
+            const fileEntity = new MediaFile();
+            fileEntity.fileUrl = file;
+            return fileEntity;
+          });
+        }
         await queryRunner.manager.save(RefundRequest, refundRequest);
         isApproved = false;
       } else if (status === RequestStatusEnum.APPROVED) {
