@@ -67,7 +67,7 @@ class OrderService extends BaseService<Order> {
       },
       relations: {
         cancelOrderRequest: true,
-        refundRequest: true,
+        refundRequest: {mediaFiles: true},
       },
     });
     if (!order) throw new BadRequestError(`Order not found`);
@@ -95,8 +95,6 @@ class OrderService extends BaseService<Order> {
         },
       });
       if (!refundRequest) throw new BadRequestError('Request not found');
-      if (refundRequest.status != RequestStatusEnum.PENDING)
-        throw new BadRequestError('Request has already been processed');
       if (status === RequestStatusEnum.REJECTED) {
         if (!reasonRejected)
           throw new BadRequestError('Reason Rejected required when rejected');
