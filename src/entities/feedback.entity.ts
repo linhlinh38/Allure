@@ -3,6 +3,7 @@ import { BaseEntity } from './base.entity';
 import { OrderDetail } from './orderDetail.entity';
 import { Reply } from './reply.entity';
 import { MediaFile } from './mediaFile.entity';
+import { Report } from './report.entity';
 
 @Entity('feedbacks')
 export class Feedback extends BaseEntity {
@@ -23,4 +24,7 @@ export class Feedback extends BaseEntity {
 
   @OneToMany(() => Reply, (reply) => reply.feedback)
   replies: Reply[];
+
+  @OneToOne(() => Report, (report) => report.feedback)
+  report: Report;
 }
