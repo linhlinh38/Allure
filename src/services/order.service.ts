@@ -60,6 +60,7 @@ import { RefundRequest } from '../entities/refundRequest.entity';
 import { addNormalOrderToQueue } from '../utils/queue/cancelOrderQueue';
 import { addRefundRequestToQueue } from '../utils/queue/approveRefundRequestQueue';
 import { RejectRefundRequest } from '../entities/rejectRefundRequest.entity';
+import { rjectRefundRequestRepository } from '../repositories/rejectRefundRequest.repository';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
@@ -73,50 +74,43 @@ class OrderService extends BaseService<Order> {
       const { reasonRejected, status } =
         makeDicisionRejectRefundRequest;
       let isApproved = false;
-      const refundRequest = await refundRequestRepository.findOne({
+      const rejectRefundRequest = await rjectRefundRequestRepository.findOne({
         where: {
           id: requestId,
         },
         relations: {
-          order: { account: true },
-        },
+          refundRequest: {
+            order: true
+          }
+        }
       });
-      if (!refundRequest) throw new BadRequestError('Request not found');
+      if (!rejectRefundRequest) throw new BadRequestError('Request not found');
       if (status === RequestStatusEnum.REJECTED) {
         if (!reasonRejected)
           throw new BadRequestError('Reason Rejected required when rejected');
-        refundRequest.status = status;
-        await queryRunner.manager.save(RefundRequest, refundRequest);
-
-        //create reject refund request
-        const rejectRefundRequest = new RejectRefundRequest();
-        rejectRefundRequest.refundRequest = refundRequest;
-        rejectRefundRequest.reason = reasonRejected;
-        await queryRunner.manager.save(
-          RejectRefundRequest,
-          rejectRefundRequest
-        );
-
+        rejectRefundRequest.status = status;
+        rejectRefundRequest.reason = makeDicisionRejectRefundRequest.reasonRejected;
+        await queryRunner.manager.save(RefundRequest, rejectRefundRequest);
         isApproved = false;
       } else if (status === RequestStatusEnum.APPROVED) {
-        const order = refundRequest.order;
+        const order = rejectRefundRequest.refundRequest.order;
         await Promise.all([
           //update refund request status
           (async () => {
-            refundRequest.status = status;
-            await queryRunner.manager.save(RefundRequest, refundRequest);
+            rejectRefundRequest.status = status;
+            await queryRunner.manager.save(RefundRequest, rejectRefundRequest);
           })(),
           //update order status
           (async () => {
-            order.status = ShippingStatusEnum.RETURNING;
+            order.status = ShippingStatusEnum.COMPLETED;
             await queryRunner.manager.save(Order, order);
           })(),
           //create status tracking
           this.createStatusTracking(
             order,
             order.account.id,
-            ShippingStatusEnum.RETURNING,
-            refundRequest.reason,
+            ShippingStatusEnum.COMPLETED,
+            null,
             queryRunner
           ),
         ]);
