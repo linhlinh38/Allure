@@ -14,7 +14,7 @@ export async function addGroupBuyingToQueue(
   await endGrBuyingQueue.add(
     'checkEventEnd',
     { groupBuyingId },
-    { delay: time }
+    { delay: Number(time) }
   );
 }
 
