@@ -11,7 +11,7 @@ export class File extends BaseEntity {
   @Column({ type: 'varchar', nullable: true })
   name?: string;
 
-  @Column({ type: 'varchar', nullable: false })
+  @Column({ type: 'varchar', nullable: true, name: 'file_url' })
   fileUrl: string;
 
   @Column({
