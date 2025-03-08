@@ -5,6 +5,7 @@ import {
   CancelOrderSchema,
   CancelOrderStatusSchema,
   OrderNormalCreateSchema,
+  RequestComlaintSchema,
   RequestRefundSchema,
   RequestStatusSchema,
   SearchOrderSchema,
@@ -70,6 +71,11 @@ orderRouter.post(
   validate(RequestRefundSchema),
   OrderController.requestRefund
 );
+orderRouter.post(
+  '/request-complaint/:orderId',
+  validate(RequestComlaintSchema),
+  OrderController.requestComlaint
+);
 orderRouter.get(
   '/get-both-request-refund-cancel/:orderId',
   OrderController.getBothRequestRefundCancel
@@ -79,6 +85,7 @@ orderRouter.post(
   validate(RequestStatusSchema),
   OrderController.makeDecisionOnRefundRequest
 );
+
 orderRouter.post(
   '/make-decision-on-reject-refund-request/:requestId',
   validate(RequestStatusSchema),
