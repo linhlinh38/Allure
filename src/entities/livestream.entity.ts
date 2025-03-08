@@ -8,7 +8,7 @@ import {
   OneToMany,
 } from "typeorm";
 import { BaseEntity } from "./base.entity";
-import { LiveStreamEnum, StatusEnum } from "../utils/enum";
+import { LiveStreamEnum } from "../utils/enum";
 import { Account } from "./account.entity";
 import { Order } from "./order.entity";
 import { Product } from "./product.entity";
