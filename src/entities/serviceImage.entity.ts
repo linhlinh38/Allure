@@ -5,16 +5,16 @@ import { Question } from "./question.entity";
 import { ConsultantService } from "./consultantService.entity";
 import { SystemService } from "./systemService.entity";
 
-@Entity("service_images")
+@Entity('service_images')
 export class ServiceImage extends BaseEntity {
-  @Column({ type: "varchar", length: 100, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   name?: string;
 
-  @Column({ name: "file_url", type: "varchar", nullable: false })
+  @Column({ name: 'file_url', type: 'varchar', nullable: true })
   fileUrl: string;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: StatusEnum,
     default: StatusEnum.ACTIVE,
   })
@@ -23,7 +23,7 @@ export class ServiceImage extends BaseEntity {
   @ManyToOne(() => SystemService, (systemService) => systemService.images, {
     nullable: true,
   })
-  @JoinColumn({ name: "system_service_id" })
+  @JoinColumn({ name: 'system_service_id' })
   systemService: SystemService;
 
   @ManyToOne(
@@ -33,10 +33,10 @@ export class ServiceImage extends BaseEntity {
       nullable: true,
     }
   )
-  @JoinColumn({ name: "consultant_service_id" })
+  @JoinColumn({ name: 'consultant_service_id' })
   consultantService: ConsultantService;
 
   @ManyToOne(() => Question, (question) => question.images, { nullable: true })
-  @JoinColumn({ name: "question_id" })
+  @JoinColumn({ name: 'question_id' })
   question: Question;
 }

@@ -21,7 +21,7 @@ import { Booking } from "./booking.entity";
 @Entity('brands')
 export class Brand extends BaseEntity {
   @Expose()
-  @Column({ type: 'varchar', length: 100, unique: true })
+  @Column({ type: 'varchar', length: 255, unique: true, nullable: true })
   name: string;
 
   @Expose()

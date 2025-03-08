@@ -3,7 +3,7 @@ import { FileEnum } from "../../utils/enum";
 
 export const FileCreateSchema = z.object({
   body: z.object({
-    name: z.string().max(100).optional(),
+    name: z.string().max(255).optional(),
     fileUrl: z.string(),
     type: z.nativeEnum(FileEnum).optional(),
     account: z.string().optional(),
