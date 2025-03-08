@@ -20,6 +20,10 @@ consultantServiceRouter.get(
   consultantServiceController.getByConsultant
 );
 
+consultantServiceRouter.get(
+  "/filter-consultant-services",
+  consultantServiceController.filterConsultantServices
+);
 consultantServiceRouter.use(authentication);
 
 consultantServiceRouter.post(

@@ -45,7 +45,6 @@ class LiveStreamService extends BaseService<LiveStream> {
         const productEntities = await productRepository.find({
           where: { id: In(products) },
         });
-        console.log(productEntities);
 
         if (productEntities.length !== products.length) {
           throw new BadRequestError("Some products not found");
@@ -53,6 +52,47 @@ class LiveStreamService extends BaseService<LiveStream> {
         livestream.products = productEntities;
         await queryRunner.manager.save(livestream);
       }
+
+      await queryRunner.commitTransaction();
+      return livestream;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async update(id: string, livestreamData: any): Promise<LiveStream> {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const { products, ...livestreamInfo } = livestreamData;
+
+      const livestream = await queryRunner.manager.findOne(LiveStream, {
+        where: { id },
+        relations: ["products"],
+      });
+      if (!livestream) {
+        throw new BadRequestError("Livestream not found");
+      }
+
+      livestream.products = [];
+
+      if (products && products.length > 0) {
+        const productEntities = await productRepository.find({
+          where: { id: In(products) },
+        });
+
+        if (productEntities.length !== products.length) {
+          throw new BadRequestError("Some products not found");
+        }
+        livestreamInfo.products = productEntities;
+      }
+      queryRunner.manager.merge(LiveStream, livestream, livestreamInfo);
+      await queryRunner.manager.save(livestream);
 
       await queryRunner.commitTransaction();
       return livestream;

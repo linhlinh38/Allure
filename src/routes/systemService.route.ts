@@ -10,7 +10,10 @@ const systemServiceRouter = express.Router();
 
 systemServiceRouter.get("/", systemServiceController.getAll);
 systemServiceRouter.get("/get-by-id/:id", systemServiceController.getById);
-
+systemServiceRouter.get(
+  "/filter-system-services",
+  systemServiceController.filterSystemServices
+);
 systemServiceRouter.use(authentication);
 
 systemServiceRouter.post(
