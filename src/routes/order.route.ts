@@ -11,6 +11,7 @@ import {
   UpdateOrderStatusSchema,
 } from '../dtos/request/order.request';
 import validate from '../utils/validate';
+import { Author } from '../middleware/authorization';
 
 const orderRouter = express.Router();
 orderRouter.get('/', OrderController.getAll);
@@ -77,6 +78,12 @@ orderRouter.post(
   '/make-decision-on-refund-request/:requestId',
   validate(RequestStatusSchema),
   OrderController.makeDecisionOnRefundRequest
+);
+orderRouter.post(
+  '/make-decision-on-reject-refund-request/:requestId',
+  validate(RequestStatusSchema),
+  Author(['ADMIN']),
+  OrderController.makeDecisionOnRejectRefundRequest
 );
 orderRouter.post('/create-pre-order', OrderController.createPreOrder);
 orderRouter.post('/create-group-order', OrderController.createGroupOrder);

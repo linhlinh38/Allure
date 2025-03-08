@@ -11,6 +11,7 @@ import { StatusTracking } from "./statusTracking.entity";
 import { ConsultantService } from "./consultantService.entity";
 import { Slot } from "./slot.entity";
 import { Report } from "./report.entity";
+import { Brand } from "./brand.entity";
 
 @Entity('bookings')
 export class Booking extends BaseEntity {
@@ -70,6 +71,10 @@ export class Booking extends BaseEntity {
   @ManyToOne(() => Account, (account) => account.bookings)
   @JoinColumn({ name: 'account_id' })
   account: Account;
+
+  @ManyToOne(() => Brand, (brand) => brand.bookings)
+  @JoinColumn({ name: 'brand_id' })
+  brand: Brand;
 
   @ManyToOne(() => Account, { nullable: true })
   @JoinColumn({ name: 'assignee_to_interview_id' })

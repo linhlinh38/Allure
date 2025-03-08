@@ -14,6 +14,7 @@ import { slotRepository } from '../repositories/slot.repository';
 import { BookingStatusEnum, BookingTypeEnum, RoleEnum } from '../utils/enum';
 import { BaseService } from './base.service';
 import { accountRepository } from '../repositories/account.repository';
+import { brandRepository } from '../repositories/brand.repository';
 
 const repository = AppDataSource.getRepository(Booking);
 class BookingService extends BaseService<Booking> {
@@ -81,6 +82,7 @@ class BookingService extends BaseService<Booking> {
           type: BookingTypeEnum.INTERVIEW,
         },
         relations: {
+          brand: true,
           account: true,
           slot: true,
           assigneeToInterview: true,
@@ -96,6 +98,7 @@ class BookingService extends BaseService<Booking> {
           assigneeToInterview: { id: loginUser },
         },
         relations: {
+          brand: true,
           account: true,
           slot: true,
           assigneeToInterview: true,
@@ -111,6 +114,7 @@ class BookingService extends BaseService<Booking> {
           account: { id: loginUser },
         },
         relations: {
+          brand: true,
           account: true,
           slot: true,
           assigneeToInterview: true,
@@ -169,6 +173,10 @@ class BookingService extends BaseService<Booking> {
         throw new BadRequestError(
           'You have already booked an interview. Please wait for process'
         );
+      const brand = await brandRepository.findOne({
+        where: { id: bookingRequest.brandId },
+      });
+      if (!brand) throw new BadRequestError('Brand not found');
       const slot = await slotRepository.findOneBy({ id: bookingRequest.slot });
       if (!slot) throw new BadRequestError('Slot not found');
       const existedBooking = await bookingRepository.findOne({
@@ -185,6 +193,7 @@ class BookingService extends BaseService<Booking> {
       createdBooking.status = BookingStatusEnum.WAIT_FOR_CONFIRMATION;
       createdBooking.account = new Account();
       createdBooking.account.id = loginUser;
+      createdBooking.brand = brand;
       await createdBooking.save();
       return;
     }

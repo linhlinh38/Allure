@@ -1,6 +1,10 @@
-import { z } from "zod";
-import { BookingStatusEnum, BookingTypeEnum, PaymentMethodEnum } from "../../utils/enum";
-import { Expose } from "class-transformer";
+import { z } from 'zod';
+import {
+  BookingStatusEnum,
+  BookingTypeEnum,
+  PaymentMethodEnum,
+} from '../../utils/enum';
+import { Expose } from 'class-transformer';
 
 export const BookingCreateSchema = z.object({
   body: z.object({
@@ -24,6 +28,7 @@ export const BookingCreateSchema = z.object({
     notes: z.string().optional(),
     type: z.nativeEnum(BookingTypeEnum),
     slot: z.string(),
+    brandId: z.string().uuid().optional(),
   }),
 });
 
@@ -89,4 +94,7 @@ export class BookingRequest {
 
   @Expose()
   account: string;
+
+  @Expose()
+  brandId: string;
 }

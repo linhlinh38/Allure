@@ -8,10 +8,36 @@ import {
   UpdateOrderStatusRequest,
   OrderNormalRequest,
   MakeDicisionRefundRequest,
+  MakeDicisionRjectRefundRequest,
 } from '../dtos/request/order.request';
 import { AuthRequest } from '../middleware/authentication';
 
 export default class OrderController {
+  static async makeDecisionOnRejectRefundRequest(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    const makeDicisionRejectRefundRequest = plainToInstance(
+      MakeDicisionRjectRefundRequest,
+      req.body,
+      {
+        excludeExtraneousValues: true,
+      }
+    );
+    const isApproved = await orderService.makeDecisionOnRejectRefundRequest(
+      req.params.requestId,
+      makeDicisionRejectRefundRequest
+    );
+    try {
+      return createNormalResponse(
+        res,
+        isApproved ? 'Approved request success' : 'Reject request success'
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async getBothRequestRefundCancel(
     req: AuthRequest,
     res: Response,

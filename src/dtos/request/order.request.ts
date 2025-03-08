@@ -96,6 +96,7 @@ export const RequestStatusSchema = z.object({
   body: z.object({
     status: z.nativeEnum(RequestStatusEnum).optional(),
     mediaFiles: z.array(z.string()).optional(),
+    reasonRejected: z.string().optional(),
   }),
 });
 
@@ -108,6 +109,14 @@ export class MakeDicisionRefundRequest {
 
   @Expose()
   mediaFiles: string[];
+}
+
+export class MakeDicisionRjectRefundRequest {
+  @Expose()
+  status: RequestStatusEnum;
+
+  @Expose()
+  reasonRejected: string;
 }
 
 export class RequestRefundRequest {
