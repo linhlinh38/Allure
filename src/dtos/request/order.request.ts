@@ -92,6 +92,13 @@ export const RequestRefundSchema = z.object({
   }),
 });
 
+export const RequestComlaintSchema = z.object({
+  body: z.object({
+    reason: z.string(),
+    mediaFiles: z.array(z.string()),
+  }),
+});
+
 export const RequestStatusSchema = z.object({
   body: z.object({
     status: z.nativeEnum(RequestStatusEnum).optional(),
@@ -120,6 +127,14 @@ export class MakeDicisionRjectRefundRequest {
 }
 
 export class RequestRefundRequest {
+  @Expose()
+  reason: string;
+
+  @Expose()
+  mediaFiles: string[];
+}
+
+export class ComplaintRequestRequest {
   @Expose()
   reason: string;
 

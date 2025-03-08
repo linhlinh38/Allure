@@ -9,10 +9,36 @@ import {
   OrderNormalRequest,
   MakeDicisionRefundRequest,
   MakeDicisionRjectRefundRequest,
+  ComplaintRequestRequest,
 } from '../dtos/request/order.request';
 import { AuthRequest } from '../middleware/authentication';
 
 export default class OrderController {
+  static async requestComlaint(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const complainRequest = plainToInstance(
+        ComplaintRequestRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Request refund success',
+        await orderService.requestComlaint(
+          complainRequest,
+          req.params.orderId,
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async makeDecisionOnRejectRefundRequest(
     req: AuthRequest,
     res: Response,

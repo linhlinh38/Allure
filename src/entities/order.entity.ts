@@ -23,6 +23,7 @@ import { CancelOrderRequest } from './cancelOrderRequest.entity';
 import { Brand } from './brand.entity';
 import { RefundRequest } from './refundRequest.entity';
 import { Report } from './report.entity';
+import { ComplaintRequest } from './complainRequest';
 
 @Entity('orders')
 export class Order extends BaseEntity {
@@ -128,6 +129,12 @@ export class Order extends BaseEntity {
 
   @OneToOne(() => RefundRequest, (refundRequest) => refundRequest.order)
   refundRequest: RefundRequest;
+
+  @OneToOne(
+    () => ComplaintRequest,
+    (complaintRequest) => complaintRequest.order
+  )
+  complaintRequest: ComplaintRequest;
 
   @OneToOne(() => Report, (report) => report.order)
   report: Report;
