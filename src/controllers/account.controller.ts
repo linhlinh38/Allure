@@ -7,17 +7,15 @@ import {
 import { accountService } from "../services/account.service";
 import { NextFunction, Request, Response } from "express";
 import { encryptedPassword } from "../utils/jwt";
-import { RoleEnum, StatusEnum } from "../utils/enum";
+import { StatusEnum } from "../utils/enum";
 import { AccountResponse } from "../dtos/response/account.response";
-import { instanceToPlain, plainToClass } from "class-transformer";
+import { plainToClass } from "class-transformer";
 import { AuthRequest } from "../middleware/authentication";
 import bcrypt from "bcrypt";
 import {
-  sendRegisterAccountEmail,
   sendRequestCreateAccountEmail,
   sendResetPasswordEmail,
 } from "../services/mail.service";
-import { roleService } from "../services/role.service";
 import { AccountUpdateStatusType } from "../dtos/request/account.request";
 import { createNormalResponse } from "../utils/response";
 

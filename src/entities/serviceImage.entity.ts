@@ -1,8 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
 import { BaseEntity } from "./base.entity";
 import { StatusEnum } from "../utils/enum";
-import { Product } from "./product.entity";
-import { ProductClassification } from "./productClassification.entity";
 import { Question } from "./question.entity";
 import { ConsultantService } from "./consultantService.entity";
 import { SystemService } from "./systemService.entity";

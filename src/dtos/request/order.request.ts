@@ -3,7 +3,6 @@ import {
   RequestStatusEnum,
   PaymentMethodEnum,
   ShippingStatusEnum,
-  StatusEnum,
 } from '../../utils/enum';
 import { Expose } from 'class-transformer';
 
@@ -96,8 +95,29 @@ export const RequestRefundSchema = z.object({
 export const RequestStatusSchema = z.object({
   body: z.object({
     status: z.nativeEnum(RequestStatusEnum).optional(),
+    mediaFiles: z.array(z.string()).optional(),
+    reasonRejected: z.string().optional(),
   }),
 });
+
+export class MakeDicisionRefundRequest {
+  @Expose()
+  status: RequestStatusEnum;
+
+  @Expose()
+  reasonRejected: string;
+
+  @Expose()
+  mediaFiles: string[];
+}
+
+export class MakeDicisionRjectRefundRequest {
+  @Expose()
+  status: RequestStatusEnum;
+
+  @Expose()
+  reasonRejected: string;
+}
 
 export class RequestRefundRequest {
   @Expose()

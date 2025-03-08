@@ -1,4 +1,3 @@
-import moment from "moment";
 
 export function generateAccountRegisterContent(
   link: string,

@@ -3,7 +3,7 @@ import { AppDataSource } from "../dataSource";
 import { Account } from "../entities/account.entity";
 import { BadRequestError } from "../errors/error";
 import bcrypt from "bcrypt";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import { generateRefreshToken } from "../utils/jwt";
 import GoogleService from "./google.service";
 

@@ -7,24 +7,72 @@ import {
   PreOrderRequest,
   UpdateOrderStatusRequest,
   OrderNormalRequest,
+  MakeDicisionRefundRequest,
+  MakeDicisionRjectRefundRequest,
 } from '../dtos/request/order.request';
 import { AuthRequest } from '../middleware/authentication';
 
 export default class OrderController {
+  static async makeDecisionOnRejectRefundRequest(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    const makeDicisionRejectRefundRequest = plainToInstance(
+      MakeDicisionRjectRefundRequest,
+      req.body,
+      {
+        excludeExtraneousValues: true,
+      }
+    );
+    const isApproved = await orderService.makeDecisionOnRejectRefundRequest(
+      req.params.requestId,
+      makeDicisionRejectRefundRequest
+    );
+    try {
+      return createNormalResponse(
+        res,
+        isApproved ? 'Approved request success' : 'Reject request success'
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async getBothRequestRefundCancel(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get both requests success',
+        await orderService.getBothRequestRefundCancel(req.params.orderId)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async makeDecisionOnRefundRequest(
     req: AuthRequest,
     res: Response,
     next: NextFunction
   ) {
+    const makeDicisionRefundRequest = plainToInstance(
+      MakeDicisionRefundRequest,
+      req.body,
+      {
+        excludeExtraneousValues: true,
+      }
+    );
     const isApproved = await orderService.makeDecisionOnRefundRequest(
       req.params.requestId,
-      req.body.status,
-      req.body.reasonRejected
+      makeDicisionRefundRequest
     );
     try {
       return createNormalResponse(
         res,
-        isApproved ? 'Approved request success' : 'Reject request success',
+        isApproved ? 'Approved request success' : 'Reject request success'
       );
     } catch (err) {
       next(err);

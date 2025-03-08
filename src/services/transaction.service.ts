@@ -11,13 +11,88 @@ import {
 import { BaseService } from './base.service';
 import { Order } from '../entities/order.entity';
 import { GroupBuying } from '../entities/groupBuying.entity';
-import { GetStatisticsRequest } from '../dtos/request/transaction.request';
+import {
+  FilterTransactionRequest,
+  GetStatisticsRequest,
+} from '../dtos/request/transaction.request';
 import { orderRepository } from '../repositories/order.repository';
 import { brandRepository } from '../repositories/brand.repository';
 import { BadRequestError } from '../errors/error';
+import { Paging } from '../dtos/other/paging.dto';
+import { transactionRepository } from '../repositories/transaction.repository';
+import { orderService } from './order.service';
 
 const repository = AppDataSource.getRepository(Transaction);
 class TransactionService extends BaseService<Transaction> {
+  async filter(
+    filterTransactionRequest: FilterTransactionRequest,
+    loginUser: string,
+    paging: Paging
+  ) {
+    const limit = paging.limit;
+    const offset = (paging.page - 1) * paging.limit;
+    const total = await this.getTotalTransactionCount(
+      loginUser,
+      filterTransactionRequest
+    );
+    console.log(total);
+
+    const totalPages = Math.ceil(total / paging.limit);
+    const query = this.getTransactionsQuery(loginUser, filterTransactionRequest)
+      .take(limit)
+      .skip(offset);
+
+    return {
+      total,
+      totalPages,
+      items: await query.getMany(),
+    };
+  }
+
+  getTransactionsQuery(
+    loginUser: string,
+    filterTransactionRequest: FilterTransactionRequest
+  ) {
+    const { status, type, startDate, endDate } = filterTransactionRequest;
+    const query = transactionRepository
+      .createQueryBuilder('transaction')
+      .leftJoinAndSelect('transaction.buyer', 'buyer')
+      .leftJoinAndSelect('transaction.brand', 'brand')
+      .leftJoinAndSelect('transaction.order', 'order')
+      .where('buyer.id = :loginUser', { loginUser })
+      .orderBy('transaction.createdAt', 'DESC');
+    orderService.queryBuilderForOrder(query);
+
+    if (status) query.andWhere('transaction.status = :status', { status });
+    if (type) query.andWhere('transaction.type = :type', { type });
+    if (startDate && endDate)
+      query.andWhere('transaction.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
+    return query;
+  }
+
+  async getTotalTransactionCount(
+    loginUser: string,
+    filterTransactionRequest: FilterTransactionRequest
+  ) {
+    const { status, type, startDate, endDate } = filterTransactionRequest;
+    const query = transactionRepository
+      .createQueryBuilder('transaction')
+      .select('COUNT(*)', 'total')
+      .innerJoin('transaction.buyer', 'buyer')
+      .where('buyer.id = :loginUser', { loginUser });
+    if (status) query.andWhere('transaction.status = :status', { status });
+    if (type) query.andWhere('transaction.type = :type', { type });
+    if (startDate && endDate)
+      query.andWhere('transaction.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
+    return (await query.getRawOne())?.total || 0;
+  }
+
   async getBrandRevenueStatistics(
     getBrandRevenueStatisticsRequest: GetStatisticsRequest,
     brandId: string

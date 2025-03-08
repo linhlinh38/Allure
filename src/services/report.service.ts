@@ -12,7 +12,8 @@ import { bookingRepository } from '../repositories/booking.repository';
 import { BadRequestError } from '../errors/error';
 import { orderRepository } from '../repositories/order.repository';
 import { accountRepository } from '../repositories/account.repository';
-import { SelectQueryBuilder } from 'typeorm';
+import { orderService } from './order.service';
+import { bookingService } from './booking.service';
 
 const repository = AppDataSource.getRepository(Report);
 class ReportService extends BaseService<Report> {
@@ -74,6 +75,8 @@ class ReportService extends BaseService<Report> {
       },
     });
     if (!report) throw new BadRequestError(`Report not found`);
+    if (report.status == ReportStatusEnum.DONE)
+      throw new BadRequestError(`Report is done. Can not assign`);
     if (report.assignee?.id == assigneeId) return;
     const assignee = await accountRepository.findOneBy({ id: assigneeId });
     if (!assignee) throw new BadRequestError(`Assignee not found`);
@@ -141,43 +144,6 @@ class ReportService extends BaseService<Report> {
     return await report.save();
   }
 
-  async queryBuilderForBooking(queryBuilder: SelectQueryBuilder<Report>) {
-    queryBuilder
-      .leftJoinAndSelect('booking.consultantService', 'consultantService')
-      .leftJoinAndSelect('consultantService.account', 'consultant')
-      .leftJoinAndSelect('consultantService.images', 'consultantServiceImages');
-  }
-
-  async queryBuilderForOrder(queryBuilder: SelectQueryBuilder<Report>) {
-    queryBuilder
-      .leftJoinAndSelect('order.orderDetails', 'orderDetail')
-      .leftJoinAndSelect(
-        'orderDetail.productClassification',
-        'productClassification'
-      )
-      .leftJoinAndSelect(
-        'productClassification.images',
-        'productClassificationImages'
-      )
-      .leftJoinAndSelect('productClassification.product', 'product')
-      .leftJoinAndSelect('product.brand', 'productBrand')
-      .leftJoinAndSelect('product.images', 'productImages')
-      .leftJoinAndSelect(
-        'productClassification.productDiscount',
-        'productDiscount'
-      )
-      .leftJoinAndSelect('productDiscount.product', 'discountProduct')
-      .leftJoinAndSelect('discountProduct.brand', 'discountProductBrand')
-      .leftJoinAndSelect('discountProduct.images', 'discountProductImages')
-      .leftJoinAndSelect(
-        'productClassification.preOrderProduct',
-        'preOrderProduct'
-      )
-      .leftJoinAndSelect('preOrderProduct.product', 'preOrderProductItem')
-      .leftJoinAndSelect('preOrderProductItem.brand', 'preOrderProductBrand')
-      .leftJoinAndSelect('preOrderProductItem.images', 'preOrderProductImages');
-  }
-
   async filterReports(filterReportsRequest: FilterReportsRequest) {
     const { type, status, assigneeId } = filterReportsRequest;
 
@@ -188,8 +154,8 @@ class ReportService extends BaseService<Report> {
       .leftJoinAndSelect('report.files', 'files')
       .leftJoinAndSelect('report.order', 'order')
       .leftJoinAndSelect('report.booking', 'booking');
-    this.queryBuilderForBooking(queryBuilder);
-    this.queryBuilderForOrder(queryBuilder);
+    bookingService.queryBuilderForBooking(queryBuilder);
+    orderService.queryBuilderForOrder(queryBuilder);
 
     if (type) {
       queryBuilder.andWhere('report.type = :type', { type });

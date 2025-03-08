@@ -4,7 +4,6 @@ import {
   JoinColumn,
   ManyToOne,
   OneToMany,
-  OneToOne,
 } from "typeorm";
 import { BaseEntity } from "./base.entity";
 import { StatusEnum } from "../utils/enum";

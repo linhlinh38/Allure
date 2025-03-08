@@ -3,7 +3,6 @@ import { productService } from '../services/product.service';
 import { createNormalResponse } from '../utils/response';
 import { NotFoundError } from '../errors/error';
 import { Product } from '../entities/product.entity';
-import { number } from 'zod';
 import { Paging } from '../dtos/other/paging.dto';
 import { plainToInstance } from 'class-transformer';
 import { RecommendProductsRequest } from '../dtos/request/product.request';

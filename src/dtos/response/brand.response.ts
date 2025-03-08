@@ -1,5 +1,5 @@
 import { Account } from '../../entities/account.entity';
-import { GenderEnum, RoleEnum, StatusEnum } from '../../utils/enum';
+import { StatusEnum } from '../../utils/enum';
 
 export class BrandResponse {
   name: string;

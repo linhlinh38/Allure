@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AddressEnum, FileEnum } from "../../utils/enum";
+import { FileEnum } from "../../utils/enum";
 
 export const FileCreateSchema = z.object({
   body: z.object({

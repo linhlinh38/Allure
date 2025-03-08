@@ -17,11 +17,11 @@ import { Reply } from '../entities/reply.entity';
 import { Account } from '../entities/account.entity';
 import { replyRepository } from '../repositories/reply.repository';
 import { MediaFile } from '../entities/mediaFile.entity';
+import { Paging } from '../dtos/other/paging.dto';
 
 const repository = AppDataSource.getRepository(Feedback);
 class FeedbackService extends BaseService<Feedback> {
-  async getById(id: string)
-  {
+  async getById(id: string) {
     const feedback = await feedbackRepository.findOne({
       where: {
         id,
@@ -42,14 +42,13 @@ class FeedbackService extends BaseService<Feedback> {
     if (!feedback) throw new BadRequestError('Feedback not found');
     return feedback;
   }
-  async reply(content: string, feedbackId: string, loginUser: string)
-  {
+  async reply(content: string, feedbackId: string, loginUser: string) {
     const feedback = await feedbackRepository.findOne({
       where: {
         id: feedbackId,
-      }
-    })
-    if(!feedback) throw new BadRequestError('Feedback not found');
+      },
+    });
+    if (!feedback) throw new BadRequestError('Feedback not found');
     const reply = new Reply();
     reply.content = content;
     reply.feedback = feedback;
@@ -57,18 +56,27 @@ class FeedbackService extends BaseService<Feedback> {
     reply.account.id = loginUser;
     return await replyRepository.save(reply);
   }
+
   async filter(
     feedbackFilterRequest: FeedbackFilterRequest,
-    productId: string
+    productId: string,
+    paging: Paging
   ) {
+    const limit = paging.limit;
+    const offset = (paging.page - 1) * paging.limit;
     const product = await productRepository.findOne({
       where: { id: productId },
     });
     if (!product) throw new BadRequestError('Product not found');
-    const query = this.retrieveQueryGetAllFeedbacksOfProduct(productId).orderBy(
-      'feedback.createdAt',
-      'DESC'
+    const numberTotalFeedbacks = await this.countAllFeedbacksOfProduct(
+      productId,
+      feedbackFilterRequest
     );
+    const totalPages = Math.ceil(numberTotalFeedbacks / paging.limit);
+    const query = this.retrieveQueryGetAllFeedbacksOfProduct(productId)
+      .orderBy('feedback.createdAt', 'DESC')
+      .take(limit)
+      .skip(offset);
     switch (feedbackFilterRequest.type) {
       case FeedbackFilterEnum.ALL:
         break;
@@ -76,7 +84,8 @@ class FeedbackService extends BaseService<Feedback> {
         query.andWhere('mediaFiles.id IS NOT NULL');
         break;
       case FeedbackFilterEnum.RATING:
-        if(!feedbackFilterRequest.value) throw new BadRequestError('Rating must be provided');
+        if (!feedbackFilterRequest.value)
+          throw new BadRequestError('Rating must be provided');
         const rating = parseInt(feedbackFilterRequest.value);
         if (rating < 0 || rating > 5)
           throw new BadRequestError('Rating must be between 0 and 5');
@@ -92,15 +101,17 @@ class FeedbackService extends BaseService<Feedback> {
       default:
         throw new BadRequestError('Invalid filter type');
     }
-    return query.getMany();
+    return {
+      total: numberTotalFeedbacks,
+      totalPages,
+      items: await query.getMany(),
+    };
   }
 
-  retrieveQueryGetAllFeedbacksOfProduct(productId: string) {
+  retrieveQueryGetAllFeedbacksWithoutReplyOfProduct(productId: string) {
     return feedbackRepository
       .createQueryBuilder('feedback')
       .leftJoinAndSelect('feedback.mediaFiles', 'mediaFiles')
-      .leftJoinAndSelect('feedback.replies', 'replies')
-      .leftJoinAndSelect('replies.account', 'replyAccount')
       .leftJoinAndSelect('feedback.orderDetail', 'orderDetail')
       .leftJoinAndSelect('orderDetail.order', 'order')
       .leftJoinAndSelect('order.account', 'account')
@@ -125,12 +136,92 @@ class FeedbackService extends BaseService<Feedback> {
         })
       );
   }
+
+  retrieveQueryGetAllFeedbacksOfProduct(productId: string) {
+    return feedbackRepository
+      .createQueryBuilder('feedback')
+      .leftJoinAndSelect('feedback.mediaFiles', 'mediaFiles')
+      .leftJoinAndSelect('feedback.replies', 'replies')
+      .leftJoinAndSelect('replies.account', 'replier')
+      .leftJoinAndSelect('replier.role', 'replierRole')
+      .leftJoinAndSelect('feedback.orderDetail', 'orderDetail')
+      .leftJoinAndSelect('orderDetail.order', 'order')
+      .leftJoinAndSelect('order.account', 'account')
+      .leftJoinAndSelect(
+        'orderDetail.productClassification',
+        'productClassification'
+      )
+      .leftJoinAndSelect('productClassification.product', 'product')
+      .leftJoinAndSelect(
+        'productClassification.productDiscount',
+        'productDiscount'
+      )
+      .leftJoinAndSelect(
+        'productClassification.preOrderProduct',
+        'preOrderProduct'
+      )
+      .where(
+        new Brackets((qb) => {
+          qb.where('product.id = :productId', { productId })
+            .orWhere('productDiscount.product.id = :productId', { productId })
+            .orWhere('preOrderProduct.product.id = :productId', { productId });
+        })
+      );
+  }
+
+  async countAllFeedbacksOfProduct(
+    productId: string,
+    feedbackFilterRequest: FeedbackFilterRequest
+  ) {
+    const query = feedbackRepository
+      .createQueryBuilder('feedback')
+      .leftJoin('feedback.orderDetail', 'orderDetail')
+      .leftJoin('orderDetail.productClassification', 'productClassification')
+      .leftJoin('productClassification.product', 'product')
+      .leftJoin('productClassification.productDiscount', 'productDiscount')
+      .leftJoin('productClassification.preOrderProduct', 'preOrderProduct')
+      .where(
+        new Brackets((qb) => {
+          qb.where('product.id = :productId', { productId })
+            .orWhere('productDiscount.product.id = :productId', { productId })
+            .orWhere('preOrderProduct.product.id = :productId', { productId });
+        })
+      );
+    switch (feedbackFilterRequest.type) {
+      case FeedbackFilterEnum.ALL:
+        break;
+      case FeedbackFilterEnum.IMAGE_VIDEO:
+        query.andWhere('mediaFiles.id IS NOT NULL');
+        break;
+      case FeedbackFilterEnum.RATING:
+        if (!feedbackFilterRequest.value)
+          throw new BadRequestError('Rating must be provided');
+        const rating = parseInt(feedbackFilterRequest.value);
+        if (rating < 0 || rating > 5)
+          throw new BadRequestError('Rating must be between 0 and 5');
+        query.andWhere('feedback.rating = :rating', { rating });
+        break;
+      case FeedbackFilterEnum.CLASSIFICATION:
+        if (!feedbackFilterRequest.value)
+          throw new BadRequestError('Classification must be provided');
+        query.andWhere('productClassification.id = :classificationId', {
+          classificationId: feedbackFilterRequest.value,
+        });
+        break;
+      default:
+        throw new BadRequestError('Invalid filter type');
+    }
+    return await query.getCount();
+  }
+
   async reviewGeneralOfProduct(productId: string) {
     const product = await productRepository.findOne({
       where: { id: productId },
     });
     if (!product) throw new BadRequestError('Product not found');
-    const result = await this.retrieveQueryGetAllFeedbacksOfProduct(productId)
+    const result = await this.retrieveQueryGetAllFeedbacksWithoutReplyOfProduct(
+      productId
+    )
       .select([
         'AVG(feedback.rating) AS average_rating',
         'COUNT(feedback.rating) AS total_count',
@@ -142,13 +233,13 @@ class FeedbackService extends BaseService<Feedback> {
       ])
       .getRawOne();
 
-    const averageRating = parseFloat(result.average_rating).toFixed(1);
-    const totalCount = result.total_count;
-    const rating1Count = result.rating1;
-    const rating2Count = result.rating2;
-    const rating3Count = result.rating3;
-    const rating4Count = result.rating4;
-    const rating5Count = result.rating5;
+    const averageRating = parseFloat(result?.average_rating || 0).toFixed(1);
+    const totalCount = result?.total_count || 0;
+    const rating1Count = result?.rating1 || 0;
+    const rating2Count = result?.rating2 || 0;
+    const rating3Count = result?.rating3 || 0;
+    const rating4Count = result?.rating4 || 0;
+    const rating5Count = result?.rating5 || 0;
 
     return {
       averageRating,
@@ -165,7 +256,7 @@ class FeedbackService extends BaseService<Feedback> {
       where: { orderDetail: { order: { account: { id: loginUser } } } },
       relations: {
         mediaFiles: true,
-        replies: {account: true},
+        replies: { account: true },
         orderDetail: {
           order: { account: true },
           productClassification: {

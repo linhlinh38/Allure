@@ -5,6 +5,7 @@ import { Account } from './account.entity';
 import { Order } from './order.entity';
 import { Booking } from './booking.entity';
 import { File } from './file.entity';
+import { Feedback } from './feedback.entity';
 
 @Entity('reports')
 export class Report extends BaseEntity {
@@ -47,4 +48,8 @@ export class Report extends BaseEntity {
   @OneToOne(() => Booking, (booking) => booking.report, { nullable: true })
   @JoinColumn({ name: 'booking_id' })
   booking: Booking;
+
+  @OneToOne(() => Feedback, (feedback) => feedback.report, { nullable: true })
+  @JoinColumn({ name: 'feedback_id' })
+  feedback: Feedback;
 }
