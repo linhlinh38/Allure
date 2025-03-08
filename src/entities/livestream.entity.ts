@@ -27,6 +27,9 @@ export class LiveStream extends BaseEntity {
   @Column({ type: "varchar", length: 255, nullable: true })
   record: string;
 
+  @Column({ type: "varchar", length: 255, nullable: true })
+  thumbnail: string;
+
   @Column({
     type: "enum",
     enum: LiveStreamEnum,
