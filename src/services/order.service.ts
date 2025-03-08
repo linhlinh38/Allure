@@ -17,6 +17,7 @@ import {
   UpdateOrderStatusRequest,
   OrderNormalRequest,
   MakeDicisionRefundRequest,
+  MakeDicisionRjectRefundRequest,
 } from '../dtos/request/order.request';
 import { voucherRepository } from '../repositories/voucher.repository';
 import { productClassificationRepository } from '../repositories/productClassification.repository';
@@ -62,6 +63,74 @@ import { RejectRefundRequest } from '../entities/rejectRefundRequest.entity';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
+  async makeDecisionOnRejectRefundRequest(requestId: string, makeDicisionRejectRefundRequest: MakeDicisionRjectRefundRequest)
+  {
+    
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const { reasonRejected, status } =
+        makeDicisionRejectRefundRequest;
+      let isApproved = false;
+      const refundRequest = await refundRequestRepository.findOne({
+        where: {
+          id: requestId,
+        },
+        relations: {
+          order: { account: true },
+        },
+      });
+      if (!refundRequest) throw new BadRequestError('Request not found');
+      if (status === RequestStatusEnum.REJECTED) {
+        if (!reasonRejected)
+          throw new BadRequestError('Reason Rejected required when rejected');
+        refundRequest.status = status;
+        await queryRunner.manager.save(RefundRequest, refundRequest);
+
+        //create reject refund request
+        const rejectRefundRequest = new RejectRefundRequest();
+        rejectRefundRequest.refundRequest = refundRequest;
+        rejectRefundRequest.reason = reasonRejected;
+        await queryRunner.manager.save(
+          RejectRefundRequest,
+          rejectRefundRequest
+        );
+
+        isApproved = false;
+      } else if (status === RequestStatusEnum.APPROVED) {
+        const order = refundRequest.order;
+        await Promise.all([
+          //update refund request status
+          (async () => {
+            refundRequest.status = status;
+            await queryRunner.manager.save(RefundRequest, refundRequest);
+          })(),
+          //update order status
+          (async () => {
+            order.status = ShippingStatusEnum.RETURNING;
+            await queryRunner.manager.save(Order, order);
+          })(),
+          //create status tracking
+          this.createStatusTracking(
+            order,
+            order.account.id,
+            ShippingStatusEnum.RETURNING,
+            refundRequest.reason,
+            queryRunner
+          ),
+        ]);
+        isApproved = true;
+      }
+      await queryRunner.commitTransaction();
+      return isApproved;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
   async getBothRequestRefundCancel(orderId: string) {
     const order = await orderRepository.findOne({
       where: {
@@ -71,8 +140,9 @@ class OrderService extends BaseService<Order> {
         cancelOrderRequest: true,
         refundRequest: {
           mediaFiles: true,
-          mediaFilesRejected: true,
-          rejectRefundRequest: true,
+          rejectRefundRequest: {
+            mediaFiles: true,
+          },
         },
       },
     });
@@ -90,7 +160,11 @@ class OrderService extends BaseService<Order> {
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
-      const { reasonRejected, status, mediaFiles } = makeDicisionRefundRequest;
+      const {
+        reasonRejected,
+        status,
+        mediaFiles,
+      } = makeDicisionRefundRequest;
       let isApproved = false;
       const refundRequest = await refundRequestRepository.findOne({
         where: {
@@ -105,21 +179,24 @@ class OrderService extends BaseService<Order> {
         if (!reasonRejected)
           throw new BadRequestError('Reason Rejected required when rejected');
         refundRequest.status = status;
-        refundRequest.reasonRejected = reasonRejected;
+        await queryRunner.manager.save(RefundRequest, refundRequest);
+
+        //create reject refund request
+        const rejectRefundRequest = new RejectRefundRequest();
+        rejectRefundRequest.refundRequest = refundRequest;
+        rejectRefundRequest.reason = reasonRejected;
         if (mediaFiles && mediaFiles.length > 0) {
-          refundRequest.mediaFilesRejected = mediaFiles.map((file) => {
+          rejectRefundRequest.mediaFiles = mediaFiles.map((file) => {
             const fileEntity = new MediaFile();
             fileEntity.fileUrl = file;
             return fileEntity;
           });
         }
-        await queryRunner.manager.save(RefundRequest, refundRequest);
-        const rejectRefundRequest = new RejectRefundRequest();
-        rejectRefundRequest.refundRequest = refundRequest;
         await queryRunner.manager.save(
           RejectRefundRequest,
           rejectRefundRequest
         );
+
         isApproved = false;
       } else if (status === RequestStatusEnum.APPROVED) {
         const order = refundRequest.order;

@@ -19,19 +19,6 @@ export class ComplainRequest extends BaseEntity {
   })
   mediaFiles: MediaFile[];
 
-  @Column({
-    type: 'varchar',
-    length: 255,
-    nullable: true,
-    name: 'reason_rejected',
-  })
-  reasonRejected: string;
-
-  @OneToMany(() => MediaFile, (mediaFile) => mediaFile.refundRequestRejected, {
-    cascade: true,
-  })
-  mediaFilesRejected: MediaFile[];
-
   @OneToOne(
     () => RejectRefundRequest,
     (rejectRefundRequest) => rejectRefundRequest.refundRequest
