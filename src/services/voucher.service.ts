@@ -18,14 +18,12 @@ import { SearchDTO } from '../dtos/other/search.dto';
 import {
   DiscountTypeEnum,
   VoucherApplyTypeEnum,
-  ShippingStatusEnum,
   VoucherVisibilityEnum,
   VoucherWalletStatus,
   VoucherUnavailableReasonEnum,
   OrderEnum,
 } from '../utils/enum';
 import { Order } from '../entities/order.entity';
-import { orderRepository } from '../repositories/order.repository';
 import {
   CanApplyVoucherRequest,
   CheckoutItem,

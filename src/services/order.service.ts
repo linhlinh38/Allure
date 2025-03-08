@@ -1,5 +1,12 @@
 import { statusTrackingRepository } from './../repositories/statusTracking.repository';
-import { ILike, In, IsNull, Not, QueryRunner } from 'typeorm';
+import {
+  ILike,
+  In,
+  IsNull,
+  Not,
+  QueryRunner,
+  SelectQueryBuilder,
+} from 'typeorm';
 import { AppDataSource } from '../dataSource';
 import { BadRequestError } from '../errors/error';
 import { BaseService } from './base.service';
@@ -9,6 +16,8 @@ import {
   PreOrderRequest,
   UpdateOrderStatusRequest,
   OrderNormalRequest,
+  MakeDicisionRefundRequest,
+  MakeDicisionRjectRefundRequest,
 } from '../dtos/request/order.request';
 import { voucherRepository } from '../repositories/voucher.repository';
 import { productClassificationRepository } from '../repositories/productClassification.repository';
@@ -50,18 +59,106 @@ import { refundRequestRepository } from '../repositories/refundRequest.repositor
 import { RefundRequest } from '../entities/refundRequest.entity';
 import { addNormalOrderToQueue } from '../utils/queue/cancelOrderQueue';
 import { addRefundRequestToQueue } from '../utils/queue/approveRefundRequestQueue';
+import { RejectRefundRequest } from '../entities/rejectRefundRequest.entity';
+import { rjectRefundRequestRepository } from '../repositories/rejectRefundRequest.repository';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
+  async makeDecisionOnRejectRefundRequest(requestId: string, makeDicisionRejectRefundRequest: MakeDicisionRjectRefundRequest)
+  {
+    
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const { reasonRejected, status } =
+        makeDicisionRejectRefundRequest;
+      let isApproved = false;
+      const rejectRefundRequest = await rjectRefundRequestRepository.findOne({
+        where: {
+          id: requestId,
+        },
+        relations: {
+          refundRequest: {
+            order: true
+          }
+        }
+      });
+      if (!rejectRefundRequest) throw new BadRequestError('Request not found');
+      if (status === RequestStatusEnum.REJECTED) {
+        if (!reasonRejected)
+          throw new BadRequestError('Reason Rejected required when rejected');
+        rejectRefundRequest.status = status;
+        rejectRefundRequest.reason = makeDicisionRejectRefundRequest.reasonRejected;
+        await queryRunner.manager.save(RefundRequest, rejectRefundRequest);
+        isApproved = false;
+      } else if (status === RequestStatusEnum.APPROVED) {
+        const order = rejectRefundRequest.refundRequest.order;
+        await Promise.all([
+          //update refund request status
+          (async () => {
+            rejectRefundRequest.status = status;
+            await queryRunner.manager.save(RefundRequest, rejectRefundRequest);
+          })(),
+          //update order status
+          (async () => {
+            order.status = ShippingStatusEnum.COMPLETED;
+            await queryRunner.manager.save(Order, order);
+          })(),
+          //create status tracking
+          this.createStatusTracking(
+            order,
+            order.account.id,
+            ShippingStatusEnum.COMPLETED,
+            null,
+            queryRunner
+          ),
+        ]);
+        isApproved = true;
+      }
+      await queryRunner.commitTransaction();
+      return isApproved;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+  async getBothRequestRefundCancel(orderId: string) {
+    const order = await orderRepository.findOne({
+      where: {
+        id: orderId,
+      },
+      relations: {
+        cancelOrderRequest: true,
+        refundRequest: {
+          mediaFiles: true,
+          rejectRefundRequest: {
+            mediaFiles: true,
+          },
+        },
+      },
+    });
+    if (!order) throw new BadRequestError(`Order not found`);
+    return {
+      cancelOrderRequest: order.cancelOrderRequest,
+      refundRequest: order.refundRequest,
+    };
+  }
   async makeDecisionOnRefundRequest(
     requestId: string,
-    status: RequestStatusEnum,
-    reasonRejected: string
+    makeDicisionRefundRequest: MakeDicisionRefundRequest
   ) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
+      const {
+        reasonRejected,
+        status,
+        mediaFiles,
+      } = makeDicisionRefundRequest;
       let isApproved = false;
       const refundRequest = await refundRequestRepository.findOne({
         where: {
@@ -72,14 +169,28 @@ class OrderService extends BaseService<Order> {
         },
       });
       if (!refundRequest) throw new BadRequestError('Request not found');
-      if (refundRequest.status != RequestStatusEnum.PENDING)
-        throw new BadRequestError('Request has already been processed');
       if (status === RequestStatusEnum.REJECTED) {
         if (!reasonRejected)
           throw new BadRequestError('Reason Rejected required when rejected');
         refundRequest.status = status;
-        refundRequest.reasonRejected = reasonRejected;
         await queryRunner.manager.save(RefundRequest, refundRequest);
+
+        //create reject refund request
+        const rejectRefundRequest = new RejectRefundRequest();
+        rejectRefundRequest.refundRequest = refundRequest;
+        rejectRefundRequest.reason = reasonRejected;
+        if (mediaFiles && mediaFiles.length > 0) {
+          rejectRefundRequest.mediaFiles = mediaFiles.map((file) => {
+            const fileEntity = new MediaFile();
+            fileEntity.fileUrl = file;
+            return fileEntity;
+          });
+        }
+        await queryRunner.manager.save(
+          RejectRefundRequest,
+          rejectRefundRequest
+        );
+
         isApproved = false;
       } else if (status === RequestStatusEnum.APPROVED) {
         const order = refundRequest.order;
@@ -174,8 +285,9 @@ class OrderService extends BaseService<Order> {
         return fileEntity;
       }
     );
-    const createdRefundRequestEntity =
-      await refundRequestRepository.save(createdRefundRequest);
+    const createdRefundRequestEntity = await refundRequestRepository.save(
+      createdRefundRequest
+    );
     await addRefundRequestToQueue(createdRefundRequestEntity.id);
   }
   async getCancelRequestById(requestId: string) {
@@ -220,6 +332,37 @@ class OrderService extends BaseService<Order> {
       },
     });
   }
+
+  queryBuilderForOrder(queryBuilder: SelectQueryBuilder<any>) {
+    queryBuilder
+      .leftJoinAndSelect('order.orderDetails', 'orderDetail')
+      .leftJoinAndSelect(
+        'orderDetail.productClassification',
+        'productClassification'
+      )
+      .leftJoinAndSelect(
+        'productClassification.images',
+        'productClassificationImages'
+      )
+      .leftJoinAndSelect('productClassification.product', 'product')
+      .leftJoinAndSelect('product.brand', 'productBrand')
+      .leftJoinAndSelect('product.images', 'productImages')
+      .leftJoinAndSelect(
+        'productClassification.productDiscount',
+        'productDiscount'
+      )
+      .leftJoinAndSelect('productDiscount.product', 'discountProduct')
+      .leftJoinAndSelect('discountProduct.brand', 'discountProductBrand')
+      .leftJoinAndSelect('discountProduct.images', 'discountProductImages')
+      .leftJoinAndSelect(
+        'productClassification.preOrderProduct',
+        'preOrderProduct'
+      )
+      .leftJoinAndSelect('preOrderProduct.product', 'preOrderProductItem')
+      .leftJoinAndSelect('preOrderProductItem.brand', 'preOrderProductBrand')
+      .leftJoinAndSelect('preOrderProductItem.images', 'preOrderProductImages');
+  }
+
   async getCancelRequestOfBrand(brandId: string, status: RequestStatusEnum) {
     console.log(status);
 
@@ -384,8 +527,14 @@ class OrderService extends BaseService<Order> {
     const order = await orderRepository.findOne({
       where: { id: orderId },
       relations: {
+        account: true,
         orderDetails: {
-          feedback: true,
+          feedback: {
+            mediaFiles: true,
+            replies: {
+              account: { role: true },
+            },
+          },
           productClassification: {
             images: true,
             product: { brand: true, images: true },
@@ -752,8 +901,8 @@ class OrderService extends BaseService<Order> {
         orderDetails: {
           feedback: {
             replies: {
-              account: true
-            }
+              account: true,
+            },
           },
           productClassification: {
             images: true,

@@ -37,7 +37,7 @@ const endGrBuyingQueueWorker = new Worker(
     }
   },
   {
-    connection: { host: config.REDIS_HOST, port: config.REDIS_PORT },
+    connection,
   }
 );
 

@@ -1,6 +1,5 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToOne } from 'typeorm';
 import { BaseEntity } from './base.entity';
-import { LiveStream } from './livestream.entity';
 import { ProductClassification } from './productClassification.entity';
 import { ProductDiscount } from './productDiscount.entity';
 import { Order } from './order.entity';
@@ -61,11 +60,11 @@ export class OrderDetail extends BaseEntity {
   // @JoinColumn({ name: 'product_classification_pre_order_id' })
   // productClassificationPreOrder: ProductClassification;
 
-  @ManyToOne(() => LiveStream, (livestream) => livestream.orders, {
-    nullable: true,
-  })
-  @JoinColumn({ name: 'livestream_id' })
-  livestream: LiveStream;
+  // @ManyToOne(() => LiveStream, (livestream) => livestream.orders, {
+  //   nullable: true,
+  // })
+  // @JoinColumn({ name: 'livestream_id' })
+  // livestream: LiveStream;
 
   @ManyToOne(() => Order, (order) => order.orderDetails, {
     nullable: true,
@@ -76,6 +75,5 @@ export class OrderDetail extends BaseEntity {
   @OneToOne(() => Feedback, (feedback) => feedback.orderDetail, {
     nullable: true,
   })
-  @JoinColumn({ name: 'feedback_id' })
   feedback: Feedback;
 }

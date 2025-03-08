@@ -1,5 +1,4 @@
 import { Entity, Column, ManyToOne, JoinColumn, OneToMany } from "typeorm";
-import { Product } from "./product.entity";
 import { StatusEnum } from "../utils/enum";
 import { BaseEntity } from "./base.entity";
 import { Account } from "./account.entity";

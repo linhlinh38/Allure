@@ -5,6 +5,7 @@ import {
   OneToMany,
   JoinColumn,
   ManyToMany,
+  JoinTable,
 } from "typeorm";
 import { Category } from "./category.entity";
 import { Brand } from "./brand.entity";
@@ -16,6 +17,7 @@ import { PreOrderProduct } from "./preOrderProduct.entity";
 import { ProductDiscount } from "./productDiscount.entity";
 import { GroupProduct } from "./groupProduct.entity";
 import { File } from "./file.entity";
+import { LiveStream } from "./livestream.entity";
 
 @Entity("products")
 export class Product extends BaseEntity {
@@ -36,7 +38,7 @@ export class Product extends BaseEntity {
   @Column({ type: "varchar", nullable: true })
   detail: string;
 
-  @Column({ type: "varchar", nullable: true, default: null })
+  @Column({ type: "varchar" })
   sku: string;
 
   @OneToMany(() => File, (certificate) => certificate.product, {
@@ -78,4 +80,7 @@ export class Product extends BaseEntity {
 
   @ManyToMany(() => GroupProduct, (groupProduct) => groupProduct.products)
   groupProducts: GroupProduct[];
+
+  @ManyToMany(() => LiveStream, (livestream) => livestream.products)
+  livestreams: LiveStream[];
 }

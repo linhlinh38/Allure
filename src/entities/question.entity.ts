@@ -1,11 +1,6 @@
 import { Entity, Column, ManyToOne, JoinColumn, OneToMany } from "typeorm";
-import { Product } from "./product.entity";
-import { QuestionTypeEnum, ServiceTypeEnum, StatusEnum } from "../utils/enum";
+import { QuestionTypeEnum, StatusEnum } from "../utils/enum";
 import { BaseEntity } from "./base.entity";
-import { PreOrderProduct } from "./preOrderProduct.entity";
-import { CartItem } from "./cartItem.entity";
-import { Category } from "./category.entity";
-import { ConsultantService } from "./consultantService.entity";
 import { ServiceBookingForm } from "./serviceBookingForm.entity";
 import { ServiceImage } from "./serviceImage.entity";
 

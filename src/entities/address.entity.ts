@@ -1,6 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
 import { BaseEntity } from "./base.entity";
-import { AddressEnum, GenderEnum, RoleEnum, StatusEnum } from "../utils/enum";
+import { AddressEnum, StatusEnum } from "../utils/enum";
 import { Account } from "./account.entity";
 
 @Entity("addresses")

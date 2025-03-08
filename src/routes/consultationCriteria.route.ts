@@ -2,10 +2,8 @@ import express from "express";
 import authentication from "../middleware/authentication";
 import consultationCriteriaController from "../controllers/consultationCriteria.controller";
 import validate from "../utils/validate";
-import {
-  ServiceBookingFormCreateSchema,
-  ServiceBookingFormUpdateSchema,
-} from "../dtos/request/serviceBookingForm.request";
+
+
 import {
   ConsultationCriteriaCreateSchema,
   ConsultationCriteriaUpdateSchema,
@@ -31,7 +29,7 @@ consultationCriteriaRoute.put(
 );
 
 consultationCriteriaRoute.put(
-  "/update-status/:id/:status",
+  "/update-status/:id",
   consultationCriteriaController.updateStatus
 );
 export default consultationCriteriaRoute;

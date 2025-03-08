@@ -1,4 +1,4 @@
-import { DataSource, In, QueryRunner, Repository } from "typeorm";
+import { In, QueryRunner } from "typeorm";
 import { Account } from "../entities/account.entity";
 import { BaseService } from "./base.service";
 import { AppDataSource } from "../dataSource";

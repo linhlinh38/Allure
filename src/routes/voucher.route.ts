@@ -8,7 +8,6 @@ import {
   GetBestPlatformVouchersSchema,
   GetBestShopVouchersSchema,
   VoucherCreateSchema,
-  VoucherRequest,
   VoucherUpdateSchema,
   VoucherUpdateStatusSchema,
 } from '../dtos/request/voucher.request';

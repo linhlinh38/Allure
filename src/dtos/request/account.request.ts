@@ -1,8 +1,6 @@
 import { z } from "zod";
 import {
-  AddressEnum,
   GenderEnum,
-  RoleEnum,
   StatusEnum,
 } from "../../utils/enum";
 import moment from "moment";

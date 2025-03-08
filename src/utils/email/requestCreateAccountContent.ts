@@ -1,4 +1,3 @@
-import moment from "moment";
 
 export function generateRequestCreateAccountContent(link: string): {
   html: string;

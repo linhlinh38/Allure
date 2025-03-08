@@ -1,4 +1,9 @@
-import { Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import {
+  Between,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+  SelectQueryBuilder,
+} from 'typeorm';
 import { AppDataSource } from '../dataSource';
 import { BookingRequest } from '../dtos/request/booking.request';
 import { Account } from '../entities/account.entity';
@@ -9,6 +14,7 @@ import { slotRepository } from '../repositories/slot.repository';
 import { BookingStatusEnum, BookingTypeEnum, RoleEnum } from '../utils/enum';
 import { BaseService } from './base.service';
 import { accountRepository } from '../repositories/account.repository';
+import { brandRepository } from '../repositories/brand.repository';
 
 const repository = AppDataSource.getRepository(Booking);
 class BookingService extends BaseService<Booking> {
@@ -29,14 +35,23 @@ class BookingService extends BaseService<Booking> {
     await repository.save(booking);
   }
 
+  queryBuilderForBooking(queryBuilder: SelectQueryBuilder<any>) {
+    queryBuilder
+      .leftJoinAndSelect('booking.consultantService', 'consultantService')
+      .leftJoinAndSelect('consultantService.account', 'consultant')
+      .leftJoinAndSelect('consultantService.images', 'consultantServiceImages');
+  }
+
   async assignForInterview(id: string, assigneeId: string) {
     const booking = await bookingRepository.findOne({
       where: { id },
       relations: {
-        assigneeToInterview: true
-      }
+        assigneeToInterview: true,
+      },
     });
     if (!booking) throw new BadRequestError('Booking not found');
+    if (booking.status == BookingStatusEnum.COMPLETED)
+      throw new BadRequestError(`Booking is completed. Can not assign`);
     if (booking.assigneeToInterview?.id == assigneeId) return;
     const assignee = await accountRepository.findOneBy({ id: assigneeId });
     if (!assignee) throw new BadRequestError(`Assignee not found`);
@@ -67,6 +82,7 @@ class BookingService extends BaseService<Booking> {
           type: BookingTypeEnum.INTERVIEW,
         },
         relations: {
+          brand: true,
           account: true,
           slot: true,
           assigneeToInterview: true,
@@ -82,6 +98,7 @@ class BookingService extends BaseService<Booking> {
           assigneeToInterview: { id: loginUser },
         },
         relations: {
+          brand: true,
           account: true,
           slot: true,
           assigneeToInterview: true,
@@ -97,6 +114,7 @@ class BookingService extends BaseService<Booking> {
           account: { id: loginUser },
         },
         relations: {
+          brand: true,
           account: true,
           slot: true,
           assigneeToInterview: true,
@@ -155,6 +173,10 @@ class BookingService extends BaseService<Booking> {
         throw new BadRequestError(
           'You have already booked an interview. Please wait for process'
         );
+      const brand = await brandRepository.findOne({
+        where: { id: bookingRequest.brandId },
+      });
+      if (!brand) throw new BadRequestError('Brand not found');
       const slot = await slotRepository.findOneBy({ id: bookingRequest.slot });
       if (!slot) throw new BadRequestError('Slot not found');
       const existedBooking = await bookingRepository.findOne({
@@ -171,6 +193,7 @@ class BookingService extends BaseService<Booking> {
       createdBooking.status = BookingStatusEnum.WAIT_FOR_CONFIRMATION;
       createdBooking.account = new Account();
       createdBooking.account.id = loginUser;
+      createdBooking.brand = brand;
       await createdBooking.save();
       return;
     }

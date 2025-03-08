@@ -54,7 +54,9 @@ export default class ConsultationCriteriaController {
 
   static async updateStatus(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id, status } = req.params;
+      const { id } = req.params;
+      const status = req.body.status;
+
       if (!Object.values(StatusEnum).includes(status as StatusEnum)) {
         return res.status(400).json({ message: "Invalid status value" });
       }

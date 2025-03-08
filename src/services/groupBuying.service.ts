@@ -17,12 +17,10 @@ import { orderRepository } from '../repositories/order.repository';
 import { walletRepository } from '../repositories/wallet.reposirory';
 import { orderService } from './order.service';
 import { ProductClassification } from '../entities/productClassification.entity';
-import { masterConfigRepository } from '../repositories/masterConfig.repository';
 import { criteriaRepository } from '../repositories/criteria.repository';
 import { Transaction } from '../entities/transaction.entity';
 import { transactionService } from './transaction.service';
 import { addGroupBuyingToQueue } from '../utils/queue/endGrBuyingQueue';
-import Logging from '../utils/Logging';
 import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
 
 const repository = AppDataSource.getRepository(GroupBuying);

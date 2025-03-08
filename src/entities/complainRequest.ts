@@ -5,8 +5,8 @@ import { Order } from './order.entity';
 import { RequestStatusEnum } from '../utils/enum';
 import { RejectRefundRequest } from './rejectRefundRequest.entity';
 
-@Entity('refund_requests')
-export class RefundRequest extends BaseEntity {
+@Entity('complain_requests')
+export class ComplainRequest extends BaseEntity {
   @Column({ type: 'varchar', length: 255 })
   reason: string;
 
@@ -18,14 +18,6 @@ export class RefundRequest extends BaseEntity {
     cascade: true,
   })
   mediaFiles: MediaFile[];
-
-  // @Column({
-  //   type: 'varchar',
-  //   length: 255,
-  //   nullable: true,
-  //   name: 'reason_rejected',
-  // })
-  // reasonRejected: string;
 
   @OneToOne(
     () => RejectRefundRequest,

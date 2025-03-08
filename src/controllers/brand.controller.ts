@@ -1,9 +1,9 @@
 import { NextFunction, Request, Response } from 'express';
 import { brandService } from '../services/brand.service';
-import { plainToClass, plainToInstance } from 'class-transformer';
+import { plainToInstance } from 'class-transformer';
 import { BrandResponse } from '../dtos/response/brand.response';
 import { Brand } from '../entities/brand.entity';
-import { createBadResponse, createNormalResponse } from '../utils/response';
+import { createNormalResponse } from '../utils/response';
 import { AuthRequest } from '../middleware/authentication';
 import { SearchDTO as SearchDTO } from '../dtos/other/search.dto';
 import { BrandRequest, BrandUpdateStatusRequest } from '../dtos/request/brand.request';

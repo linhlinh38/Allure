@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { AddressEnum } from "../../utils/enum";
 
 export const RoleCreateSchema = z.object({
   body: z.object({
