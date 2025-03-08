@@ -8,12 +8,38 @@ import {
   UpdateOrderStatusRequest,
   OrderNormalRequest,
   MakeDicisionRefundRequest,
-  MakeDicisionRjectRefundRequest,
+  MakeDicisionRejectRefundRequest,
   ComplaintRequestRequest,
+  MakeDicisionComplaintRequest,
 } from '../dtos/request/order.request';
 import { AuthRequest } from '../middleware/authentication';
 
 export default class OrderController {
+  static async makeDecisionOnComplaintRequest(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const makeDicisionComplaintRequest = plainToInstance(
+        MakeDicisionComplaintRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      const isApproved = await orderService.makeDecisionOnComplaintRequest(
+        req.params.requestId,
+        makeDicisionComplaintRequest
+      );
+      return createNormalResponse(
+        res,
+        isApproved ? 'Approved request success' : 'Reject request success'
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async requestComlaint(
     req: AuthRequest,
     res: Response,
@@ -30,10 +56,7 @@ export default class OrderController {
       return createNormalResponse(
         res,
         'Request refund success',
-        await orderService.requestComlaint(
-          complainRequest,
-          req.params.orderId,
-        )
+        await orderService.requestComplaint(complainRequest, req.params.orderId)
       );
     } catch (err) {
       next(err);
@@ -44,18 +67,18 @@ export default class OrderController {
     res: Response,
     next: NextFunction
   ) {
-    const makeDicisionRejectRefundRequest = plainToInstance(
-      MakeDicisionRjectRefundRequest,
-      req.body,
-      {
-        excludeExtraneousValues: true,
-      }
-    );
-    const isApproved = await orderService.makeDecisionOnRejectRefundRequest(
-      req.params.requestId,
-      makeDicisionRejectRefundRequest
-    );
     try {
+      const makeDicisionRejectRefundRequest = plainToInstance(
+        MakeDicisionRejectRefundRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      const isApproved = await orderService.makeDecisionOnRejectRefundRequest(
+        req.params.requestId,
+        makeDicisionRejectRefundRequest
+      );
       return createNormalResponse(
         res,
         isApproved ? 'Approved request success' : 'Reject request success'
@@ -84,18 +107,18 @@ export default class OrderController {
     res: Response,
     next: NextFunction
   ) {
-    const makeDicisionRefundRequest = plainToInstance(
-      MakeDicisionRefundRequest,
-      req.body,
-      {
-        excludeExtraneousValues: true,
-      }
-    );
-    const isApproved = await orderService.makeDecisionOnRefundRequest(
-      req.params.requestId,
-      makeDicisionRefundRequest
-    );
     try {
+      const makeDicisionRefundRequest = plainToInstance(
+        MakeDicisionRefundRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      const isApproved = await orderService.makeDecisionOnRefundRequest(
+        req.params.requestId,
+        makeDicisionRefundRequest
+      );
       return createNormalResponse(
         res,
         isApproved ? 'Approved request success' : 'Reject request success'

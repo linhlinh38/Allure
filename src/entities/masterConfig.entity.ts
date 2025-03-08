@@ -70,6 +70,13 @@ export class MasterConfig extends BaseEntity {
   maximumUpdateBrandProfileTime: number;
 
   @Column({
+    name: 'complaint_time_expired',
+    type: 'int',
+    default: 2 * oneDay,
+  })
+  complaintTimeExpired: number;
+
+  @Column({
     type: 'enum',
     enum: StatusEnum,
     default: StatusEnum.ACTIVE,
