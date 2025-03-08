@@ -29,4 +29,8 @@ productClassificationRouter.put(
   validate(ProductClassificationUpdateSchema),
   ProductClassificationController.update
 );
+productClassificationRouter.post(
+  "/update-classifications-quantity",
+  ProductClassificationController.updateClassificationsQuantity
+);
 export default productClassificationRouter;
