@@ -89,8 +89,14 @@ orderRouter.post(
 orderRouter.post(
   '/make-decision-on-reject-refund-request/:requestId',
   validate(RequestStatusSchema),
-  Author(['ADMIN']),
+  // Author(['ADMIN']),
   OrderController.makeDecisionOnRejectRefundRequest
+);
+orderRouter.post(
+  '/make-decision-on-complaint-request/:requestId',
+  validate(RequestStatusSchema),
+  // Author(['ADMIN']),
+  OrderController.makeDecisionOnComplaintRequest
 );
 orderRouter.post('/create-pre-order', OrderController.createPreOrder);
 orderRouter.post('/create-group-order', OrderController.createGroupOrder);

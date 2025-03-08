@@ -118,7 +118,15 @@ export class MakeDicisionRefundRequest {
   mediaFiles: string[];
 }
 
-export class MakeDicisionRjectRefundRequest {
+export class MakeDicisionRejectRefundRequest {
+  @Expose()
+  status: RequestStatusEnum;
+
+  @Expose()
+  reasonRejected: string;
+}
+
+export class MakeDicisionComplaintRequest {
   @Expose()
   status: RequestStatusEnum;
 
