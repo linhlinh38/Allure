@@ -4,6 +4,7 @@ import { createNormalResponse } from "../utils/response";
 import { NotFoundError } from "../errors/error";
 import { AuthRequest } from "../middleware/authentication";
 import { StatusEnum } from "../utils/enum";
+import { ConsultantService } from "../entities/consultantService.entity";
 export default class ConsultantServiceController {
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
@@ -35,6 +36,53 @@ export default class ConsultantServiceController {
       );
       if (!service) throw new NotFoundError("service not found");
       return createNormalResponse(res, "Get service success", service);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async filterConsultantServices(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const {
+        price,
+        accountIds,
+        systemServiceId,
+        statuses,
+        sortBy,
+        order,
+        page,
+        limit,
+      } = req.query;
+
+      // Construct the filter object
+      const filter = {
+        price: price ? Number(price) : undefined,
+        accountIds: accountIds ? (accountIds as string).split(",") : undefined,
+        systemServiceId: systemServiceId?.toString(),
+        statuses: statuses
+          ? ((statuses as string).split(",") as StatusEnum[])
+          : undefined,
+        sortBy: (sortBy?.toString() as keyof ConsultantService) ?? "id",
+        order: order?.toString() ?? "ASC",
+        page: page ? Number(page) : 1,
+        limit: limit ? Number(limit) : 10,
+      };
+      const consultantServices =
+        await consultantServiceService.filterConsultantServices(
+          filter.price,
+          filter.accountIds,
+          filter.systemServiceId,
+          filter.statuses,
+          filter.sortBy,
+          filter.order as "ASC" | "DESC",
+          filter.page,
+          filter.limit
+        );
+      res.status(200).json(consultantServices);
     } catch (err) {
       next(err);
     }

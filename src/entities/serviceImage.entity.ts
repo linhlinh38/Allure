@@ -12,7 +12,7 @@ export class ServiceImage extends BaseEntity {
   @Column({ type: "varchar", length: 100, nullable: true })
   name?: string;
 
-  @Column({ name: "file_url", type: "varchar", length: 100, nullable: false })
+  @Column({ name: "file_url", type: "varchar", nullable: false })
   fileUrl: string;
 
   @Column({

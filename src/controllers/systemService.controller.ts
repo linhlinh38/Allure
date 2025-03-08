@@ -3,6 +3,7 @@ import { systemServiceService } from "../services/systemService.service";
 import { createNormalResponse } from "../utils/response";
 import { NotFoundError } from "../errors/error";
 import { StatusEnum } from "../utils/enum";
+import { SystemService } from "../entities/systemService.entity";
 export default class SystemServiceController {
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
@@ -20,6 +21,40 @@ export default class SystemServiceController {
       return createNormalResponse(res, "Get service success", service);
     } catch (err) {
       next(err);
+    }
+  }
+
+  static async filterSystemServices(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const {
+        name,
+        description,
+        categoryId,
+        statuses,
+        sortBy,
+        order,
+        page,
+        limit,
+      } = req.query;
+      const filteredServices = await systemServiceService.filterSystemServices(
+        name?.toString(),
+        description?.toString(),
+        categoryId?.toString(),
+        statuses
+          ? ((statuses as string).split(",") as StatusEnum[])
+          : undefined,
+        (sortBy?.toString() as keyof SystemService) ?? "id",
+        order?.toString() ?? "ASC",
+        page ? Number(page) : 1,
+        limit ? Number(limit) : 10
+      );
+      return createNormalResponse(res, "Get service success", filteredServices);
+    } catch (error) {
+      next(error);
     }
   }
 

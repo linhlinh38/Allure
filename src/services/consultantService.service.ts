@@ -98,6 +98,81 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
     return services;
   }
 
+  async filterConsultantServices(
+    price?: number,
+    accountIds?: string[],
+    systemServiceId?: string,
+    statuses?: StatusEnum[],
+    sortBy: keyof ConsultantService = "id",
+    order: "ASC" | "DESC" = "ASC",
+    page: number = 1,
+    limit: number = 10
+  ): Promise<{
+    items: ConsultantService[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const query = this.repository
+      .createQueryBuilder("consultantService")
+      .leftJoinAndSelect("consultantService.account", "account")
+      .leftJoinAndSelect(
+        "consultantService.serviceBookingForm",
+        "serviceBookingForm"
+      )
+      .leftJoinAndSelect(
+        "serviceBookingForm.questions",
+        "questions",
+        "questions.status = :questionStatus",
+        { questionStatus: StatusEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
+        "questions.images",
+        "imageQuestions",
+        "imageQuestions.status = :imageStatus",
+        { imageStatus: StatusEnum.ACTIVE }
+      )
+      .leftJoinAndSelect("consultantService.systemService", "systemService")
+      .leftJoinAndSelect(
+        "consultantService.images",
+        "images",
+        "images.status = :activeStatus",
+        { activeStatus: StatusEnum.ACTIVE }
+      )
+      .orderBy(`consultantService.${sortBy}`, order)
+      .addOrderBy("questions.orderIndex", "DESC")
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    if (price) {
+      query.andWhere("consultantService.price = :price", { price });
+    }
+    if (accountIds && accountIds.length > 0) {
+      query.andWhere("account.id IN (:...accountIds)", { accountIds });
+    }
+
+    if (systemServiceId) {
+      query.andWhere("systemService.id = :systemServiceId", {
+        systemServiceId,
+      });
+    }
+
+    if (statuses && statuses.length > 0) {
+      query.andWhere("consultantService.status IN (:...statuses)", {
+        statuses,
+      });
+    }
+
+    const [items, total] = await query.getManyAndCount();
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+    };
+  }
+
   async getById(id: string) {
     const services = await this.repository
       .createQueryBuilder("consultantService")
