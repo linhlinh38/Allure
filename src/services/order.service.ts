@@ -786,6 +786,7 @@ class OrderService extends BaseService<Order> {
           ShippingStatusEnum.WAIT_FOR_CONFIRMATION,
           ShippingStatusEnum.TO_PAY,
           ShippingStatusEnum.PREPARING_ORDER,
+          ShippingStatusEnum.SHIPPING,
         ].includes(order.status)
       ) {
         await Promise.all([
