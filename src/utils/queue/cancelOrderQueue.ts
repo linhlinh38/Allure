@@ -16,7 +16,7 @@ export async function addNormalOrderToQueue(orderId: string) {
   await cancelOrderQueue.add(
     'checkStatus',
     { orderId },
-    { delay: masterConfig.autoCancelOrderTime }
+    { delay: Number(masterConfig.autoCancelOrderTime) }
   );
 }
 

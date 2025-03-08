@@ -55,7 +55,7 @@ export default class OrderController {
       );
       return createNormalResponse(
         res,
-        'Request refund success',
+        'Request complaint success',
         await orderService.requestComplaint(complainRequest, req.params.orderId)
       );
     } catch (err) {
