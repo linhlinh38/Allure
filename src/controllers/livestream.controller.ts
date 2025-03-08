@@ -1,0 +1,59 @@
+import { NextFunction, Request, Response } from "express";
+import { livestreamService } from "../services/livestream.service";
+import { createNormalResponse } from "../utils/response";
+import { NotFoundError } from "../errors/error";
+export default class livestreamController {
+  static async getAll(req: Request, res: Response, next: NextFunction) {
+    try {
+      const livestreams = await livestreamService.findAll();
+      return createNormalResponse(
+        res,
+        "Get all livestreams success",
+        livestreams
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async getActiveLiveStreams(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const livestreams = await livestreamService.getActiveLiveStreams();
+      res.status(200).json(livestreams);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getById(req: Request, res: Response, next: NextFunction) {
+    try {
+      const livestream = await livestreamService.findById(req.params.id);
+      if (!livestream) throw new NotFoundError("livestream not found");
+      return createNormalResponse(res, "Get livestream success", livestream);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async update(req: Request, res: Response, next: NextFunction) {
+    try {
+      await livestreamService.update(req.params.id, req.body);
+      return createNormalResponse(res, "Update livestream success");
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async create(req: Request, res: Response, next: NextFunction) {
+    try {
+      await livestreamService.create(req.body);
+      return createNormalResponse(res, "Create livestream success");
+    } catch (err) {
+      next(err);
+    }
+  }
+}

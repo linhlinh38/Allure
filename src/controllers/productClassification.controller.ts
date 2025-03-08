@@ -70,4 +70,18 @@ export default class ProductClassificationController {
       next(err);
     }
   }
+
+  static async updateClassificationsQuantity(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const updates = req.body.data;
+      await productClassificationService.updateClassificationsQuantity(updates);
+      res.status(200).json({ message: "Classifications updated successfully" });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

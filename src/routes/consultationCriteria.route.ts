@@ -29,7 +29,7 @@ consultationCriteriaRoute.put(
 );
 
 consultationCriteriaRoute.put(
-  "/update-status/:id/:status",
+  "/update-status/:id",
   consultationCriteriaController.updateStatus
 );
 export default consultationCriteriaRoute;
