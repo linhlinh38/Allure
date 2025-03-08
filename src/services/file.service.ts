@@ -1,30 +1,36 @@
-import path from "path";
-import { BadRequestError } from "../errors/error";
-import bucket from "../configs/firebaseConfig";
-import xlsx from "xlsx";
+import {
+  ref,
+  uploadBytes,
+  deleteObject,
+  getDownloadURL,
+} from 'firebase/storage';
+import { BadRequestError } from '../errors/error';
+import path from 'path';
+import storage from '../configs/firebaseConfig'; // Import initialized Firebase storage
+import xlsx from 'xlsx';
 
 export default class FileService {
   static async upload(files: Express.Multer.File[]) {
     if (!files || !Array.isArray(files)) {
-      throw new BadRequestError("No files uploaded");
+      throw new BadRequestError('No files uploaded');
     }
 
-    const uploadPromises = files.map((file: Express.Multer.File) => {
-      const blob = bucket.file(Date.now() + path.extname(file.originalname));
-      const blobStream = blob.createWriteStream({
-        metadata: {
-          contentType: file.mimetype,
-        },
-      });
+    const uploadPromises = files.map(async (file) => {
+      try {
+        const fileName = `${Date.now()}${path.extname(file.originalname)}`;
+        const storageRef = ref(storage, fileName);
 
-      return new Promise<string>((resolve, reject) => {
-        blobStream.on("error", (err) => reject(err));
-        blobStream.on("finish", () => {
-          const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
-          resolve(publicUrl);
+        // Upload the file buffer to Firebase Storage
+        await uploadBytes(storageRef, file.buffer, {
+          contentType: file.mimetype,
         });
-        blobStream.end(file.buffer);
-      });
+
+        // Get public URL
+        const publicUrl = await getDownloadURL(storageRef);
+        return publicUrl;
+      } catch (error) {
+        throw new BadRequestError(`Upload failed: ${error.message}`);
+      }
     });
 
     return await Promise.all(uploadPromises);
@@ -32,37 +38,36 @@ export default class FileService {
 
   static async delete(urls: string[]) {
     if (!urls || !Array.isArray(urls)) {
-      throw new BadRequestError("No URLs provided");
+      throw new BadRequestError('No URLs provided');
     }
 
-    const deletePromises = urls.map((url) => {
-      return new Promise((resolve, reject) => {
-        try {
-          const urlPath = new URL(url).pathname;
-          const fileName = path.basename(urlPath);
-          const file = bucket.file(fileName);
+    const deletePromises = urls.map(async (url) => {
+      try {
+        const urlPath = new URL(url).pathname;
+        const fileName = urlPath.split('/').pop(); // Extract file name from URL
 
-          file.delete((err) => {
-            if (err) {
-              if (err.message.includes("No such object:")) {
-                return reject(new BadRequestError(`File not found: ${url}`));
-              }
-              return reject(err);
-            }
-            resolve(`Deleted: ${url}`);
-          });
-        } catch (err) {
-          reject(err);
+        if (!fileName) {
+          throw new BadRequestError(`Invalid URL: ${url}`);
         }
-      });
+
+        const fileRef = ref(storage, fileName);
+
+        await deleteObject(fileRef);
+        return `Deleted: ${url}`;
+      } catch (error) {
+        if (error.code === 'storage/object-not-found') {
+          throw new BadRequestError(`File not found: ${url}`);
+        }
+        throw new BadRequestError(`Delete failed: ${error.message}`);
+      }
     });
 
-    await Promise.all(deletePromises);
+    return await Promise.all(deletePromises);
   }
 
   static async processExcelFile(fileBuffer: Buffer, expectedHeaders: string[]) {
     try {
-      const workbook = xlsx.read(fileBuffer, { type: "buffer" });
+      const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
 
       const sheetsData = [];
 
