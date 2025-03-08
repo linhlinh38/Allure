@@ -16,6 +16,7 @@ import { Transaction } from "./transaction.entity";
 import { Order } from "./order.entity";
 import { GroupProduct } from "./groupProduct.entity";
 import { File } from "./file.entity";
+import { Booking } from "./booking.entity";
 
 @Entity('brands')
 export class Brand extends BaseEntity {
@@ -107,4 +108,7 @@ export class Brand extends BaseEntity {
 
   @OneToMany(() => Transaction, (transaction) => transaction.brand)
   transactions: Transaction[];
+
+  @OneToMany(() => Booking, (booking) => booking.brand)
+  bookings: Booking[];
 }

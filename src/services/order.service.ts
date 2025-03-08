@@ -58,6 +58,7 @@ import { refundRequestRepository } from '../repositories/refundRequest.repositor
 import { RefundRequest } from '../entities/refundRequest.entity';
 import { addNormalOrderToQueue } from '../utils/queue/cancelOrderQueue';
 import { addRefundRequestToQueue } from '../utils/queue/approveRefundRequestQueue';
+import { RejectRefundRequest } from '../entities/rejectRefundRequest.entity';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
@@ -68,7 +69,11 @@ class OrderService extends BaseService<Order> {
       },
       relations: {
         cancelOrderRequest: true,
-        refundRequest: { mediaFiles: true, mediaFilesRejected: true },
+        refundRequest: {
+          mediaFiles: true,
+          mediaFilesRejected: true,
+          rejectRefundRequest: true,
+        },
       },
     });
     if (!order) throw new BadRequestError(`Order not found`);
@@ -109,6 +114,12 @@ class OrderService extends BaseService<Order> {
           });
         }
         await queryRunner.manager.save(RefundRequest, refundRequest);
+        const rejectRefundRequest = new RejectRefundRequest();
+        rejectRefundRequest.refundRequest = refundRequest;
+        await queryRunner.manager.save(
+          RejectRefundRequest,
+          rejectRefundRequest
+        );
         isApproved = false;
       } else if (status === RequestStatusEnum.APPROVED) {
         const order = refundRequest.order;
