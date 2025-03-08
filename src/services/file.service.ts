@@ -27,7 +27,9 @@ export default class FileService {
 
         // Get public URL
         const publicUrl = await getDownloadURL(storageRef);
-        return publicUrl;
+        let index = publicUrl.indexOf('&token');
+        if (index == -1) index = publicUrl.length;
+        return publicUrl.substring(0, index);
       } catch (error) {
         throw new BadRequestError(`Upload failed: ${error.message}`);
       }

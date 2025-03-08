@@ -54,6 +54,77 @@ class SystemServiceService extends BaseService<SystemService> {
     return services;
   }
 
+  async filterSystemServices(
+    name?: string,
+    description?: string,
+    categoryId?: string,
+    statuses?: StatusEnum[],
+    sortBy: keyof SystemService = "id",
+    order?: string,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<{
+    items: SystemService[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const query = this.repository
+      .createQueryBuilder("systemService")
+      .leftJoinAndSelect("systemService.category", "category")
+      .leftJoinAndSelect(
+        "systemService.consultantServices",
+        "consultantServices"
+      )
+      .leftJoinAndSelect(
+        "systemService.consultationCriteria",
+        "consultationCriteria"
+      )
+      .leftJoinAndSelect(
+        "consultationCriteria.consultationCriteriaSections",
+        "sections",
+        "sections.status = :activeStatus",
+        { activeStatus: StatusEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
+        "systemService.images",
+        "images",
+        "images.status = :imageStatus",
+        { imageStatus: StatusEnum.ACTIVE }
+      )
+      .orderBy(`systemService.${sortBy}`, order.toUpperCase() as "ASC" | "DESC")
+      .addOrderBy("sections.orderIndex", "ASC")
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    if (name) {
+      query.andWhere("systemService.name LIKE :name", { name: `%${name}%` });
+    }
+
+    if (description) {
+      query.andWhere("systemService.description LIKE :description", {
+        description: `%${description}%`,
+      });
+    }
+
+    if (categoryId) {
+      query.andWhere("category.id = :categoryId", { categoryId });
+    }
+
+    if (statuses && statuses.length > 0) {
+      query.andWhere("systemService.status IN (:...statuses)", { statuses });
+    }
+
+    const [service, total] = await query.getManyAndCount();
+
+    return {
+      items: service,
+      total,
+      page,
+      limit,
+    };
+  }
+
   async beforeCreate(body: SystemService) {
     const checkService = await this.findBy(body.name, "name");
     if (checkService.length > 0) {
