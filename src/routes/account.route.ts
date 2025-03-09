@@ -40,17 +40,18 @@ accountRouter.put(
   accountController.modifyPassword
 );
 
+accountRouter.post(
+  "/resend-verify-email",
+  validate(AccountUpdateSchema),
+  accountController.resendVerifyEmail
+);
+
 accountRouter.use(authentication);
 
 accountRouter.post(
   "/request-create-account",
   validate(AccountUpdateSchema),
   accountController.requestCreateAccount
-);
-accountRouter.post(
-  "/resend-verify-email",
-  validate(AccountUpdateSchema),
-  accountController.resendVerifyEmail
 );
 accountRouter.post(
   "/update-account-status",
