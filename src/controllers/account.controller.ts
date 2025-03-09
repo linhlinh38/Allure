@@ -229,7 +229,7 @@ async function requestCreateAccount(
 }
 
 async function resendVerifyEmail(
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) {
