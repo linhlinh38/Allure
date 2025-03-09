@@ -20,7 +20,7 @@ export async function addRefundRequestToQueue(id: string) {
   await approveRefundRequestQueue.add(
     "checkStatus",
     { id },
-    { delay: masterConfig.autoApproveRefundRequestTime }
+    { delay: Number(masterConfig.autoApproveRefundRequestTime) }
   );
 }
 

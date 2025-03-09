@@ -17,8 +17,9 @@ import {
   UpdateOrderStatusRequest,
   OrderNormalRequest,
   MakeDicisionRefundRequest,
-  MakeDicisionRjectRefundRequest,
+  MakeDicisionRejectRefundRequest,
   ComplaintRequestRequest,
+  MakeDicisionComplaintRequest as MakeDicisionComplaintRequest,
 } from '../dtos/request/order.request';
 import { voucherRepository } from '../repositories/voucher.repository';
 import { productClassificationRepository } from '../repositories/productClassification.repository';
@@ -61,71 +62,144 @@ import { RefundRequest } from '../entities/refundRequest.entity';
 import { addNormalOrderToQueue } from '../utils/queue/cancelOrderQueue';
 import { addRefundRequestToQueue } from '../utils/queue/approveRefundRequestQueue';
 import { RejectRefundRequest } from '../entities/rejectRefundRequest.entity';
-import { rjectRefundRequestRepository } from '../repositories/rejectRefundRequest.repository';
+import { complaintRequestRepository } from '../repositories/complainRequest.repository';
+import { ComplaintRequest } from '../entities/complainRequest';
+import { rejectRefundRequestRepository } from '../repositories/rejectRefundRequest.repository';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
-  async requestComlaint(complainRequest: ComplaintRequestRequest, orderId: string)
-  {
+  async makeDecisionOnComplaintRequest(
+    requestId: string,
+    makeDicisionComplaintRequest: MakeDicisionComplaintRequest
+  ) {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const { reasonRejected, status } = makeDicisionComplaintRequest;
+      let isApproved = false;
+      const complaintRequest = await complaintRequestRepository.findOne({
+        where: {
+          id: requestId,
+        },
+        relations: {
+          order: true,
+        },
+      });
+      if (!complaintRequest) throw new BadRequestError('Request not found');
+      const order = complaintRequest.order;
+      if (status === RequestStatusEnum.REJECTED) {
+        if (!reasonRejected)
+          throw new BadRequestError('Reason Rejected required when rejected');
+        complaintRequest.status = status;
+        complaintRequest.reason = makeDicisionComplaintRequest.reasonRejected;
+        await queryRunner.manager.save(ComplaintRequest, complaintRequest);
+
+        await Promise.all([
+          //update order status
+          (async () => {
+            order.status = ShippingStatusEnum.REFUNDED;
+            await queryRunner.manager.save(Order, order);
+          })(),
+          //create status tracking
+          this.createStatusTracking(
+            order,
+            order.account.id,
+            ShippingStatusEnum.REFUNDED,
+            null,
+            queryRunner
+          ),
+        ]);
+
+        isApproved = false;
+      } else if (status === RequestStatusEnum.APPROVED) {
+        complaintRequest.status = status;
+        await queryRunner.manager.save(ComplaintRequest, complaintRequest);
+
+        await Promise.all([
+          //update order status
+          (async () => {
+            order.status = ShippingStatusEnum.RETURNED_FAIL;
+            await queryRunner.manager.save(Order, order);
+          })(),
+          //create status tracking
+          this.createStatusTracking(
+            order,
+            order.account.id,
+            ShippingStatusEnum.RETURNED_FAIL,
+            null,
+            queryRunner
+          ),
+        ]);
+
+        isApproved = true;
+      }
+      await queryRunner.commitTransaction();
+      return isApproved;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+  async requestComplaint(
+    complainRequestRequest: ComplaintRequestRequest,
+    orderId: string
+  ) {
     const order = await orderRepository.findOne({
       where: { id: orderId },
-      relations: {
-        account: true,
-        orderDetails: {
-          productClassification: {
-            images: true,
-            product: { brand: true, images: true },
-            productDiscount: { product: { brand: true, images: true } },
-            preOrderProduct: { product: { brand: true, images: true } },
-          },
-        },
-        voucher: true,
-      },
     });
     if (!order) throw new BadRequestError(`Order not found`);
     if (
-      ![ShippingStatusEnum.DELIVERED, ShippingStatusEnum.COMPLETED].includes(
-        order.status
-      )
+      ![
+        ShippingStatusEnum.BRAND_RECEIVED,
+        ShippingStatusEnum.RETURNING,
+      ].includes(order.status)
     )
-      throw new BadRequestError('Can not request refund due to current status');
+      throw new BadRequestError(
+        `Can not request complaint due to current status ${order.status}`
+      );
     const masterConfig = await retrieveMasterConfig();
-    const deliveredStatusTracking = await statusTrackingRepository.findOne({
-      where: {
-        status: ShippingStatusEnum.DELIVERED,
-      },
-    });
+    const brandReceivedStatusTracking =
+      await statusTrackingRepository.findOne({
+        where: {
+          status: ShippingStatusEnum.BRAND_RECEIVED,
+        },
+      });
     if (
-      deliveredStatusTracking.createdAt.getTime() +
-        masterConfig.refundTimeExpired <
+      brandReceivedStatusTracking.createdAt.getTime() +
+        masterConfig.complaintTimeExpired <
       Date.now()
     )
-      throw new BadRequestError('Refund time expired');
-    const refundRequest = await refundRequestRepository.findOne({
+      throw new BadRequestError('Complaint time expired');
+    const complainRequest = await complaintRequestRepository.findOne({
       where: {
         order: { id: orderId },
       },
     });
-    if (refundRequest)
+    if (complainRequest)
       throw new BadRequestError(
-        'Only request refund once. Can not request anymore'
+        'Only request complaint once. Can not request anymore'
       );
-    const createdRefundRequest = new RefundRequest();
-    createdRefundRequest.order = order;
-    createdRefundRequest.reason = complainRequest.reason;
-    createdRefundRequest.mediaFiles = complainRequest.mediaFiles.map((file) => {
-      const fileEntity = new MediaFile();
-      fileEntity.fileUrl = file;
-      return fileEntity;
-    });
-    const createdRefundRequestEntity = await refundRequestRepository.save(
-      createdRefundRequest
+    const createdComplaintRequest = new ComplaintRequest();
+    createdComplaintRequest.order = order;
+    createdComplaintRequest.reason = complainRequestRequest.reason;
+    createdComplaintRequest.mediaFiles = complainRequestRequest.mediaFiles.map(
+      (file) => {
+        const fileEntity = new MediaFile();
+        fileEntity.fileUrl = file;
+        return fileEntity;
+      }
     );
-    await addRefundRequestToQueue(createdRefundRequestEntity.id);
+    const createdComplaintRequestEntity = await complaintRequestRepository.save(
+      createdComplaintRequest
+    );
+    return createdComplaintRequestEntity;
   }
   async makeDecisionOnRejectRefundRequest(
     requestId: string,
-    makeDicisionRejectRefundRequest: MakeDicisionRjectRefundRequest
+    makeDicisionRejectRefundRequest: MakeDicisionRejectRefundRequest
   ) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
@@ -133,7 +207,7 @@ class OrderService extends BaseService<Order> {
     try {
       const { reasonRejected, status } = makeDicisionRejectRefundRequest;
       let isApproved = false;
-      const rejectRefundRequest = await rjectRefundRequestRepository.findOne({
+      const rejectRefundRequest = await rejectRefundRequestRepository.findOne({
         where: {
           id: requestId,
         },
@@ -199,6 +273,9 @@ class OrderService extends BaseService<Order> {
           rejectRefundRequest: {
             mediaFiles: true,
           },
+        },
+        complaintRequest: {
+          mediaFiles: true,
         },
       },
     });
@@ -311,7 +388,9 @@ class OrderService extends BaseService<Order> {
         order.status
       )
     )
-      throw new BadRequestError('Can not request refund due to current status');
+      throw new BadRequestError(
+        `Can not request refund due to current status ${order.status}`
+      );
     const masterConfig = await retrieveMasterConfig();
     const deliveredStatusTracking = await statusTrackingRepository.findOne({
       where: {
@@ -707,6 +786,7 @@ class OrderService extends BaseService<Order> {
           ShippingStatusEnum.WAIT_FOR_CONFIRMATION,
           ShippingStatusEnum.TO_PAY,
           ShippingStatusEnum.PREPARING_ORDER,
+          ShippingStatusEnum.SHIPPING,
         ].includes(order.status)
       ) {
         await Promise.all([

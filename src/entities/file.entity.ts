@@ -8,10 +8,10 @@ import { Report } from "./report.entity";
 
 @Entity("files")
 export class File extends BaseEntity {
-  @Column({ type: "varchar", length: 100, nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   name?: string;
 
-  @Column({ type: "varchar", nullable: false })
+  @Column({ type: 'varchar', nullable: true, name: 'file_url' })
   fileUrl: string;
 
   @Column({

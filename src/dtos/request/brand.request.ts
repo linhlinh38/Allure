@@ -7,7 +7,7 @@ export const BrandCreateSchema = z.object({
     name: z
       .string()
       .min(1, "Name is required")
-      .max(100, "Name cannot exceed 100 characters"),
+      .max(255, "Name cannot exceed 255 characters"),
     logo: z.string().max(255, "Logo cannot exceed 255 characters").optional(),
     documents: z.array(
       z
