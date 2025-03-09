@@ -48,6 +48,11 @@ accountRouter.post(
   accountController.requestCreateAccount
 );
 accountRouter.post(
+  "/resend-verify-email",
+  validate(AccountUpdateSchema),
+  accountController.resendVerifyEmail
+);
+accountRouter.post(
   "/update-account-status",
   validate(AccountUpdateStatusSchema),
   accountController.updateAccountStatus

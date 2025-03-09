@@ -13,6 +13,7 @@ import { plainToClass } from "class-transformer";
 import { AuthRequest } from "../middleware/authentication";
 import bcrypt from "bcrypt";
 import {
+  sendRegisterAccountEmail,
   sendRequestCreateAccountEmail,
   sendResetPasswordEmail,
 } from "../services/mail.service";
@@ -227,6 +228,27 @@ async function requestCreateAccount(
   }
 }
 
+async function resendVerifyEmail(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const checkEmailAccount = await accountService.findBy(
+      req.body.email,
+      "email"
+    );
+
+    if (checkEmailAccount[0].isEmailVerify) {
+      throw new BadRequestError("Email already verify!");
+    }
+    await sendRegisterAccountEmail(checkEmailAccount[0], req.body.url);
+    return res.status(200).send({ message: "Send mail success" });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function setPassword(
   req: AuthRequest,
   res: Response,
@@ -301,4 +323,5 @@ export const accountController = {
   verifyAccount,
   getStaffByBrandAndStatus,
   filterAccounts,
+  resendVerifyEmail,
 };
