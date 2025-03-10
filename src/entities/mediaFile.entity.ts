@@ -1,9 +1,7 @@
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { StatusTracking } from './statusTracking.entity';
 import { Feedback } from './feedback.entity';
-import { RefundRequest } from './refundRequest.entity';
 import { BaseEntity } from './base.entity';
-import { RejectRefundRequest } from './rejectRefundRequest.entity';
 
 @Entity('media_files')
 export class MediaFile extends BaseEntity {
@@ -23,20 +21,4 @@ export class MediaFile extends BaseEntity {
   })
   @JoinColumn({ name: 'feedback_id' })
   feedback: Feedback;
-
-  @ManyToOne(() => RefundRequest, (refundRequest) => refundRequest.mediaFiles, {
-    nullable: true,
-  })
-  @JoinColumn({ name: 'refund_request_id' })
-  refundRequest: RefundRequest;
-
-  @ManyToOne(
-    () => RejectRefundRequest,
-    (rejectRefundRequest) => rejectRefundRequest.mediaFiles,
-    {
-      nullable: true,
-    }
-  )
-  @JoinColumn({ name: 'reject_refund_request_id' })
-  rejectRefundRequest: RejectRefundRequest;
 }
