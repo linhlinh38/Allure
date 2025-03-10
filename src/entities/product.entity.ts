@@ -5,7 +5,6 @@ import {
   OneToMany,
   JoinColumn,
   ManyToMany,
-  JoinTable,
 } from "typeorm";
 import { Category } from "./category.entity";
 import { Brand } from "./brand.entity";

@@ -15,6 +15,21 @@ import {
 import { AuthRequest } from '../middleware/authentication';
 
 export default class OrderController {
+  static async getRequestsOfOrder(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get requests success',
+        await orderService.getRequestsOfOrder(req.params.orderId)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async makeDecisionOnComplaintRequest(
     req: AuthRequest,
     res: Response,
@@ -87,21 +102,21 @@ export default class OrderController {
       next(err);
     }
   }
-  static async getBothRequestRefundCancel(
-    req: AuthRequest,
-    res: Response,
-    next: NextFunction
-  ) {
-    try {
-      return createNormalResponse(
-        res,
-        'Get both requests success',
-        await orderService.getBothRequestRefundCancel(req.params.orderId)
-      );
-    } catch (err) {
-      next(err);
-    }
-  }
+  // static async getBothRequestRefundCancel(
+  //   req: AuthRequest,
+  //   res: Response,
+  //   next: NextFunction
+  // ) {
+  //   try {
+  //     return createNormalResponse(
+  //       res,
+  //       'Get both requests success',
+  //       await orderService.getBothRequestRefundCancel(req.params.orderId)
+  //     );
+  //   } catch (err) {
+  //     next(err);
+  //   }
+  // }
   static async makeDecisionOnRefundRequest(
     req: AuthRequest,
     res: Response,
