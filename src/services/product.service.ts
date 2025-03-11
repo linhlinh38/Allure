@@ -471,7 +471,7 @@ class ProductService extends BaseService<Product> {
         where: {
           sku: body.sku,
           id: Not(id),
-          brand: product.brand,
+          brand: { id: product.brand.id },
           status: Not(In([ProductEnum.INACTIVE, ProductEnum.BANNED])),
         },
       });
@@ -488,7 +488,7 @@ class ProductService extends BaseService<Product> {
         where: {
           sku: body.sku ?? product.sku,
           id: Not(id),
-          brand: product.brand,
+          brand: { id: product.brand.id },
           status: Not(In([ProductEnum.INACTIVE, ProductEnum.BANNED])),
         },
       });

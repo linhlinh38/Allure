@@ -1,4 +1,4 @@
-import { GenderEnum, StatusEnum } from "../../utils/enum";
+import { AccountStatusEnum, GenderEnum } from "../../utils/enum";
 import { Exclude } from "class-transformer";
 
 export class AccountResponse {
@@ -12,7 +12,7 @@ export class AccountResponse {
   phone?: string;
   dob?: Date;
   avatar?: string;
-  status: StatusEnum;
+  status: AccountStatusEnum;
   createdAt: string;
   updatedAt: string;
 
