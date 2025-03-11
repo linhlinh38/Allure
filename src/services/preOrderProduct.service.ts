@@ -4,13 +4,10 @@ import { Product } from "../entities/product.entity";
 import { ProductClassification } from "../entities/productClassification.entity";
 import { ProductImage } from "../entities/productImage.entity";
 import { BadRequestError } from "../errors/error";
-import {
-  PreOrderProductEnum,
-  ProductEnum,
-  StatusEnum,
-} from "../utils/enum";
+import { PreOrderProductEnum, ProductEnum, StatusEnum } from "../utils/enum";
 import { BaseService } from "./base.service";
 import { productService } from "./product.service";
+import { productClassificationService } from "./productClassification.service";
 
 const repository = AppDataSource.getRepository(PreOrderProduct);
 interface FilterOptions {
@@ -231,8 +228,8 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
     };
   }
 
-  async beforeCreate(data: PreOrderProduct) {
-    const existingProduct = await productService.findById(data.product);
+  async beforeCreate(data: any) {
+    const existingProduct = await productService.getById(data.product);
     if (
       !existingProduct ||
       existingProduct.status === ProductEnum.INACTIVE ||
@@ -242,7 +239,6 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
     }
 
     const preOrderClassifications = data.productClassifications || [];
-    console.log(preOrderClassifications);
 
     const checkQuantity = preOrderClassifications.filter(
       (p) => p.quantity !== 0
@@ -252,6 +248,70 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
       throw new BadRequestError(
         "Product classification must have at least one quantity."
       );
+    }
+
+    if (data.productClassifications) {
+      for (const classification of data.productClassifications) {
+        if (!classification.sku || classification.sku === "") {
+          throw new BadRequestError("sku is required");
+        }
+        const checkSku = await productClassificationService.checkSkuUniqueness(
+          classification.sku,
+          null,
+          null,
+          null,
+          existingProduct.brand.id
+        );
+        if (checkSku.length !== 0)
+          throw new BadRequestError(
+            `sku of classification ${classification.title} already exists`
+          );
+      }
+    }
+  }
+
+  async beforeUpdate(id: string, body: any) {
+    const preorderProduct = await this.repository.findOne({ where: { id } });
+    if (!preorderProduct) {
+      throw new BadRequestError("Pre-order Product not found");
+    }
+    if (body.productClassifications) {
+      for (const classification of body.productClassifications) {
+        if (
+          (classification.sku || classification.sku !== "") &&
+          !classification.id
+        ) {
+          const checkSku =
+            await productClassificationService.checkSkuUniqueness(
+              classification.sku,
+              null,
+              id,
+              null,
+              null
+            );
+          if (checkSku.length !== 0)
+            throw new BadRequestError(
+              `sku of classification ${classification.title} already exists`
+            );
+        }
+        if (
+          (classification.sku || classification.sku !== "") &&
+          classification.id
+        ) {
+          const checkSku =
+            await productClassificationService.checkSkuUniqueness(
+              classification.sku,
+              null,
+              id,
+              null,
+              null
+            );
+          if (checkSku.length !== 0 && checkSku[0].id !== classification.id)
+            throw new BadRequestError(
+              `sku of classification ${classification.title} already exists`
+            );
+        }
+      }
     }
   }
 
@@ -368,6 +428,7 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
     await queryRunner.startTransaction();
 
     try {
+      await this.beforeUpdate(id, data);
       const preOrderPoductRepository =
         queryRunner.manager.getRepository(PreOrderProduct);
 

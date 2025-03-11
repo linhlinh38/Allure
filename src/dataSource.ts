@@ -11,7 +11,6 @@ export const AppDataSource = new DataSource({
   username: config.DB_USER,
   password: config.DB_PASS,
   database: config.DB_NAME,
-
   entities: [path.resolve(__dirname + "/entities/{*.js,*.ts}")],
   migrations: [path.resolve(__dirname + "/migrations/{*.js,*.ts}")],
 });
