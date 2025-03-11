@@ -4,7 +4,7 @@ import { connection } from './connection';
 import { retrieveMasterConfig } from '../retrieveMasterConfig';
 import { orderRepository } from '../../repositories/order.repository';
 import { BadRequestError } from '../../errors/error';
-import { ShippingStatusEnum } from '../enum';
+import { OrderRequestTypeEnum, ShippingStatusEnum } from '../enum';
 import { AppDataSource } from '../../dataSource';
 import { Order } from '../../entities/order.entity';
 import { orderService } from '../../services/order.service';
@@ -40,16 +40,19 @@ const updateRefundedStatusOrderQueueWorker = new Worker(
       const order = await orderRepository.findOne({
         where: { id: orderId },
         relations: {
-          complaintRequest: true,
+          requests: true,
         },
       });
+      const complaintRequest = order.requests.find(
+        (request) => request.type == OrderRequestTypeEnum.COMPLAINT
+      );
       if (!order) throw new BadRequestError('Order not exist');
       if (
         [
           ShippingStatusEnum.REFUNDED,
           ShippingStatusEnum.RETURNED_FAIL,
         ].includes(order.status) ||
-        order.complaintRequest
+        complaintRequest
       ) {
       } else {
         await Promise.all([
@@ -72,6 +75,7 @@ const updateRefundedStatusOrderQueueWorker = new Worker(
       Logging.warning(
         isUpdate ? 'Updated status to REFUNDED' : 'Not update status'
       );
+      await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();
       Logging.error(error);
