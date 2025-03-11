@@ -117,7 +117,9 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
         { images: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect("product.brand", "brand")
-      .where("productDiscount.status = :status", { status: StatusEnum.ACTIVE })
+      .where("productDiscount.status = :status", {
+        status: ProductDiscountEnum.ACTIVE,
+      })
       .andWhere("product.status = :productStatus", {
         productStatus: ProductEnum.FLASH_SALE,
       })
