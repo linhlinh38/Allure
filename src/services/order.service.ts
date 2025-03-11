@@ -61,6 +61,7 @@ import { addRefundRequestToQueue } from '../utils/queue/approveRefundRequestQueu
 import { orderRequestRepository } from '../repositories/orderRequest.repository';
 import { OrderRequest } from '../entities/orderRequest.entity';
 import { File } from '../entities/file.entity';
+import { addUpdateRefundedStatusOrderToQueue } from '../utils/queue/updateRefundedStatusOrderQueue';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
@@ -367,18 +368,18 @@ class OrderService extends BaseService<Order> {
             await queryRunner.manager.save(OrderRequest, refundRequest);
           })(),
           //update order status
-          (async () => {
-            order.status = ShippingStatusEnum.RETURNING;
-            await queryRunner.manager.save(Order, order);
-          })(),
+          // (async () => {
+          //   order.status = ShippingStatusEnum.RETURNING;
+          //   await queryRunner.manager.save(Order, order);
+          // })(),
           //create status tracking
-          this.createStatusTracking(
-            order,
-            order.account.id,
-            ShippingStatusEnum.RETURNING,
-            refundRequest.reason,
-            queryRunner
-          ),
+          // this.createStatusTracking(
+          //   order,
+          //   order.account.id,
+          //   ShippingStatusEnum.RETURNING,
+          //   refundRequest.reason,
+          //   queryRunner
+          // ),
         ]);
         isApproved = true;
       }
@@ -747,13 +748,19 @@ class OrderService extends BaseService<Order> {
           `Can not cancel order due to current status ${order.status}`
         );
       if (
-        status == ShippingStatusEnum.REFUNDED &&
+        status == ShippingStatusEnum.BRAND_RECEIVED &&
         order.status != ShippingStatusEnum.RETURNING
       )
         throw new BadRequestError(
-          `Only refund order when current status is RETURNING`
+          `Brand only receive order when current status is RETURNING`
         );
-      if (nextShippingStatusMap[order.status] != status)
+      if (
+        status == ShippingStatusEnum.RETURNING &&
+        [ShippingStatusEnum.COMPLETED, ShippingStatusEnum.DELIVERED].includes(
+          order.status
+        )
+      ) {
+      } else if (nextShippingStatusMap[order.status] != status)
         throw new BadRequestError('Can not update this status');
       //update transaction if order status is WAIT_FOR_CONFIRMATION and payment method is not Cash
       if (
@@ -784,6 +791,9 @@ class OrderService extends BaseService<Order> {
           updateOrderStatusRequest.mediaFiles
         ),
       ]);
+      if (status == ShippingStatusEnum.BRAND_RECEIVED) {
+        await addUpdateRefundedStatusOrderToQueue(orderId);
+      }
       await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();
