@@ -2,11 +2,15 @@ import { Queue, Worker } from "bullmq";
 import { AppDataSource } from "../../dataSource";
 import { orderRepository } from "../../repositories/order.repository";
 import { orderService } from "../../services/order.service";
-import { RequestStatusEnum, ShippingStatusEnum } from "../enum";
+import {
+  OrderRequestTypeEnum,
+  RequestStatusEnum,
+  ShippingStatusEnum,
+} from "../enum";
 import { retrieveMasterConfig } from "../retrieveMasterConfig";
-import { refundRequestRepository } from "../../repositories/refundRequest.repository";
 import Logging from "../Logging";
 import { connection } from "./connection";
+import { orderRequestRepository } from "../../repositories/orderRequest.repository";
 
 export const approveRefundRequestQueue = new Queue(
   "approveRefundRequestQueue",
@@ -33,8 +37,8 @@ const approveRefundRequestQueueWorker = new Worker(
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
-      const refundRequest = await refundRequestRepository.findOne({
-        where: { id },
+      const refundRequest = await orderRequestRepository.findOne({
+        where: { id, type: OrderRequestTypeEnum.REFUND },
         relations: {
           order: true,
         },

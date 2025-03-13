@@ -4,7 +4,7 @@ import { BaseEntity } from "./base.entity";
 import { SystemService } from "./systemService.entity";
 import { ConsultationCriteriaSection } from "./consultationCriteriaSection.entity";
 
-@Entity("consultation_criteria")
+@Entity("consultation_criterias")
 export class ConsultationCriteria extends BaseEntity {
   @Column({ type: "varchar" })
   title: string;

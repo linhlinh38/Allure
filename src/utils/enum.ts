@@ -238,3 +238,10 @@ export enum ReportStatusEnum {
   DONE = "DONE",
   CANCELLED = "CANCELLED",
 }
+
+export enum OrderRequestTypeEnum {
+  CANCEL = 'CANCEL',
+  REFUND = 'REFUND',
+  REJECT_REFUND = 'REJECT_REFUND',
+  COMPLAINT = 'COMPLAINT',
+}
