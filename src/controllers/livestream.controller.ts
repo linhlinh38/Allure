@@ -2,6 +2,8 @@ import { NextFunction, Request, Response } from "express";
 import { livestreamService } from "../services/livestream.service";
 import { createNormalResponse } from "../utils/response";
 import { NotFoundError } from "../errors/error";
+import { Auth } from "googleapis";
+import { AuthRequest } from "../middleware/authentication";
 export default class livestreamController {
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
@@ -52,6 +54,21 @@ export default class livestreamController {
     try {
       await livestreamService.create(req.body);
       return createNormalResponse(res, "Create livestream success");
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async createTokenLiveStream(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const token = await livestreamService.livestreamToken(
+        req.body,
+        req.loginUser
+      );
+      return createNormalResponse(res, "Token Generated", token);
     } catch (err) {
       next(err);
     }
