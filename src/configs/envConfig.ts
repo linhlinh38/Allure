@@ -55,6 +55,10 @@ const PAYOS_CANCEL_URL = process.env.PAYOS_CANCEL_URL;
 const REDIS_HOST = process.env.REDIS_HOST || "localhost";
 const REDIS_PORT = parseInt(process.env.REDIS_PORT || "6379");
 
+//AGORA
+const APP_ID = process.env.AGORA_APP_ID
+const APP_CERTIFICATE = process.env.AGORA_APP_CERTIFICATE;
+
 export const config = {
   DB_HOST,
   DB_PORT,
@@ -94,4 +98,6 @@ export const config = {
   PAYOS_CANCEL_URL,
   REDIS_HOST,
   REDIS_PORT,
+  APP_ID,
+  APP_CERTIFICATE,
 };
