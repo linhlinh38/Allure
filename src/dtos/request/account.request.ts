@@ -1,8 +1,5 @@
 import { z } from "zod";
-import {
-  GenderEnum,
-  StatusEnum,
-} from "../../utils/enum";
+import { AccountStatusEnum, GenderEnum, StatusEnum } from "../../utils/enum";
 import moment from "moment";
 import { AddressCreateSchema } from "./address.request";
 import { FileCreateSchema } from "./file.request";
@@ -65,7 +62,7 @@ export const AccountUpdateStatusSchema = z.object({
   body: z.object({
     accountId: z.string(),
     reason: z.string(),
-    status: z.nativeEnum(StatusEnum),
+    status: z.nativeEnum(AccountStatusEnum),
   }),
 });
 

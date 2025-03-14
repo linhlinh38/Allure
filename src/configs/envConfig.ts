@@ -55,14 +55,16 @@ const PAYOS_CANCEL_URL = process.env.PAYOS_CANCEL_URL;
 const REDIS_HOST = process.env.REDIS_HOST || "redis_queue";
 const REDIS_PORT = parseInt(process.env.REDIS_PORT || "6379");
 
+//AGORA
+const APP_ID = process.env.AGORA_APP_ID;
+const APP_CERTIFICATE = process.env.AGORA_APP_CERTIFICATE;
+
 export const config = {
   DB_HOST,
   DB_PORT,
   DB_USER,
   DB_PASS,
   DB_NAME,
-  REDIS_HOST,
-  REDIS_PORT,
   PORT,
   TZ,
   SECRET_KEY_FOR_ACCESS_TOKEN,
@@ -94,4 +96,8 @@ export const config = {
   PAYOS_CHECKSUM_KEY,
   PAYOS_RETURN_URL,
   PAYOS_CANCEL_URL,
+  REDIS_HOST,
+  REDIS_PORT,
+  APP_ID,
+  APP_CERTIFICATE,
 };

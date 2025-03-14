@@ -9,9 +9,10 @@ services:
     volumes:
       - db_vol:/var/lib/postgresql/data1
     environment:
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-Admin@123}
+      POSTGRES_PASSWORD: ${DB_PASS:-Admin@123}
       POSTGRES_DB: ${DB_NAME:-allure}
       POSTGRES_USER: ${DB_USER:-postgres}
+      TZ: ${TZ:-"Asia/Ho_Chi_Minh"}
     networks:
       - allure_network
 
@@ -24,6 +25,8 @@ services:
     volumes:
       - redis_vol:/data
     command: redis-server --appendonly yes
+    environment:
+      TZ: ${TZ:-"Asia/Ho_Chi_Minh"}
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -36,31 +39,10 @@ services:
     image: adminer:4.8.1
     ports:
       - ${ADMINER_PORT:-8080}:8080
-    depends_on:
-      - db
-    networks:
-      - allure_network
-
-  app:
-    image: minhpham11311/allure-app:latest
-    container_name: allure_app
-    ports:
-      - "${APP_PORT:-3000}:3000"
-    depends_on:
-      - db
-      - redis
     environment:
-      - NODE_ENV=${NODE_ENV:-production}
-      - DB_HOST=allure_db
-      - DB_PORT=5432
-      - DB_NAME=${DB_NAME:-allure}
-      - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD:-Admin@123}
-      - REDIS_HOST=redis_queue
-      - REDIS_PORT=6379
-    env_file:
-      - .env
-    restart: unless-stopped
+      TZ: ${TZ:-"Asia/Ho_Chi_Minh"}
+    depends_on:
+      - db
     networks:
       - allure_network
 
@@ -68,6 +50,7 @@ networks:
   allure_network:
     name: allure_network
     driver: bridge
+    external: true
 
 volumes:
   db_vol:

@@ -8,7 +8,7 @@ This guide provides step-by-step instructions on how to deploy the Allure applic
 - A Docker Hub account
 - Git (optional, for cloning the repository)
 
-## Deployment Steps
+## Build & Push Steps
 
 ### 1. BUILD PROJECT
 
@@ -18,6 +18,16 @@ This guide provides step-by-step instructions on how to deploy the Allure applic
 
 `docker-compose -f docker-compose.build.yaml push`
 
-### 3. RUN NETWORK
+## Deployment Steps
 
-`docker-compose up -d`
+### 1. create the network:
+
+`docker network create allure_network`
+
+### 2. Start the infrastructure services
+
+`docker-compose -f docker-compose.infra.yml up -d`
+
+### 3. Start the application
+
+`docker-compose -f docker-compose.app.yml up -d`
