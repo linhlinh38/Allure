@@ -84,6 +84,14 @@ export class MasterConfig extends BaseEntity {
   autoUpdateOrderToRefundedStatusTime: number;
 
   @Column({
+    name: 'expired_received_time',
+    type: 'bigint',
+    default: 2 * oneDay,
+  })
+  expiredReceivedTime: number;
+
+
+  @Column({
     type: 'enum',
     enum: StatusEnum,
     default: StatusEnum.ACTIVE,

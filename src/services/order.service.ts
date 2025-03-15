@@ -104,9 +104,9 @@ class OrderService extends BaseService<Order> {
         ]);
         isReceived = true;
       } else {
-        order.expiredReceivedTime = new Date();
-        order.expiredReceivedTime.setDate(
-          order.expiredReceivedTime.getDate() + 2
+        const masterConfig = await retrieveMasterConfig();
+        order.expiredReceivedTime = new Date(
+          Date.now() + masterConfig.expiredReceivedTime
         );
         await queryRunner.manager.save(Order, order);
         await addUpdateBrandReceiveStatusOrderToQueue(order);
@@ -883,9 +883,9 @@ class OrderService extends BaseService<Order> {
         await addUpdateRefundedStatusOrderToQueue(orderId);
       }
       if (status == ShippingStatusEnum.RETURNING) {
-        order.expiredReceivedTime = new Date();
-        order.expiredReceivedTime.setDate(
-          order.expiredReceivedTime.getDate() + 2
+        const masterConfig = await retrieveMasterConfig();
+        order.expiredReceivedTime = new Date(
+          Date.now() + masterConfig.expiredReceivedTime
         );
         await queryRunner.manager.save(Order, order);
         await addUpdateBrandReceiveStatusOrderToQueue(order);

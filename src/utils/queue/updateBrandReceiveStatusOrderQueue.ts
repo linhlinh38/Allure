@@ -1,12 +1,9 @@
 import { Queue, Worker } from 'bullmq';
 import Logging from '../Logging';
 import { connection } from './connection';
-import { retrieveMasterConfig } from '../retrieveMasterConfig';
 import { orderRepository } from '../../repositories/order.repository';
 import { BadRequestError } from '../../errors/error';
-import {
-  ShippingStatusEnum,
-} from '../enum';
+import { ShippingStatusEnum } from '../enum';
 import { AppDataSource } from '../../dataSource';
 import { Order } from '../../entities/order.entity';
 import { orderService } from '../../services/order.service';
@@ -19,7 +16,6 @@ export const updateBrandReceiveStatusOrderQueue = new Queue(
 );
 
 export async function addUpdateBrandReceiveStatusOrderToQueue(order: Order) {
-  const masterConfig = await retrieveMasterConfig();
   await updateBrandReceiveStatusOrderQueue.add(
     'updateBrandReceiveStatusOrder',
     { orderId: order.id },
@@ -51,32 +47,30 @@ const uupdateBrandReceiveStatusOrderQueueWorker = new Worker(
       if (!order) throw new BadRequestError('Order not exist');
       if (order.status != ShippingStatusEnum.RETURNING) {
         Logging.warning('Not update status');
-        return;
-      }
-      if (order.expiredReceivedTime <= new Date()) {
+      } else if (order.expiredReceivedTime <= new Date()) {
         Logging.warning('Not update status');
-        return;
+      } else {
+        order.status = ShippingStatusEnum.BRAND_RECEIVED;
+        await Promise.all([
+          //update order status
+          (async () => {
+            order.status = ShippingStatusEnum.BRAND_RECEIVED;
+            await queryRunner.manager.save(Order, order);
+          })(),
+          //create status tracking
+          orderService.createStatusTracking(
+            order,
+            order.account.id,
+            ShippingStatusEnum.BRAND_RECEIVED,
+            'Auto update',
+            queryRunner
+          ),
+        ]);
+        isUpdate = true;
+        Logging.warning(
+          isUpdate ? 'Updated status to BRAND_RECEIVED' : 'Not update status'
+        );
       }
-      order.status = ShippingStatusEnum.BRAND_RECEIVED;
-      await Promise.all([
-        //update order status
-        (async () => {
-          order.status = ShippingStatusEnum.BRAND_RECEIVED;
-          await queryRunner.manager.save(Order, order);
-        })(),
-        //create status tracking
-        orderService.createStatusTracking(
-          order,
-          order.account.id,
-          ShippingStatusEnum.BRAND_RECEIVED,
-          'Auto update',
-          queryRunner
-        ),
-      ]);
-      isUpdate = true;
-      Logging.warning(
-        isUpdate ? 'Updated status to BRAND_RECEIVED' : 'Not update status'
-      );
       await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();
