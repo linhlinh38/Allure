@@ -13,32 +13,36 @@ import { Account } from "./account.entity";
 import { Order } from "./order.entity";
 import { Product } from "./product.entity";
 
-@Entity("livestreams")
+@Entity('livestreams')
 export class LiveStream extends BaseEntity {
-  @Column({ type: "varchar", length: 100, nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   title: string;
 
-  @Column({ type: "timestamp", name: "start_time" })
+  @Column({ type: 'timestamp with time zone', name: 'start_time' })
   startTime: Date;
 
-  @Column({ type: "timestamp", name: "end_time", nullable: true })
+  @Column({
+    type: 'timestamp with time zone',
+    name: 'end_time',
+    nullable: true,
+  })
   endTime: Date;
 
-  @Column({ type: "varchar", length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   record: string;
 
-  @Column({ type: "varchar", length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   thumbnail: string;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: LiveStreamEnum,
     default: LiveStreamEnum.SCHEDULED,
   })
   status: LiveStreamEnum;
 
   @ManyToOne(() => Account)
-  @JoinColumn({ name: "account_id" })
+  @JoinColumn({ name: 'account_id' })
   account: Account;
 
   @OneToMany(() => Order, (order) => order.livestream)
@@ -48,14 +52,14 @@ export class LiveStream extends BaseEntity {
     cascade: true,
   })
   @JoinTable({
-    name: "livestream_products",
+    name: 'livestream_products',
     joinColumn: {
-      name: "livestreamId",
-      referencedColumnName: "id",
+      name: 'livestreamId',
+      referencedColumnName: 'id',
     },
     inverseJoinColumn: {
-      name: "productId",
-      referencedColumnName: "id",
+      name: 'productId',
+      referencedColumnName: 'id',
     },
   })
   products: Product[];
