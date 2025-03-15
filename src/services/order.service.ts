@@ -38,6 +38,7 @@ import {
   VoucherVisibilityEnum,
   VoucherWalletStatus,
   OrderRequestTypeEnum,
+  ActionReceivedEnum,
 } from '../utils/enum';
 import { validate as isUUID } from 'uuid';
 import { addressRepository } from '../repositories/address.repository';
@@ -62,9 +63,65 @@ import { orderRequestRepository } from '../repositories/orderRequest.repository'
 import { OrderRequest } from '../entities/orderRequest.entity';
 import { File } from '../entities/file.entity';
 import { addUpdateRefundedStatusOrderToQueue } from '../utils/queue/updateRefundedStatusOrderQueue';
+import { addUpdateBrandReceiveStatusOrderToQueue } from '../utils/queue/updateBrandReceiveStatusOrderQueue';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
+  async takeReceivedAction(action: ActionReceivedEnum, orderId: string) {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      let isReceived = false;
+      const order = await orderRepository.findOne({
+        where: {
+          id: orderId,
+        },
+        relations: {
+          account: true,
+        },
+      });
+      if (!order) throw new BadRequestError('Order not found');
+      if (order.status != ShippingStatusEnum.RETURNING)
+        throw new BadRequestError(
+          `Can not take action on this order due to current status ${order.status}`
+        );
+      if (action == ActionReceivedEnum.RECEIVED) {
+        await Promise.all([
+          //update order status
+          (async () => {
+            order.status = ShippingStatusEnum.BRAND_RECEIVED;
+            await queryRunner.manager.save(Order, order);
+          })(),
+          //create status tracking
+          orderService.createStatusTracking(
+            order,
+            order.account.id,
+            ShippingStatusEnum.BRAND_RECEIVED,
+            'Auto update',
+            queryRunner
+          ),
+        ]);
+        isReceived = true;
+      } else {
+        const masterConfig = await retrieveMasterConfig();
+        order.expiredReceivedTime = new Date(
+          Date.now() + masterConfig.expiredReceivedTime
+        );
+        await queryRunner.manager.save(Order, order);
+        await addUpdateBrandReceiveStatusOrderToQueue(order);
+        isReceived = false;
+      }
+      await queryRunner.commitTransaction();
+      return isReceived;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
   async getRequestsOfOrder(orderId: string) {
     const order = await orderRepository.findOne({
       where: {
@@ -95,6 +152,7 @@ class OrderService extends BaseService<Order> {
       complaintRequest,
     };
   }
+
   async makeDecisionOnComplaintRequest(
     requestId: string,
     makeDicisionComplaintRequest: MakeDicisionComplaintRequest
@@ -113,6 +171,8 @@ class OrderService extends BaseService<Order> {
         relations: {
           order: {
             account: true,
+            brand: true,
+            voucher: true,
           },
         },
       });
@@ -122,7 +182,8 @@ class OrderService extends BaseService<Order> {
         if (!reasonRejected)
           throw new BadRequestError('Reason Rejected required when rejected');
         complaintRequest.status = status;
-        complaintRequest.reason = makeDicisionComplaintRequest.reasonRejected;
+        complaintRequest.reasonRejected = makeDicisionComplaintRequest.reasonRejected;
+
         await queryRunner.manager.save(OrderRequest, complaintRequest);
 
         await Promise.all([
@@ -139,7 +200,34 @@ class OrderService extends BaseService<Order> {
             null,
             queryRunner
           ),
+          //create transaction
+          (async () => {
+            const transaction =
+              transactionService.createTransactionFromNormalOrder(
+                complaintRequest.order
+              );
+            transaction.status = TransactionStatusEnum.REFUNDED;
+            await queryRunner.manager.save(Transaction, transaction);
+          })(),
+          //refund to wallet
+          (async () => {
+            const wallet = await walletRepository.findOne({
+              where: {
+                id: order.account.id,
+              },
+            });
+            wallet.balance += order.totalPrice;
+            await queryRunner.manager.save(wallet);
+          })(),
         ]);
+        //refund voucher for type gr buying
+        if (order.type == OrderEnum.GROUP_BUYING) {
+          const voucher = order.voucher;
+          const voucherWallet = new VoucherWallet();
+          voucherWallet.owner = order.account;
+          voucherWallet.voucher = voucher;
+          await queryRunner.manager.save(VoucherWallet, voucherWallet);
+        }
 
         isApproved = false;
       } else if (status === RequestStatusEnum.APPROVED) {
@@ -793,6 +881,14 @@ class OrderService extends BaseService<Order> {
       ]);
       if (status == ShippingStatusEnum.BRAND_RECEIVED) {
         await addUpdateRefundedStatusOrderToQueue(orderId);
+      }
+      if (status == ShippingStatusEnum.RETURNING) {
+        const masterConfig = await retrieveMasterConfig();
+        order.expiredReceivedTime = new Date(
+          Date.now() + masterConfig.expiredReceivedTime
+        );
+        await queryRunner.manager.save(Order, order);
+        await addUpdateBrandReceiveStatusOrderToQueue(order);
       }
       await queryRunner.commitTransaction();
     } catch (error) {

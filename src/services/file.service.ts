@@ -1,12 +1,6 @@
-import {
-  ref,
-  uploadBytes,
-  deleteObject,
-  getDownloadURL,
-} from 'firebase/storage';
 import { BadRequestError } from '../errors/error';
 import path from 'path';
-import storage from '../configs/firebaseConfig'; // Import initialized Firebase storage
+import {bucket} from '../configs/firebaseConfig'; // Import initialized Firebase storage
 import xlsx from 'xlsx';
 
 export default class FileService {
@@ -15,24 +9,22 @@ export default class FileService {
       throw new BadRequestError('No files uploaded');
     }
 
-    const uploadPromises = files.map(async (file) => {
-      try {
-        const fileName = `${Date.now()}${path.extname(file.originalname)}`;
-        const storageRef = ref(storage, fileName);
-
-        // Upload the file buffer to Firebase Storage
-        await uploadBytes(storageRef, file.buffer, {
+    const uploadPromises = files.map((file: Express.Multer.File) => {
+      const blob = bucket.file(Date.now() + path.extname(file.originalname));
+      const blobStream = blob.createWriteStream({
+        metadata: {
           contentType: file.mimetype,
-        });
+        },
+      });
 
-        // Get public URL
-        const publicUrl = await getDownloadURL(storageRef);
-        let index = publicUrl.indexOf('&token');
-        if (index == -1) index = publicUrl.length;
-        return publicUrl.substring(0, index);
-      } catch (error) {
-        throw new BadRequestError(`Upload failed: ${error.message}`);
-      }
+      return new Promise<string>((resolve, reject) => {
+        blobStream.on('error', (err) => reject(err));
+        blobStream.on('finish', () => {
+          const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
+          resolve(publicUrl);
+        });
+        blobStream.end(file.buffer);
+      });
     });
 
     return await Promise.all(uploadPromises);
@@ -43,28 +35,29 @@ export default class FileService {
       throw new BadRequestError('No URLs provided');
     }
 
-    const deletePromises = urls.map(async (url) => {
-      try {
-        const urlPath = new URL(url).pathname;
-        const fileName = urlPath.split('/').pop(); // Extract file name from URL
+    const deletePromises = urls.map((url) => {
+      return new Promise((resolve, reject) => {
+        try {
+          const urlPath = new URL(url).pathname;
+          const fileName = path.basename(urlPath);
+          const file = bucket.file(fileName);
 
-        if (!fileName) {
-          throw new BadRequestError(`Invalid URL: ${url}`);
+          file.delete((err) => {
+            if (err) {
+              if (err.message.includes('No such object:')) {
+                return reject(new BadRequestError(`File not found: ${url}`));
+              }
+              return reject(err);
+            }
+            resolve(`Deleted: ${url}`);
+          });
+        } catch (err) {
+          reject(err);
         }
-
-        const fileRef = ref(storage, fileName);
-
-        await deleteObject(fileRef);
-        return `Deleted: ${url}`;
-      } catch (error) {
-        if (error.code === 'storage/object-not-found') {
-          throw new BadRequestError(`File not found: ${url}`);
-        }
-        throw new BadRequestError(`Delete failed: ${error.message}`);
-      }
+      });
     });
 
-    return await Promise.all(deletePromises);
+    await Promise.all(deletePromises);
   }
 
   static async processExcelFile(fileBuffer: Buffer, expectedHeaders: string[]) {

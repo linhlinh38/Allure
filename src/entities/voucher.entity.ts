@@ -21,7 +21,7 @@ import { Product } from './product.entity';
 
 @Entity('vouchers')
 export class Voucher extends BaseEntity {
-  @Column({ type: 'varchar', length: 100, unique: true })
+  @Column({ type: 'varchar', length: 100})
   name: string;
 
   @Column({ type: 'varchar', length: 100, unique: true })
@@ -91,5 +91,5 @@ export class Voucher extends BaseEntity {
   applyProducts: Product[];
 
   @OneToMany(() => GroupBuyingCriteria, (criteria) => criteria.voucher)
-  criteria: GroupBuyingCriteria[];
+  criterias: GroupBuyingCriteria[];
 }

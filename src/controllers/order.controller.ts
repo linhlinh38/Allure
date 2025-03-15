@@ -13,8 +13,26 @@ import {
   MakeDicisionComplaintRequest,
 } from '../dtos/request/order.request';
 import { AuthRequest } from '../middleware/authentication';
+import { ActionReceivedEnum } from '../utils/enum';
 
 export default class OrderController {
+  static async takeReceivedAction(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const isReceived = await orderService.takeReceivedAction(
+        req.body.action as ActionReceivedEnum, req.params.orderId
+      );
+      return createNormalResponse(
+        res,
+        isReceived ? 'Received successfully' : 'Extend received time successfully',
+      );
+    } catch (err) {
+      next(err);
+    } 
+  }
   static async getRequestsOfOrder(
     req: AuthRequest,
     res: Response,
