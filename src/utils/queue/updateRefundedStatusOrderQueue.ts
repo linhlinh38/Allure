@@ -4,10 +4,19 @@ import { connection } from './connection';
 import { retrieveMasterConfig } from '../retrieveMasterConfig';
 import { orderRepository } from '../../repositories/order.repository';
 import { BadRequestError } from '../../errors/error';
-import { OrderRequestTypeEnum, ShippingStatusEnum } from '../enum';
+import {
+  OrderEnum,
+  OrderRequestTypeEnum,
+  ShippingStatusEnum,
+  TransactionStatusEnum,
+} from '../enum';
 import { AppDataSource } from '../../dataSource';
 import { Order } from '../../entities/order.entity';
 import { orderService } from '../../services/order.service';
+import { walletRepository } from '../../repositories/wallet.reposirory';
+import { transactionService } from '../../services/transaction.service';
+import { Transaction } from '../../entities/transaction.entity';
+import { VoucherWallet } from '../../entities/voucherWallet.entity';
 
 export const updateRefundedStatusOrderQueue = new Queue(
   'updateRefundedStatusOrderQueue',
@@ -41,6 +50,9 @@ const updateRefundedStatusOrderQueueWorker = new Worker(
         where: { id: orderId },
         relations: {
           requests: true,
+          account: true,
+          brand: true,
+          voucher: true,
         },
       });
       const complaintRequest = order.requests.find(
@@ -69,7 +81,34 @@ const updateRefundedStatusOrderQueueWorker = new Worker(
             'Auto update',
             queryRunner
           ),
+          //create transaction
+          (async () => {
+            const transaction =
+              transactionService.createTransactionFromNormalOrder(
+                complaintRequest.order
+              );
+            transaction.status = TransactionStatusEnum.REFUNDED;
+            await queryRunner.manager.save(Transaction, transaction);
+          })(),
+          //refund to wallet
+          (async () => {
+            const wallet = await walletRepository.findOne({
+              where: {
+                id: order.account.id,
+              },
+            });
+            wallet.balance += order.totalPrice;
+            await queryRunner.manager.save(wallet);
+          })(),
         ]);
+        //refund voucher for type gr buying
+        if (order.type == OrderEnum.GROUP_BUYING) {
+          const voucher = order.voucher;
+          const voucherWallet = new VoucherWallet();
+          voucherWallet.owner = order.account;
+          voucherWallet.voucher = voucher;
+          await queryRunner.manager.save(VoucherWallet, voucherWallet);
+        }
         isUpdate = true;
       }
       Logging.warning(

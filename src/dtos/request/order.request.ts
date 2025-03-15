@@ -3,6 +3,7 @@ import {
   RequestStatusEnum,
   PaymentMethodEnum,
   ShippingStatusEnum,
+  ActionReceivedEnum,
 } from '../../utils/enum';
 import { Expose } from 'class-transformer';
 
@@ -104,6 +105,12 @@ export const RequestStatusSchema = z.object({
     status: z.nativeEnum(RequestStatusEnum).optional(),
     mediaFiles: z.array(z.string()).optional(),
     reasonRejected: z.string().optional(),
+  }),
+});
+
+export const TakeReceivedActionSchema = z.object({
+  body: z.object({
+    action: z.nativeEnum(ActionReceivedEnum),
   }),
 });
 
