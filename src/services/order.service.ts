@@ -182,7 +182,7 @@ class OrderService extends BaseService<Order> {
         if (!reasonRejected)
           throw new BadRequestError('Reason Rejected required when rejected');
         complaintRequest.status = status;
-        complaintRequest.reason = makeDicisionComplaintRequest.reasonRejected;
+        complaintRequest.reasonRejected = makeDicisionComplaintRequest.reasonRejected;
 
         await queryRunner.manager.save(OrderRequest, complaintRequest);
 
