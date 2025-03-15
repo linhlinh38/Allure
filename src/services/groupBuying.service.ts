@@ -31,7 +31,6 @@ import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
 import { Voucher } from '../entities/voucher.entity';
 import { Product } from '../entities/product.entity';
 import { Brand } from '../entities/brand.entity';
-import { voucherRepository } from '../repositories/voucher.repository';
 
 const repository = AppDataSource.getRepository(GroupBuying);
 class GroupBuyingService extends BaseService<GroupBuying> {
