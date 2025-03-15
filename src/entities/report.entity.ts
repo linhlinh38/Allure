@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToOne } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { ReportStatusEnum, ReportTypeEnum } from '../utils/enum';
 import { Account } from './account.entity';
@@ -18,7 +18,7 @@ export class Report extends BaseEntity {
   @Column({ type: 'varchar' })
   reason: string;
 
-  @OneToOne(() => File, (file) => file.report, { nullable: true })
+  @OneToMany(() => File, (file) => file.report, { nullable: true, cascade: true })
   files: File[];
 
   @ManyToOne(() => Account, (assignee) => assignee.assignedReports, {
