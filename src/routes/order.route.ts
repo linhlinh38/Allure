@@ -9,6 +9,7 @@ import {
   RequestRefundSchema,
   RequestStatusSchema,
   SearchOrderSchema,
+  TakeReceivedActionSchema,
   UpdateOrderStatusSchema,
 } from '../dtos/request/order.request';
 import validate from '../utils/validate';
@@ -101,6 +102,11 @@ orderRouter.post(
   // Author(['ADMIN']),
   OrderController.makeDecisionOnComplaintRequest
 );
+orderRouter.post(
+  '/take-received-action/:orderId',
+  validate(TakeReceivedActionSchema),
+  // Author(['ADMIN']),
+  OrderController.takeReceivedAction);
 orderRouter.post('/create-pre-order', OrderController.createPreOrder);
 orderRouter.post('/create-group-order', OrderController.createGroupOrder);
 export default orderRouter;

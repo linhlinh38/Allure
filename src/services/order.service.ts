@@ -38,6 +38,7 @@ import {
   VoucherVisibilityEnum,
   VoucherWalletStatus,
   OrderRequestTypeEnum,
+  ActionReceivedEnum,
 } from '../utils/enum';
 import { validate as isUUID } from 'uuid';
 import { addressRepository } from '../repositories/address.repository';
@@ -66,6 +67,61 @@ import { addUpdateBrandReceiveStatusOrderToQueue } from '../utils/queue/updateBr
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
+  async takeReceivedAction(action: ActionReceivedEnum, orderId: string) {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      let isReceived = false;
+      const order = await orderRepository.findOne({
+        where: {
+          id: orderId,
+        },
+        relations: {
+          account: true,
+        },
+      });
+      if (!order) throw new BadRequestError('Order not found');
+      if (order.status != ShippingStatusEnum.RETURNING)
+        throw new BadRequestError(
+          `Can not take action on this order due to current status ${order.status}`
+        );
+      if (action == ActionReceivedEnum.RECEIVED) {
+        await Promise.all([
+          //update order status
+          (async () => {
+            order.status = ShippingStatusEnum.BRAND_RECEIVED;
+            await queryRunner.manager.save(Order, order);
+          })(),
+          //create status tracking
+          orderService.createStatusTracking(
+            order,
+            order.account.id,
+            ShippingStatusEnum.BRAND_RECEIVED,
+            'Auto update',
+            queryRunner
+          ),
+        ]);
+        isReceived = true;
+      } else {
+        order.expiredReceivedTime = new Date();
+        order.expiredReceivedTime.setDate(
+          order.expiredReceivedTime.getDate() + 2
+        );
+        await queryRunner.manager.save(Order, order);
+        await addUpdateBrandReceiveStatusOrderToQueue(order);
+        isReceived = false;
+      }
+      await queryRunner.commitTransaction();
+      return isReceived;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
   async getRequestsOfOrder(orderId: string) {
     const order = await orderRepository.findOne({
       where: {
@@ -96,6 +152,7 @@ class OrderService extends BaseService<Order> {
       complaintRequest,
     };
   }
+
   async makeDecisionOnComplaintRequest(
     requestId: string,
     makeDicisionComplaintRequest: MakeDicisionComplaintRequest
@@ -831,7 +888,7 @@ class OrderService extends BaseService<Order> {
           order.expiredReceivedTime.getDate() + 2
         );
         await queryRunner.manager.save(Order, order);
-        await addUpdateBrandReceiveStatusOrderToQueue(orderId);
+        await addUpdateBrandReceiveStatusOrderToQueue(order);
       }
       await queryRunner.commitTransaction();
     } catch (error) {

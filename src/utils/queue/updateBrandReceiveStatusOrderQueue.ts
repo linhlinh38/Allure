@@ -18,12 +18,12 @@ export const updateBrandReceiveStatusOrderQueue = new Queue(
   }
 );
 
-export async function addUpdateBrandReceiveStatusOrderToQueue(orderId: string) {
+export async function addUpdateBrandReceiveStatusOrderToQueue(order: Order) {
   const masterConfig = await retrieveMasterConfig();
   await updateBrandReceiveStatusOrderQueue.add(
     'updateBrandReceiveStatusOrder',
-    { orderId },
-    { delay: Number(masterConfig.autoUpdateOrderToRefundedStatusTime) }
+    { orderId: order.id },
+    { delay: Math.max(order.expiredReceivedTime.getTime() - Date.now(), 0) }
   );
 }
 
