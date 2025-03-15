@@ -6,6 +6,9 @@ import { BadRequestError } from "../errors/error";
 import { productRepository } from "../repositories/product.repository";
 import { BaseService } from "./base.service";
 import { LiveStreamEnum } from "../utils/enum";
+import { RtcTokenBuilder, RtcRole } from "agora-access-token";
+import { config } from "../configs/envConfig";
+import { LivestreamTokenData } from "../dtos/request/livestreamToken.request";
 
 const repository = AppDataSource.getRepository(LiveStream);
 class LiveStreamService extends BaseService<LiveStream> {
@@ -102,6 +105,34 @@ class LiveStreamService extends BaseService<LiveStream> {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  async livestreamToken(data: LivestreamTokenData, account: string) {
+    const appId = config.APP_ID;
+    const appCertificate = config.APP_CERTIFICATE;
+
+    if (
+      appId == undefined ||
+      appId == "" ||
+      appCertificate == undefined ||
+      appCertificate == ""
+    ) {
+      console.log(
+        "Need to set environment variable AGORA_APP_ID and AGORA_APP_CERTIFICATE"
+      );
+      process.exit(1);
+    }
+
+    // Build token with uid
+    const token = RtcTokenBuilder.buildTokenWithAccount(
+      appId,
+      appCertificate,
+      data.channelName,
+      account,
+      data.role,
+      data.privilegeExpirationInSecond
+    );
+    return token;
   }
 }
 export const livestreamService = new LiveStreamService();

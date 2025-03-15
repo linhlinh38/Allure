@@ -3,9 +3,17 @@ import { AppDataSource } from "../dataSource";
 import { ProductClassification } from "../entities/productClassification.entity";
 import { ProductImage } from "../entities/productImage.entity";
 import { BaseService } from "./base.service";
-import { PreOrderProductEnum, ProductEnum, StatusEnum } from "../utils/enum";
+import {
+  PreOrderProductEnum,
+  ProductDiscountEnum,
+  ProductEnum,
+  StatusEnum,
+} from "../utils/enum";
 import { BadRequestError } from "../errors/error";
 import { productRepository } from "../repositories/product.repository";
+import { Product } from "../entities/product.entity";
+import { PreOrderProduct } from "../entities/preOrderProduct.entity";
+import { ProductDiscount } from "../entities/productDiscount.entity";
 
 const repository = AppDataSource.getRepository(ProductClassification);
 class ProductClassificationService extends BaseService<ProductClassification> {
@@ -288,23 +296,119 @@ class ProductClassificationService extends BaseService<ProductClassification> {
           ProductClassification,
           {
             where: { id: update.classificationId },
+            relations: [
+              "product",
+              "preOrderProduct",
+              "productDiscount",
+              "preOrderProduct.product",
+              "productDiscount.product",
+            ],
           }
         );
 
         if (!classification) {
           throw new BadRequestError("Classification invalid!");
         }
+        if (
+          classification.productDiscount &&
+          (classification.productDiscount.product.status ===
+            ProductEnum.BANNED ||
+            classification.productDiscount.product.status ===
+              ProductEnum.INACTIVE)
+        ) {
+          throw new BadRequestError(
+            `The Product is ${classification.productDiscount.product.status}!`
+          );
+        }
+        if (
+          classification.preOrderProduct &&
+          (classification.preOrderProduct.product.status ===
+            ProductEnum.BANNED ||
+            classification.preOrderProduct.product.status ===
+              ProductEnum.INACTIVE)
+        ) {
+          throw new BadRequestError(
+            `The Product is ${classification.preOrderProduct.product.status}!`
+          );
+        }
         if (update.quantity < 1) {
           throw new BadRequestError(
             "Classification quantity must be greater than 0!"
           );
         }
+        const originalClassification = await queryRunner.manager.findOne(
+          ProductClassification,
+          {
+            where: {
+              product: { id: classification.productDiscount.product.id },
+              title: classification.title,
+            },
+          }
+        );
+        if (
+          originalClassification.quantity -
+            (update.quantity - classification.quantity) <
+          0
+        ) {
+          throw new BadRequestError(
+            "Invalid classification quantity: Quantity should be smaller than the current stock"
+          );
+        }
+        await queryRunner.manager.update(
+          ProductClassification,
+          { id: originalClassification.id },
+          {
+            quantity:
+              originalClassification.quantity -
+              (update.quantity - classification.quantity),
+          }
+        );
         const { classificationId, quantity } = update;
         await queryRunner.manager.update(
           ProductClassification,
           { id: classificationId },
           { quantity }
         );
+        const currentDate = new Date();
+        if (
+          classification.product &&
+          classification.product.status === ProductEnum.OUT_OF_STOCK
+        ) {
+          await queryRunner.manager.update(
+            Product,
+            { id: classification.product.id },
+            { status: ProductEnum.OFFICIAL }
+          );
+        }
+        if (
+          classification.preOrderProduct &&
+          classification.preOrderProduct.status ===
+            PreOrderProductEnum.SOLD_OUT &&
+          currentDate < new Date(classification.preOrderProduct.endTime)
+        ) {
+          await queryRunner.manager.update(
+            PreOrderProduct,
+            { id: classification.preOrderProduct.id },
+            { status: PreOrderProductEnum.ACTIVE }
+          );
+        }
+        if (
+          classification.productDiscount &&
+          classification.productDiscount.status ===
+            ProductDiscountEnum.SOLD_OUT &&
+          currentDate < new Date(classification.productDiscount.endTime)
+        ) {
+          await queryRunner.manager.update(
+            ProductDiscount,
+            { id: classification.productDiscount.id },
+            { status: ProductDiscountEnum.ACTIVE }
+          );
+          await queryRunner.manager.update(
+            Product,
+            { id: classification.productDiscount.product.id },
+            { status: ProductEnum.FLASH_SALE }
+          );
+        }
       }
 
       await queryRunner.commitTransaction();

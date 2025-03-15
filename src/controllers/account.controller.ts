@@ -7,12 +7,13 @@ import {
 import { accountService } from "../services/account.service";
 import { NextFunction, Request, Response } from "express";
 import { encryptedPassword } from "../utils/jwt";
-import { StatusEnum } from "../utils/enum";
+import { AccountStatusEnum } from "../utils/enum";
 import { AccountResponse } from "../dtos/response/account.response";
 import { plainToClass } from "class-transformer";
 import { AuthRequest } from "../middleware/authentication";
 import bcrypt from "bcrypt";
 import {
+  sendRegisterAccountEmail,
   sendRequestCreateAccountEmail,
   sendResetPasswordEmail,
 } from "../services/mail.service";
@@ -61,7 +62,7 @@ async function filterAccounts(req: Request, res: Response, next: NextFunction) {
       email: email?.toString(),
       role: role?.toString(),
       brand: brand?.toString(),
-      status: status ? (status as StatusEnum) : undefined,
+      status: status ? (status as AccountStatusEnum) : undefined,
       sortBy: sortBy?.toString() ?? "id",
       order: order?.toString() ?? "ASC",
       page: page ? Number(page) : 1,
@@ -160,7 +161,7 @@ async function verifyAccount(
 ) {
   try {
     await accountService.update(req.params.id, {
-      status: StatusEnum.ACTIVE,
+      status: AccountStatusEnum.ACTIVE,
       isEmailVerify: true,
     });
     return res.status(200).send({ message: "Update account success" });
@@ -192,7 +193,7 @@ async function requestResetPassword(
 ) {
   try {
     const account = await accountService.findBy(req.body.email, "email");
-    if (!account[0] || account[0].status !== StatusEnum.ACTIVE) {
+    if (!account[0] || account[0].status !== AccountStatusEnum.ACTIVE) {
       throw new NotFoundError("Account invalid!");
     }
     await sendResetPasswordEmail(account[0], req.body.url);
@@ -227,6 +228,27 @@ async function requestCreateAccount(
   }
 }
 
+async function resendVerifyEmail(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const checkEmailAccount = await accountService.findBy(
+      req.body.email,
+      "email"
+    );
+
+    if (checkEmailAccount[0].isEmailVerify) {
+      throw new BadRequestError("Email already verify!");
+    }
+    await sendRegisterAccountEmail(checkEmailAccount[0], req.body.url);
+    return res.status(200).send({ message: "Send mail success" });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function setPassword(
   req: AuthRequest,
   res: Response,
@@ -235,7 +257,7 @@ async function setPassword(
   try {
     const updateData: Partial<Account> = {
       password: await encryptedPassword(req.body.password),
-      status: StatusEnum.ACTIVE,
+      status: AccountStatusEnum.ACTIVE,
     };
     const account = await accountService.update(req.params.id, updateData);
     return res.status(200).send({ message: "Update account success" });
@@ -251,7 +273,7 @@ async function modifyPassword(
 ) {
   try {
     const checkAccount = await accountService.findById(req.params.id);
-    if (!checkAccount || checkAccount.status !== StatusEnum.ACTIVE) {
+    if (!checkAccount || checkAccount.status !== AccountStatusEnum.ACTIVE) {
       throw new NotFoundError("Account invalid!");
     }
     if (checkAccount.password) {
@@ -301,4 +323,5 @@ export const accountController = {
   verifyAccount,
   getStaffByBrandAndStatus,
   filterAccounts,
+  resendVerifyEmail,
 };

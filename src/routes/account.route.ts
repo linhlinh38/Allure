@@ -40,6 +40,12 @@ accountRouter.put(
   accountController.modifyPassword
 );
 
+accountRouter.post(
+  "/resend-verify-email",
+  validate(AccountUpdateSchema),
+  accountController.resendVerifyEmail
+);
+
 accountRouter.use(authentication);
 
 accountRouter.post(

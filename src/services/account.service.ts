@@ -4,7 +4,7 @@ import { BaseService } from "./base.service";
 import { AppDataSource } from "../dataSource";
 import { BadRequestError, EmailAlreadyExistError } from "../errors/error";
 import { encryptedPassword } from "../utils/jwt";
-import { RoleEnum, StatusEnum } from "../utils/enum";
+import { AccountStatusEnum, RoleEnum } from "../utils/enum";
 import { sendRegisterAccountEmail } from "./mail.service";
 import { Address } from "../entities/address.entity";
 import { File } from "../entities/file.entity";
@@ -19,7 +19,7 @@ interface FilterOptions {
   email?: string;
   role?: string;
   brand?: string;
-  status?: StatusEnum;
+  status?: AccountStatusEnum;
   sortBy?: string;
   order?: string;
   limit?: number;
@@ -120,7 +120,7 @@ class AccountService extends BaseService<Account> {
     };
   }
 
-  async getStaffByBrandAndStatus(brandId: string, status?: StatusEnum) {
+  async getStaffByBrandAndStatus(brandId: string, status?: AccountStatusEnum) {
     const queryBuilder = this.repository
       .createQueryBuilder("account")
       .innerJoinAndSelect("account.brands", "brand", "brand.id = :brandId", {
@@ -171,7 +171,7 @@ class AccountService extends BaseService<Account> {
       ) {
         accountData.isEmailVerify = true;
       } else {
-        accountData.status = StatusEnum.PENDING;
+        accountData.status = AccountStatusEnum.PENDING;
       }
       let brands = [];
       if (accountData.brands && accountData.brands.length > 0) {
