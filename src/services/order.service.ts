@@ -106,7 +106,7 @@ class OrderService extends BaseService<Order> {
       } else {
         const masterConfig = await retrieveMasterConfig();
         order.expiredReceivedTime = new Date(
-          Date.now() + masterConfig.expiredReceivedTime
+          Date.now() + Number(masterConfig.expiredReceivedTime)
         );
         await queryRunner.manager.save(Order, order);
         await addUpdateBrandReceiveStatusOrderToQueue(order);
@@ -885,7 +885,7 @@ class OrderService extends BaseService<Order> {
       if (status == ShippingStatusEnum.RETURNING) {
         const masterConfig = await retrieveMasterConfig();
         order.expiredReceivedTime = new Date(
-          Date.now() + masterConfig.expiredReceivedTime
+          Date.now() + Number(masterConfig.expiredReceivedTime)
         );
         await queryRunner.manager.save(Order, order);
         await addUpdateBrandReceiveStatusOrderToQueue(order);
