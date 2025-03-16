@@ -4,6 +4,7 @@ import OrderController from '../controllers/order.controller';
 import {
   CancelOrderSchema,
   CancelOrderStatusSchema,
+  GetMyRequestsSchema,
   OrderNormalCreateSchema,
   RequestComlaintSchema,
   RequestRefundSchema,
@@ -107,6 +108,12 @@ orderRouter.post(
   validate(TakeReceivedActionSchema),
   // Author(['ADMIN']),
   OrderController.takeReceivedAction);
+orderRouter.post(
+  '/get-my-requests',
+  // Author(['ADMIN']),
+  validate(GetMyRequestsSchema),
+  OrderController.getMyRequests
+);
 orderRouter.post('/create-pre-order', OrderController.createPreOrder);
 orderRouter.post('/create-group-order', OrderController.createGroupOrder);
 export default orderRouter;
