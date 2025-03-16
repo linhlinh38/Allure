@@ -27,6 +27,19 @@ import { sendConfirmActiveBrandEmail } from './mail.service';
 
 const repository = AppDataSource.getRepository(Brand);
 class BrandService extends BaseService<Brand> {
+  async assignInterview(brandId: string, reviewerId: any)
+  {
+    const brand = await repository.findOne({
+      where: { id: brandId },
+    });
+    if (!brand) throw new BadRequestError('Brand not found');
+    const assignee = await accountRepository.findOne({
+      where: { id: reviewerId },
+    });
+    if (!assignee) throw new BadRequestError('Assignee not found');
+    brand.reviewer = assignee;
+    await repository.save(brand);
+  }
   async getById(id: string) {
     const brand = await repository.findOne({
       where: { id },

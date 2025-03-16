@@ -33,21 +33,21 @@ export default class BookingController {
     }
   }
 
-  static async assignForInterview(
-    req: AuthRequest,
-    res: Response,
-    next: NextFunction
-  ) {
-    try {
-      await bookingService.assignForInterview(
-        req.params.id,
-        req.body.assigneeId
-      );
-      return createNormalResponse(res, 'Assign success');
-    } catch (err) {
-      next(err);
-    }
-  }
+  // static async assignForInterview(
+  //   req: AuthRequest,
+  //   res: Response,
+  //   next: NextFunction
+  // ) {
+  //   try {
+  //     await bookingService.assignForInterview(
+  //       req.params.id,
+  //       req.body.assigneeId
+  //     );
+  //     return createNormalResponse(res, 'Assign success');
+  //   } catch (err) {
+  //     next(err);
+  //   }
+  // }
 
   static async getMyBookings(
     req: AuthRequest,
@@ -77,15 +77,12 @@ export default class BookingController {
     }
   }
 
-  static async getAvailableSlotsForInterview(
-    req: AuthRequest,
-    res: Response,
-    next: NextFunction
-  ) {
+  static async getMySlots(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const slots = await bookingService.getAvailableSlotsForInterview(
+      const slots = await bookingService.getMySlots(
         req.body.startDate,
-        req.body.endDate
+        req.body.endDate,
+        req.loginUser
       );
       return createNormalResponse(res, 'Get slots success', slots);
     } catch (err) {

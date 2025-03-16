@@ -76,9 +76,9 @@ export class Booking extends BaseEntity {
   @JoinColumn({ name: 'brand_id' })
   brand: Brand;
 
-  @ManyToOne(() => Account, { nullable: true })
-  @JoinColumn({ name: 'assignee_to_interview_id' })
-  assigneeToInterview: Account;
+  // @ManyToOne(() => Account, { nullable: true })
+  // @JoinColumn({ name: 'assignee_to_interview_id' })
+  // assigneeToInterview: Account;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   resultNote: string;

@@ -1,7 +1,9 @@
 import {
   Column,
   Entity,
+  JoinColumn,
   ManyToMany,
+  ManyToOne,
   OneToMany,
 } from "typeorm";
 import { BaseEntity } from "./base.entity";
@@ -111,4 +113,8 @@ export class Brand extends BaseEntity {
 
   @OneToMany(() => Booking, (booking) => booking.brand)
   bookings: Booking[];
+
+  @ManyToOne(() => Account)
+  @JoinColumn({ name: "reviewer_id" })
+  reviewer: Account;
 }

@@ -6,9 +6,28 @@ import { Brand } from '../entities/brand.entity';
 import { createNormalResponse } from '../utils/response';
 import { AuthRequest } from '../middleware/authentication';
 import { SearchDTO as SearchDTO } from '../dtos/other/search.dto';
-import { BrandRequest, BrandUpdateStatusRequest } from '../dtos/request/brand.request';
+import {
+  BrandRequest,
+  BrandUpdateStatusRequest,
+} from '../dtos/request/brand.request';
 
 export default class BrandController {
+  static async assignInterview(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      await brandService.assignInterview(
+        req.params.brandId,
+        req.body.reviewerId
+      );
+      return createNormalResponse(res, 'Assign success');
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async getStatusTrackings(
     req: Request,
     res: Response,
@@ -24,7 +43,7 @@ export default class BrandController {
       next(err);
     }
   }
-  
+
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
       const brands = await brandService.findAll();
@@ -39,7 +58,11 @@ export default class BrandController {
 
   static async getById(req: Request, res: Response, next: NextFunction) {
     try {
-      return createNormalResponse(res, 'Get brand success', await brandService.getById(req.params.id));
+      return createNormalResponse(
+        res,
+        'Get brand success',
+        await brandService.getById(req.params.id)
+      );
     } catch (err) {
       next(err);
     }
