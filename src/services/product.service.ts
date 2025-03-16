@@ -35,7 +35,7 @@ interface ProductFilter {
   order?: string; // Sort order
   limit?: number; // Number of items per page
   page?: number; // Page number (for pagination)
-  status?: string; // Filter by status
+  statuses?: ProductEnum[]; // Filter by status
   brandId?: string; // Filter by brand
   categoryId?: string; // Filter by category
 }
@@ -367,9 +367,9 @@ class ProductService extends BaseService<Product> {
       );
     }
 
-    if (filter.status) {
-      queryBuilder.andWhere("product.status = :status", {
-        status: filter.status,
+    if (filter.statuses && filter.statuses.length > 0) {
+      queryBuilder.andWhere("product.status IN (:...statuses)", {
+        statuses: filter.statuses,
       });
     }
 
@@ -801,6 +801,12 @@ class ProductService extends BaseService<Product> {
             isAvailable: true,
           },
           { status: StatusEnum.ACTIVE }
+        );
+      }
+      if (status === ProductEnum.UN_PUBLISHED) {
+        await productDiscountRepository.update(
+          { product: { id: productId }, status: ProductDiscountEnum.ACTIVE },
+          { status: ProductDiscountEnum.INACTIVE }
         );
       }
 

@@ -235,7 +235,9 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
       existingProduct.status === ProductEnum.INACTIVE ||
       existingProduct.status == ProductEnum.BANNED
     ) {
-      throw new BadRequestError("Product invalid.");
+      throw new BadRequestError(
+        `Product invalid: Product is ${existingProduct.status}`
+      );
     }
 
     const preOrderClassifications = data.productClassifications || [];
