@@ -74,7 +74,7 @@ export class Product extends BaseEntity {
   @Column({
     type: "enum",
     enum: ProductEnum,
-    default: ProductEnum.OFFICIAL,
+    default: ProductEnum.UN_PUBLISHED,
   })
   status: ProductEnum;
 

@@ -147,6 +147,7 @@ const startProductDiscount = () => {
           currentDate <= endTime &&
           productDiscount.product.status !== ProductEnum.INACTIVE &&
           productDiscount.product.status !== ProductEnum.BANNED &&
+          productDiscount.product.status !== ProductEnum.UN_PUBLISHED &&
           productDiscount.status === ProductDiscountEnum.WAITING &&
           checkQuantity.length > 0
         ) {

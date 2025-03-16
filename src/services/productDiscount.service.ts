@@ -283,9 +283,12 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
     if (
       !existingProduct ||
       existingProduct.status === ProductEnum.INACTIVE ||
+      existingProduct.status == ProductEnum.UN_PUBLISHED ||
       existingProduct.status == ProductEnum.BANNED
     ) {
-      throw new BadRequestError("Product invalid.");
+      throw new BadRequestError(
+        `Product invalid: Product is ${existingProduct.status}`
+      );
     }
 
     const classifications = body.productClassifications || [];
