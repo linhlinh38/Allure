@@ -88,6 +88,7 @@ class OrderService extends BaseService<Order> {
       )
       .where('order.account.id = :loginUser', { loginUser })
       .orderBy('orderRequest.createdAt', 'DESC');
+    this.queryBuilderForOrder(queryBuilder);
     if (types && types.length > 0) {
       queryBuilder.andWhere('orderRequest.type IN (:...types)', { types });
     }
