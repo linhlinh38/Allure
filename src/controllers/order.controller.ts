@@ -11,11 +11,36 @@ import {
   MakeDicisionRejectRefundRequest,
   ComplaintRequestRequest,
   MakeDicisionComplaintRequest,
+  SearchOrderRequest,
+  GetMyRequestsRequest,
 } from '../dtos/request/order.request';
 import { AuthRequest } from '../middleware/authentication';
 import { ActionReceivedEnum } from '../utils/enum';
 
 export default class OrderController {
+  static async getMyRequests(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const getMyRequestsRequest = plainToInstance(
+        GetMyRequestsRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Get my requests successfully',
+        await orderService.getMyRequests(req.loginUser, getMyRequestsRequest)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async takeReceivedAction(
     req: AuthRequest,
     res: Response,
@@ -23,15 +48,18 @@ export default class OrderController {
   ) {
     try {
       const isReceived = await orderService.takeReceivedAction(
-        req.body.action as ActionReceivedEnum, req.params.orderId
+        req.body.action as ActionReceivedEnum,
+        req.params.orderId
       );
       return createNormalResponse(
         res,
-        isReceived ? 'Received successfully' : 'Extend received time successfully',
+        isReceived
+          ? 'Received successfully'
+          : 'Extend received time successfully'
       );
     } catch (err) {
       next(err);
-    } 
+    }
   }
   static async getRequestsOfOrder(
     req: AuthRequest,
@@ -389,15 +417,13 @@ export default class OrderController {
     next: NextFunction
   ) {
     try {
-      const search = req.body.search as string;
+      const searchOrderRequest = plainToInstance(SearchOrderRequest, req.body, {
+        excludeExtraneousValues: true,
+      });
       return createNormalResponse(
         res,
         'Get my orders success',
-        await orderService.getMyOrders(
-          search?.trim(),
-          req.body.status,
-          req.loginUser
-        )
+        await orderService.getMyOrders(searchOrderRequest, req.loginUser)
       );
     } catch (err) {
       next(err);
