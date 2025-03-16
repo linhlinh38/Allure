@@ -990,7 +990,7 @@ class VoucherService extends BaseService<Voucher> {
           orderDetail.productClassification.id
         )
       ) {
-        orderDetail.shopVoucherDiscount = Math.round(
+        orderDetail.shopVoucherDiscount = Math.floor(
           (orderDetail.subTotal / sumPrice) * discount
         );
         orderDetail.totalPrice =
@@ -1061,7 +1061,7 @@ class VoucherService extends BaseService<Voucher> {
           orderDetail.productClassification.id
         )
       ) {
-        orderDetail.platformVoucherDiscount = Math.round(
+        orderDetail.platformVoucherDiscount = Math.floor(
           (orderDetail.totalPrice / sumPrice) * discount
         );
         orderDetail.totalPrice -= orderDetail.platformVoucherDiscount;
