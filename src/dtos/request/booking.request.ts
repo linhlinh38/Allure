@@ -38,7 +38,7 @@ export const BookingUpdateStatusSchema = z.object({
   }),
 });
 
-export const GetAvailableSlotsSchema = z.object({
+export const GetMySlotsSchema = z.object({
   body: z.object({
     startDate: z
       .string()

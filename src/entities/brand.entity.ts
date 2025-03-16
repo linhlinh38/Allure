@@ -1,22 +1,24 @@
 import {
   Column,
   Entity,
+  JoinColumn,
   ManyToMany,
+  ManyToOne,
   OneToMany,
-} from "typeorm";
-import { BaseEntity } from "./base.entity";
-import { BrandStatusEnum } from "../utils/enum";
-import { Account } from "./account.entity";
-import { Follow } from "./follow.entity";
-import { Expose } from "class-transformer";
-import { Voucher } from "./voucher.entity";
-import { StatusTracking } from "./statusTracking.entity";
-import { Product } from "./product.entity";
-import { Transaction } from "./transaction.entity";
-import { Order } from "./order.entity";
-import { GroupProduct } from "./groupProduct.entity";
-import { File } from "./file.entity";
-import { Booking } from "./booking.entity";
+} from 'typeorm';
+import { BaseEntity } from './base.entity';
+import { BrandStatusEnum } from '../utils/enum';
+import { Account } from './account.entity';
+import { Follow } from './follow.entity';
+import { Expose } from 'class-transformer';
+import { Voucher } from './voucher.entity';
+import { StatusTracking } from './statusTracking.entity';
+import { Product } from './product.entity';
+import { Transaction } from './transaction.entity';
+import { Order } from './order.entity';
+import { GroupProduct } from './groupProduct.entity';
+import { File } from './file.entity';
+import { Booking } from './booking.entity';
 
 @Entity('brands')
 export class Brand extends BaseEntity {
@@ -111,4 +113,8 @@ export class Brand extends BaseEntity {
 
   @OneToMany(() => Booking, (booking) => booking.brand)
   bookings: Booking[];
+
+  @ManyToOne(() => Account, { nullable: true })
+  @JoinColumn({ name: 'reviewer_id' })
+  reviewer: Account;
 }

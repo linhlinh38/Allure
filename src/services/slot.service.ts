@@ -8,6 +8,7 @@ import { Slot } from '../entities/slot.entity';
 import { BaseService } from './base.service';
 import { accountRepository } from '../repositories/account.repository';
 import { BadRequestError } from '../errors/error';
+import { RoleEnum } from '../utils/enum';
 
 const repository = AppDataSource.getRepository(Slot);
 class SlotService extends BaseService<Slot> {
@@ -42,14 +43,35 @@ class SlotService extends BaseService<Slot> {
   }
 
   async bulkCreate(slotsRequest: SlotRequest) {
-    const slots = slotsRequest.slots.map((slot) => {
-      return repository.create({
-        weekDay: slot.weekDay,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const slots = slotsRequest.slots.map((slot) => {
+        return repository.create({
+          weekDay: slot.weekDay,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+        });
       });
-    });
-    await repository.save(slots);
+      await queryRunner.manager.save(slots);
+      const allSlots = await repository.find({});
+      const accounts = await accountRepository.find({
+        where: {
+          role: { role: In([RoleEnum.ADMIN, RoleEnum.OPERATOR]) },
+        },
+      });
+      accounts.forEach((account) => {
+        account.workingSlots = allSlots;
+      });
+      await queryRunner.manager.save(accounts);
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async getAll() {
