@@ -73,7 +73,7 @@ class OrderService extends BaseService<Order> {
     loginUser: string,
     getMyRequestsRequest: GetMyRequestsRequest
   ) {
-    const {type, statusList} = getMyRequestsRequest;
+    const { types, statusList } = getMyRequestsRequest;
     const queryBuilder = orderRequestRepository
       .createQueryBuilder('orderRequest')
       .leftJoinAndSelect('orderRequest.order', 'order')
@@ -88,11 +88,13 @@ class OrderService extends BaseService<Order> {
       )
       .where('order.account.id = :loginUser', { loginUser })
       .orderBy('orderRequest.createdAt', 'DESC');
-    if(type) {
-      queryBuilder.andWhere('orderRequest.type = :type', { type });
+    if (types && types.length > 0) {
+      queryBuilder.andWhere('orderRequest.type IN (:...types)', { types });
     }
-    if(statusList && statusList.length > 0) {
-      queryBuilder.andWhere('orderRequest.status IN (:...statusList)', { statusList });
+    if (statusList && statusList.length > 0) {
+      queryBuilder.andWhere('orderRequest.status IN (:...statusList)', {
+        statusList,
+      });
     }
     const requests = await queryBuilder.getMany();
     return requests;

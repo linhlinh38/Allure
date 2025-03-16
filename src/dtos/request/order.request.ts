@@ -126,13 +126,13 @@ export const TakeReceivedActionSchema = z.object({
 export const GetMyRequestsSchema = z.object({
   body: z.object({
     statusList: z.array(z.nativeEnum(RequestStatusEnum)).optional(),
-    type: z.nativeEnum(OrderRequestTypeEnum).optional(),
+    types: z.array(z.nativeEnum(OrderRequestTypeEnum)).optional(),
   }),
 });
 
 export class GetMyRequestsRequest {
   @Expose()
-  type: OrderRequestTypeEnum;
+  types: OrderRequestTypeEnum[];
 
   @Expose()
   statusList: RequestStatusEnum[];
