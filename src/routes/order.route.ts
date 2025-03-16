@@ -4,15 +4,16 @@ import OrderController from '../controllers/order.controller';
 import {
   CancelOrderSchema,
   CancelOrderStatusSchema,
+  GetMyRequestsSchema,
   OrderNormalCreateSchema,
   RequestComlaintSchema,
   RequestRefundSchema,
   RequestStatusSchema,
   SearchOrderSchema,
+  TakeReceivedActionSchema,
   UpdateOrderStatusSchema,
 } from '../dtos/request/order.request';
 import validate from '../utils/validate';
-import { Author } from '../middleware/authorization';
 
 const orderRouter = express.Router();
 orderRouter.get('/', OrderController.getAll);
@@ -37,6 +38,10 @@ orderRouter.put(
 orderRouter.get(
   '/get-status-tracking/:orderId',
   OrderController.getStatusTrackingOfOrder
+);
+orderRouter.get(
+  '/get-requests-of-order/:orderId',
+  OrderController.getRequestsOfOrder
 );
 orderRouter.get(
   '/get-cancel-request-by-id/:requestId',
@@ -76,10 +81,10 @@ orderRouter.post(
   validate(RequestComlaintSchema),
   OrderController.requestComlaint
 );
-orderRouter.get(
-  '/get-both-request-refund-cancel/:orderId',
-  OrderController.getBothRequestRefundCancel
-);
+// orderRouter.get(
+//   '/get-both-request-refund-cancel/:orderId',
+//   OrderController.getBothRequestRefundCancel
+// );
 orderRouter.post(
   '/make-decision-on-refund-request/:requestId',
   validate(RequestStatusSchema),
@@ -97,6 +102,17 @@ orderRouter.post(
   validate(RequestStatusSchema),
   // Author(['ADMIN']),
   OrderController.makeDecisionOnComplaintRequest
+);
+orderRouter.post(
+  '/take-received-action/:orderId',
+  validate(TakeReceivedActionSchema),
+  // Author(['ADMIN']),
+  OrderController.takeReceivedAction);
+orderRouter.post(
+  '/get-my-requests',
+  // Author(['ADMIN']),
+  validate(GetMyRequestsSchema),
+  OrderController.getMyRequests
 );
 orderRouter.post('/create-pre-order', OrderController.createPreOrder);
 orderRouter.post('/create-group-order', OrderController.createGroupOrder);

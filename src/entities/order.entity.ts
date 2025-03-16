@@ -19,11 +19,9 @@ import { Voucher } from './voucher.entity';
 import { Account } from './account.entity';
 import { OrderDetail } from './orderDetail.entity';
 import { StatusTracking } from './statusTracking.entity';
-import { CancelOrderRequest } from './cancelOrderRequest.entity';
 import { Brand } from './brand.entity';
-import { RefundRequest } from './refundRequest.entity';
 import { Report } from './report.entity';
-import { ComplaintRequest } from './complainRequest';
+import { OrderRequest } from './orderRequest.entity';
 
 @Entity('orders')
 export class Order extends BaseEntity {
@@ -118,24 +116,36 @@ export class Order extends BaseEntity {
   @OneToMany(() => StatusTracking, (statusTracking) => statusTracking.order)
   statusTrackings: StatusTracking[];
 
-  @OneToOne(
-    () => CancelOrderRequest,
-    (cancelOrderRequest) => cancelOrderRequest.order
-  )
-  cancelOrderRequest: CancelOrderRequest;
+  @Column({
+    type: 'timestamp with time zone',
+    name: 'expired_received_time',
+    nullable: true,
+  })
+  expiredReceivedTime: Date;
+
+  // @OneToOne(
+  //   () => CancelOrderRequest,
+  //   (cancelOrderRequest) => cancelOrderRequest.order
+  // )
+  // cancelOrderRequest: CancelOrderRequest;
 
   @OneToOne(() => Transaction, (transaction) => transaction.order)
   transaction: Transaction;
 
-  @OneToOne(() => RefundRequest, (refundRequest) => refundRequest.order)
-  refundRequest: RefundRequest;
+  // @OneToOne(() => RefundRequest, (refundRequest) => refundRequest.order)
+  // refundRequest: RefundRequest;
 
-  @OneToOne(
-    () => ComplaintRequest,
-    (complaintRequest) => complaintRequest.order
-  )
-  complaintRequest: ComplaintRequest;
+  // @OneToOne(
+  //   () => ComplaintRequest,
+  //   (complaintRequest) => complaintRequest.order
+  // )
+  // complaintRequest: ComplaintRequest;
 
   @OneToOne(() => Report, (report) => report.order)
   report: Report;
+
+  @OneToMany(() => OrderRequest, (orderRequest) => orderRequest.order, {
+    cascade: true,
+  })
+  requests: OrderRequest[];
 }

@@ -1,3 +1,4 @@
+import { In } from 'typeorm';
 import {
   Between,
   LessThanOrEqual,
@@ -18,6 +19,41 @@ import { brandRepository } from '../repositories/brand.repository';
 
 const repository = AppDataSource.getRepository(Booking);
 class BookingService extends BaseService<Booking> {
+  async getBookingOfBrand(brandId: string) {
+    const brand = await brandRepository.findOne({
+      where: {
+        id: brandId,
+      },
+    });
+    if (!brand) throw new BadRequestError('Brand not found');
+    const booking = await bookingRepository.findOne({
+      where: {
+        brand: { id: brandId },
+        status: In([
+          BookingStatusEnum.BOOKING_CONFIRMED,
+          BookingStatusEnum.WAIT_FOR_CONFIRMATION,
+          BookingStatusEnum.COMPLETED,
+        ]),
+      },
+    });
+    if (!booking) throw new BadRequestError('Booking not found');
+    return booking;
+  }
+  async getById(id: string) {
+    const booking = await bookingRepository.findOne({
+      where: {
+        id,
+      },
+      relations: {
+        assigneeToInterview: true,
+        account: true,
+        brand: true,
+        slot: true,
+      },
+    });
+    if (!booking) throw new BadRequestError('Booking not found');
+    return booking;
+  }
   async noteResult(id: string, resultNote: string, loginUser: string) {
     const booking = await bookingRepository.findOne({
       where: { id },
@@ -66,7 +102,7 @@ class BookingService extends BaseService<Booking> {
     booking.assigneeToInterview = { id: assigneeId } as Account;
     await booking.save();
   }
-  async getBookingInterviews(loginUser: string) {
+  async getMyBookings(loginUser: string) {
     const account = await accountRepository.findOne({
       where: {
         id: loginUser,
@@ -78,9 +114,9 @@ class BookingService extends BaseService<Booking> {
     });
     if (account.role.role == RoleEnum.ADMIN) {
       return await bookingRepository.find({
-        where: {
-          type: BookingTypeEnum.INTERVIEW,
-        },
+        // where: {
+        //   type: BookingTypeEnum.INTERVIEW,
+        // },
         relations: {
           brand: true,
           account: true,
@@ -94,7 +130,7 @@ class BookingService extends BaseService<Booking> {
     } else if (account.role.role == RoleEnum.OPERATOR) {
       return await bookingRepository.find({
         where: {
-          type: BookingTypeEnum.INTERVIEW,
+          // type: BookingTypeEnum.INTERVIEW,
           assigneeToInterview: { id: loginUser },
         },
         relations: {
@@ -110,7 +146,7 @@ class BookingService extends BaseService<Booking> {
     } else if (account.role.role == RoleEnum.MANAGER) {
       return await bookingRepository.find({
         where: {
-          type: BookingTypeEnum.INTERVIEW,
+          // type: BookingTypeEnum.INTERVIEW,
           account: { id: loginUser },
         },
         relations: {
@@ -137,7 +173,11 @@ class BookingService extends BaseService<Booking> {
       where: {
         startTime: Between(startDate, endDate),
         endTime: Between(startDate, endDate),
-        status: BookingStatusEnum.BOOKING_CONFIRMED,
+        status: In([
+          BookingStatusEnum.WAIT_FOR_CONFIRMATION,
+          BookingStatusEnum.BOOKING_CONFIRMED,
+          BookingStatusEnum.COMPLETED,
+        ]),
       },
       relations: {
         slot: true,
@@ -162,6 +202,8 @@ class BookingService extends BaseService<Booking> {
   }
   async createBooking(bookingRequest: BookingRequest, loginUser: string) {
     if (bookingRequest.type == BookingTypeEnum.INTERVIEW) {
+      if (!bookingRequest.brandId)
+        throw new BadRequestError('BrandId required');
       const bookings = await repository.find({
         where: { account: { id: loginUser } },
         relations: ['slot'],

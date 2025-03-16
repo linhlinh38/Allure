@@ -88,6 +88,14 @@ class GroupProductService extends BaseService<GroupProduct> {
     const groupProduct = await repository.findOne({
       where: { id: groupProductId },
     });
+    if (!groupProduct) throw new BadRequestError('Group product not found');
+    const groupBuying = await groupBuyingRepository.findOne({
+      where: {
+        groupProduct: { id: groupProductId },
+        endTime: MoreThanOrEqual(new Date()),
+      },
+    });
+    if (groupBuying) throw new BadRequestError('Group product is in event');
     groupProduct.status =
       groupProduct.status == StatusEnum.ACTIVE
         ? StatusEnum.INACTIVE
@@ -102,6 +110,8 @@ class GroupProductService extends BaseService<GroupProduct> {
       relations: { criterias: true },
     });
     if (!groupProduct) throw new BadRequestError('Group product not found');
+    if (groupProduct.status != StatusEnum.ACTIVE)
+      throw new BadRequestError('Group product is inactive');
     const newGroupBuying = new GroupBuying();
     newGroupBuying.endTime = new Date(groupBuyingBody.endTime);
     if (newGroupBuying.endTime.getTime() < Date.now())

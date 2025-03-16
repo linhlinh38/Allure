@@ -12,10 +12,12 @@ const bookingRoute = express.Router();
 
 bookingRoute.use(authentication);
 bookingRoute.get('/', BookingController.getAll);
+bookingRoute.get('/get-by-id/:id', BookingController.getById);
 bookingRoute.get(
-  '/get-booking-interviews',
-  BookingController.getBookingInterviews
+  '/get-booking-of-brand/:brandId',
+  BookingController.getBookingOfBrand
 );
+bookingRoute.get('/get-my-bookings', BookingController.getMyBookings);
 bookingRoute.post('/', validate(BookingCreateSchema), BookingController.create);
 bookingRoute.put('/:id', BookingController.update);
 bookingRoute.put(

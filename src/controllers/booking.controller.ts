@@ -1,11 +1,25 @@
 import { NextFunction, Request, Response } from 'express';
 import { bookingService } from '../services/booking.service';
 import { createNormalResponse } from '../utils/response';
-import { NotFoundError } from '../errors/error';
 import { AuthRequest } from '../middleware/authentication';
 import { plainToInstance } from 'class-transformer';
 import { BookingRequest } from '../dtos/request/booking.request';
 export default class BookingController {
+  static async getBookingOfBrand(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get booking of brand success',
+        await bookingService.getBookingOfBrand(req.params.brandId)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async noteResult(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       await bookingService.noteResult(
@@ -35,7 +49,7 @@ export default class BookingController {
     }
   }
 
-  static async getBookingInterviews(
+  static async getMyBookings(
     req: AuthRequest,
     res: Response,
     next: NextFunction
@@ -43,8 +57,8 @@ export default class BookingController {
     try {
       return createNormalResponse(
         res,
-        'Get booking interviews successfully',
-        await bookingService.getBookingInterviews(req.loginUser)
+        'Get my bookings successfully',
+        await bookingService.getMyBookings(req.loginUser)
       );
     } catch (err) {
       next(err);
@@ -108,9 +122,11 @@ export default class BookingController {
 
   static async getById(req: Request, res: Response, next: NextFunction) {
     try {
-      const booking = await bookingService.findById(req.params.id);
-      if (!booking) throw new NotFoundError('booking not found');
-      return createNormalResponse(res, 'Get booking success', booking);
+      return createNormalResponse(
+        res,
+        'Get booking success',
+        await bookingService.getById(req.params.id)
+      );
     } catch (err) {
       next(err);
     }

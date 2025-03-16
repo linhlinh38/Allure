@@ -20,6 +20,8 @@ import {
   MakeDicisionRejectRefundRequest,
   ComplaintRequestRequest,
   MakeDicisionComplaintRequest as MakeDicisionComplaintRequest,
+  SearchOrderRequest,
+  GetMyRequestsRequest,
 } from '../dtos/request/order.request';
 import { voucherRepository } from '../repositories/voucher.repository';
 import { productClassificationRepository } from '../repositories/productClassification.repository';
@@ -37,6 +39,8 @@ import {
   TransactionStatusEnum,
   VoucherVisibilityEnum,
   VoucherWalletStatus,
+  OrderRequestTypeEnum,
+  ActionReceivedEnum,
 } from '../utils/enum';
 import { validate as isUUID } from 'uuid';
 import { addressRepository } from '../repositories/address.repository';
@@ -47,8 +51,6 @@ import { nextShippingStatusMap } from '../utils/nextStatusMap';
 import { StatusTracking } from '../entities/statusTracking.entity';
 import { Account } from '../entities/account.entity';
 import { voucherWalletRepository } from '../repositories/voucherWallet.reposirory';
-import { CancelOrderRequest } from '../entities/cancelOrderRequest.entity';
-import { cancelOrderRequestRepository } from '../repositories/cancelOrderRequest.repository';
 import { walletRepository } from '../repositories/wallet.reposirory';
 import { Wallet } from '../entities/wallet.entity';
 import { Transaction } from '../entities/transaction.entity';
@@ -57,17 +59,134 @@ import { transactionService } from './transaction.service';
 import { walletService } from './wallet.service';
 import { MediaFile } from '../entities/mediaFile.entity';
 import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
-import { refundRequestRepository } from '../repositories/refundRequest.repository';
-import { RefundRequest } from '../entities/refundRequest.entity';
 import { addNormalOrderToQueue } from '../utils/queue/cancelOrderQueue';
 import { addRefundRequestToQueue } from '../utils/queue/approveRefundRequestQueue';
-import { RejectRefundRequest } from '../entities/rejectRefundRequest.entity';
-import { complaintRequestRepository } from '../repositories/complainRequest.repository';
-import { ComplaintRequest } from '../entities/complainRequest';
-import { rejectRefundRequestRepository } from '../repositories/rejectRefundRequest.repository';
+import { orderRequestRepository } from '../repositories/orderRequest.repository';
+import { OrderRequest } from '../entities/orderRequest.entity';
+import { File } from '../entities/file.entity';
+import { addUpdateRefundedStatusOrderToQueue } from '../utils/queue/updateRefundedStatusOrderQueue';
+import { addUpdateBrandReceiveStatusOrderToQueue } from '../utils/queue/updateBrandReceiveStatusOrderQueue';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
+  async getMyRequests(
+    loginUser: string,
+    getMyRequestsRequest: GetMyRequestsRequest
+  ) {
+    const { types, statusList } = getMyRequestsRequest;
+    const queryBuilder = orderRequestRepository
+      .createQueryBuilder('orderRequest')
+      .leftJoinAndSelect('orderRequest.order', 'order')
+      .leftJoinAndSelect('orderRequest.mediaFiles', 'mediaFiles')
+      .leftJoinAndSelect(
+        'orderRequest.rejectedRefundRequest',
+        'rejectedRefundRequest'
+      )
+      .leftJoinAndSelect(
+        'rejectedRefundRequest.mediaFiles',
+        'rejectedRefundRequestMediaFiles'
+      )
+      .where('order.account.id = :loginUser', { loginUser })
+      .orderBy('orderRequest.createdAt', 'DESC');
+    this.queryBuilderForOrder(queryBuilder);
+    if (types && types.length > 0) {
+      queryBuilder.andWhere('orderRequest.type IN (:...types)', { types });
+    }
+    if (statusList && statusList.length > 0) {
+      queryBuilder.andWhere('orderRequest.status IN (:...statusList)', {
+        statusList,
+      });
+    }
+    const requests = await queryBuilder.getMany();
+    return requests;
+  }
+
+  async takeReceivedAction(action: ActionReceivedEnum, orderId: string) {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      let isReceived = false;
+      const order = await orderRepository.findOne({
+        where: {
+          id: orderId,
+        },
+        relations: {
+          account: true,
+        },
+      });
+      if (!order) throw new BadRequestError('Order not found');
+      if (order.status != ShippingStatusEnum.RETURNING)
+        throw new BadRequestError(
+          `Can not take action on this order due to current status ${order.status}`
+        );
+      if (action == ActionReceivedEnum.RECEIVED) {
+        await Promise.all([
+          //update order status
+          (async () => {
+            order.status = ShippingStatusEnum.BRAND_RECEIVED;
+            await queryRunner.manager.save(Order, order);
+          })(),
+          //create status tracking
+          orderService.createStatusTracking(
+            order,
+            order.account.id,
+            ShippingStatusEnum.BRAND_RECEIVED,
+            'Auto update',
+            queryRunner
+          ),
+        ]);
+        isReceived = true;
+      } else {
+        const masterConfig = await retrieveMasterConfig();
+        order.expiredReceivedTime = new Date(
+          Date.now() + Number(masterConfig.expiredReceivedTime)
+        );
+        await queryRunner.manager.save(Order, order);
+        await addUpdateBrandReceiveStatusOrderToQueue(order);
+        isReceived = false;
+      }
+      await queryRunner.commitTransaction();
+      return isReceived;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async getRequestsOfOrder(orderId: string) {
+    const order = await orderRepository.findOne({
+      where: {
+        id: orderId,
+      },
+      relations: {
+        requests: {
+          mediaFiles: true,
+          rejectedRefundRequest: {
+            mediaFiles: true,
+          },
+        },
+      },
+    });
+    if (!order) throw new BadRequestError('Order not found');
+    const cancelRequest = order.requests.find(
+      (request) => request.type == OrderRequestTypeEnum.CANCEL
+    );
+    const refundRequest = order.requests.find(
+      (request) => request.type == OrderRequestTypeEnum.REFUND
+    );
+    const complaintRequest = order.requests.find(
+      (request) => request.type == OrderRequestTypeEnum.COMPLAINT
+    );
+    return {
+      cancelRequest,
+      refundRequest,
+      complaintRequest,
+    };
+  }
+
   async makeDecisionOnComplaintRequest(
     requestId: string,
     makeDicisionComplaintRequest: MakeDicisionComplaintRequest
@@ -78,12 +197,17 @@ class OrderService extends BaseService<Order> {
     try {
       const { reasonRejected, status } = makeDicisionComplaintRequest;
       let isApproved = false;
-      const complaintRequest = await complaintRequestRepository.findOne({
+      const complaintRequest = await orderRequestRepository.findOne({
         where: {
           id: requestId,
+          type: OrderRequestTypeEnum.COMPLAINT,
         },
         relations: {
-          order: true,
+          order: {
+            account: true,
+            brand: true,
+            voucher: true,
+          },
         },
       });
       if (!complaintRequest) throw new BadRequestError('Request not found');
@@ -92,8 +216,10 @@ class OrderService extends BaseService<Order> {
         if (!reasonRejected)
           throw new BadRequestError('Reason Rejected required when rejected');
         complaintRequest.status = status;
-        complaintRequest.reason = makeDicisionComplaintRequest.reasonRejected;
-        await queryRunner.manager.save(ComplaintRequest, complaintRequest);
+        complaintRequest.reasonRejected =
+          makeDicisionComplaintRequest.reasonRejected;
+
+        await queryRunner.manager.save(OrderRequest, complaintRequest);
 
         await Promise.all([
           //update order status
@@ -109,12 +235,39 @@ class OrderService extends BaseService<Order> {
             null,
             queryRunner
           ),
+          //create transaction
+          (async () => {
+            const transaction =
+              transactionService.createTransactionFromNormalOrder(
+                complaintRequest.order
+              );
+            transaction.status = TransactionStatusEnum.REFUNDED;
+            await queryRunner.manager.save(Transaction, transaction);
+          })(),
+          //refund to wallet
+          (async () => {
+            const wallet = await walletRepository.findOne({
+              where: {
+                id: order.account.id,
+              },
+            });
+            wallet.balance += order.totalPrice;
+            await queryRunner.manager.save(wallet);
+          })(),
         ]);
+        //refund voucher for type gr buying
+        if (order.type == OrderEnum.GROUP_BUYING) {
+          const voucher = order.voucher;
+          const voucherWallet = new VoucherWallet();
+          voucherWallet.owner = order.account;
+          voucherWallet.voucher = voucher;
+          await queryRunner.manager.save(VoucherWallet, voucherWallet);
+        }
 
         isApproved = false;
       } else if (status === RequestStatusEnum.APPROVED) {
         complaintRequest.status = status;
-        await queryRunner.manager.save(ComplaintRequest, complaintRequest);
+        await queryRunner.manager.save(OrderRequest, complaintRequest);
 
         await Promise.all([
           //update order status
@@ -161,38 +314,40 @@ class OrderService extends BaseService<Order> {
         `Can not request complaint due to current status ${order.status}`
       );
     const masterConfig = await retrieveMasterConfig();
-    const brandReceivedStatusTracking =
-      await statusTrackingRepository.findOne({
-        where: {
-          status: ShippingStatusEnum.BRAND_RECEIVED,
-        },
-      });
+    const brandReceivedStatusTracking = await statusTrackingRepository.findOne({
+      where: {
+        status: ShippingStatusEnum.BRAND_RECEIVED,
+      },
+    });
     if (
+      brandReceivedStatusTracking &&
       brandReceivedStatusTracking.createdAt.getTime() +
         masterConfig.complaintTimeExpired <
-      Date.now()
+        Date.now()
     )
       throw new BadRequestError('Complaint time expired');
-    const complainRequest = await complaintRequestRepository.findOne({
+    const complainRequest = await orderRequestRepository.findOne({
       where: {
         order: { id: orderId },
+        type: OrderRequestTypeEnum.COMPLAINT,
       },
     });
     if (complainRequest)
       throw new BadRequestError(
         'Only request complaint once. Can not request anymore'
       );
-    const createdComplaintRequest = new ComplaintRequest();
+    const createdComplaintRequest = new OrderRequest();
+    createdComplaintRequest.type = OrderRequestTypeEnum.COMPLAINT;
     createdComplaintRequest.order = order;
     createdComplaintRequest.reason = complainRequestRequest.reason;
     createdComplaintRequest.mediaFiles = complainRequestRequest.mediaFiles.map(
       (file) => {
-        const fileEntity = new MediaFile();
+        const fileEntity = new File();
         fileEntity.fileUrl = file;
         return fileEntity;
       }
     );
-    const createdComplaintRequestEntity = await complaintRequestRepository.save(
+    const createdComplaintRequestEntity = await orderRequestRepository.save(
       createdComplaintRequest
     );
     return createdComplaintRequestEntity;
@@ -207,9 +362,10 @@ class OrderService extends BaseService<Order> {
     try {
       const { reasonRejected, status } = makeDicisionRejectRefundRequest;
       let isApproved = false;
-      const rejectRefundRequest = await rejectRefundRequestRepository.findOne({
+      const rejectRefundRequest = await orderRequestRepository.findOne({
         where: {
           id: requestId,
+          type: OrderRequestTypeEnum.REJECT_REFUND,
         },
         relations: {
           refundRequest: {
@@ -224,13 +380,13 @@ class OrderService extends BaseService<Order> {
         rejectRefundRequest.status = status;
         rejectRefundRequest.reason =
           makeDicisionRejectRefundRequest.reasonRejected;
-        await queryRunner.manager.save(RefundRequest, rejectRefundRequest);
+        await queryRunner.manager.save(OrderRequest, rejectRefundRequest);
         isApproved = false;
       } else if (status === RequestStatusEnum.APPROVED) {
         const order = rejectRefundRequest.refundRequest.order;
 
         rejectRefundRequest.status = status;
-        await queryRunner.manager.save(RefundRequest, rejectRefundRequest);
+        await queryRunner.manager.save(OrderRequest, rejectRefundRequest);
 
         if (order.status != ShippingStatusEnum.COMPLETED) {
           await Promise.all([
@@ -261,30 +417,30 @@ class OrderService extends BaseService<Order> {
       await queryRunner.release();
     }
   }
-  async getBothRequestRefundCancel(orderId: string) {
-    const order = await orderRepository.findOne({
-      where: {
-        id: orderId,
-      },
-      relations: {
-        cancelOrderRequest: true,
-        refundRequest: {
-          mediaFiles: true,
-          rejectRefundRequest: {
-            mediaFiles: true,
-          },
-        },
-        complaintRequest: {
-          mediaFiles: true,
-        },
-      },
-    });
-    if (!order) throw new BadRequestError(`Order not found`);
-    return {
-      cancelOrderRequest: order.cancelOrderRequest,
-      refundRequest: order.refundRequest,
-    };
-  }
+  // async getBothRequestRefundCancel(orderId: string) {
+  //   const order = await orderRepository.findOne({
+  //     where: {
+  //       id: orderId,
+  //     },
+  //     relations: {
+  //       cancelOrderRequest: true,
+  //       refundRequest: {
+  //         mediaFiles: true,
+  //         rejectRefundRequest: {
+  //           mediaFiles: true,
+  //         },
+  //       },
+  //       complaintRequest: {
+  //         mediaFiles: true,
+  //       },
+  //     },
+  //   });
+  //   if (!order) throw new BadRequestError(`Order not found`);
+  //   return {
+  //     cancelOrderRequest: order.cancelOrderRequest,
+  //     refundRequest: order.refundRequest,
+  //   };
+  // }
   async makeDecisionOnRefundRequest(
     requestId: string,
     makeDicisionRefundRequest: MakeDicisionRefundRequest
@@ -295,9 +451,10 @@ class OrderService extends BaseService<Order> {
     try {
       const { reasonRejected, status, mediaFiles } = makeDicisionRefundRequest;
       let isApproved = false;
-      const refundRequest = await refundRequestRepository.findOne({
+      const refundRequest = await orderRequestRepository.findOne({
         where: {
           id: requestId,
+          type: OrderRequestTypeEnum.REFUND,
         },
         relations: {
           order: { account: true },
@@ -308,23 +465,21 @@ class OrderService extends BaseService<Order> {
         if (!reasonRejected)
           throw new BadRequestError('Reason Rejected required when rejected');
         refundRequest.status = status;
-        await queryRunner.manager.save(RefundRequest, refundRequest);
+        await queryRunner.manager.save(OrderRequest, refundRequest);
 
         //create reject refund request
-        const rejectRefundRequest = new RejectRefundRequest();
+        const rejectRefundRequest = new OrderRequest();
+        rejectRefundRequest.type = OrderRequestTypeEnum.REJECT_REFUND;
         rejectRefundRequest.refundRequest = refundRequest;
         rejectRefundRequest.reason = reasonRejected;
         if (mediaFiles && mediaFiles.length > 0) {
           rejectRefundRequest.mediaFiles = mediaFiles.map((file) => {
-            const fileEntity = new MediaFile();
+            const fileEntity = new File();
             fileEntity.fileUrl = file;
             return fileEntity;
           });
         }
-        await queryRunner.manager.save(
-          RejectRefundRequest,
-          rejectRefundRequest
-        );
+        await queryRunner.manager.save(OrderRequest, rejectRefundRequest);
 
         isApproved = false;
       } else if (status === RequestStatusEnum.APPROVED) {
@@ -333,21 +488,21 @@ class OrderService extends BaseService<Order> {
           //update refund request status
           (async () => {
             refundRequest.status = status;
-            await queryRunner.manager.save(RefundRequest, refundRequest);
+            await queryRunner.manager.save(OrderRequest, refundRequest);
           })(),
           //update order status
-          (async () => {
-            order.status = ShippingStatusEnum.RETURNING;
-            await queryRunner.manager.save(Order, order);
-          })(),
+          // (async () => {
+          //   order.status = ShippingStatusEnum.RETURNING;
+          //   await queryRunner.manager.save(Order, order);
+          // })(),
           //create status tracking
-          this.createStatusTracking(
-            order,
-            order.account.id,
-            ShippingStatusEnum.RETURNING,
-            refundRequest.reason,
-            queryRunner
-          ),
+          // this.createStatusTracking(
+          //   order,
+          //   order.account.id,
+          //   ShippingStatusEnum.RETURNING,
+          //   refundRequest.reason,
+          //   queryRunner
+          // ),
         ]);
         isApproved = true;
       }
@@ -403,32 +558,34 @@ class OrderService extends BaseService<Order> {
       Date.now()
     )
       throw new BadRequestError('Refund time expired');
-    const refundRequest = await refundRequestRepository.findOne({
+    const refundRequest = await orderRequestRepository.findOne({
       where: {
         order: { id: orderId },
+        type: OrderRequestTypeEnum.REFUND,
       },
     });
     if (refundRequest)
       throw new BadRequestError(
         'Only request refund once. Can not request anymore'
       );
-    const createdRefundRequest = new RefundRequest();
+    const createdRefundRequest = new OrderRequest();
+    createdRefundRequest.type = OrderRequestTypeEnum.REFUND;
     createdRefundRequest.order = order;
     createdRefundRequest.reason = requestRefundRequest.reason;
     createdRefundRequest.mediaFiles = requestRefundRequest.mediaFiles.map(
       (file) => {
-        const fileEntity = new MediaFile();
+        const fileEntity = new File();
         fileEntity.fileUrl = file;
         return fileEntity;
       }
     );
-    const createdRefundRequestEntity = await refundRequestRepository.save(
+    const createdRefundRequestEntity = await orderRequestRepository.save(
       createdRefundRequest
     );
     await addRefundRequestToQueue(createdRefundRequestEntity.id);
   }
   async getCancelRequestById(requestId: string) {
-    const cancelRequest = await cancelOrderRequestRepository.findOne({
+    const cancelRequest = await orderRequestRepository.findOne({
       where: {
         id: requestId,
       },
@@ -441,7 +598,7 @@ class OrderService extends BaseService<Order> {
   }
   async getMyCancelRequests(status: RequestStatusEnum, userId: string) {
     if (!status)
-      return await cancelOrderRequestRepository.find({
+      return await orderRequestRepository.find({
         relations: {
           order: true,
         },
@@ -449,12 +606,13 @@ class OrderService extends BaseService<Order> {
           order: {
             account: { id: userId },
           },
+          type: OrderRequestTypeEnum.CANCEL,
         },
         order: {
           updatedAt: 'DESC',
         },
       });
-    return await cancelOrderRequestRepository.find({
+    return await orderRequestRepository.find({
       relations: {
         order: true,
       },
@@ -462,6 +620,7 @@ class OrderService extends BaseService<Order> {
         order: {
           account: { id: userId },
         },
+        type: OrderRequestTypeEnum.CANCEL,
         status,
       },
       order: {
@@ -501,14 +660,12 @@ class OrderService extends BaseService<Order> {
   }
 
   async getCancelRequestOfBrand(brandId: string, status: RequestStatusEnum) {
-    console.log(status);
-
     const brand = await brandRepository.findOne({
       where: { id: brandId },
     });
     if (!brand) throw new BadRequestError('Brand not found');
 
-    const queryBuilder = cancelOrderRequestRepository
+    const queryBuilder = orderRequestRepository
       .createQueryBuilder('cancelRequest')
       .innerJoinAndSelect('cancelRequest.order', 'order')
       .innerJoinAndSelect('order.orderDetails', 'orderDetails')
@@ -528,7 +685,10 @@ class OrderService extends BaseService<Order> {
         'preOrderProduct'
       )
       .leftJoinAndSelect('preOrderProduct.product', 'preProduct')
-      .where(
+      .where('cancelRequest.type = :type', {
+        type: OrderRequestTypeEnum.CANCEL,
+      })
+      .andWhere(
         '(product.brand_id = :brandId OR discountProduct.brand_id = :brandId OR preProduct.brand_id = :brandId)',
         { brandId }
       )
@@ -551,9 +711,10 @@ class OrderService extends BaseService<Order> {
     await queryRunner.startTransaction();
     try {
       let isApproved = false;
-      const cancelOrderRequest = await cancelOrderRequestRepository.findOne({
+      const cancelOrderRequest = await orderRequestRepository.findOne({
         where: {
           id: requestId,
+          type: OrderRequestTypeEnum.CANCEL,
         },
         relations: {
           order: true,
@@ -565,7 +726,7 @@ class OrderService extends BaseService<Order> {
           throw new BadRequestError('Reason Rejected required when rejected');
         cancelOrderRequest.status = status;
         cancelOrderRequest.reasonRejected = reasonRejected;
-        await queryRunner.manager.save(CancelOrderRequest, cancelOrderRequest);
+        await queryRunner.manager.save(OrderRequest, cancelOrderRequest);
         isApproved = false;
       } else if (status === RequestStatusEnum.APPROVED) {
         const order = await orderRepository.findOne({
@@ -596,10 +757,7 @@ class OrderService extends BaseService<Order> {
           //update status of request
           (async () => {
             cancelOrderRequest.status = RequestStatusEnum.APPROVED;
-            await queryRunner.manager.save(
-              CancelOrderRequest,
-              cancelOrderRequest
-            );
+            await queryRunner.manager.save(OrderRequest, cancelOrderRequest);
           })(),
           //refund voucher
           this.refundVoucherInBothChildAndParentOrder(order, queryRunner),
@@ -713,13 +871,19 @@ class OrderService extends BaseService<Order> {
           `Can not cancel order due to current status ${order.status}`
         );
       if (
-        status == ShippingStatusEnum.REFUNDED &&
+        status == ShippingStatusEnum.BRAND_RECEIVED &&
         order.status != ShippingStatusEnum.RETURNING
       )
         throw new BadRequestError(
-          `Only refund order when current status is RETURNING`
+          `Brand only receive order when current status is RETURNING`
         );
-      if (nextShippingStatusMap[order.status] != status)
+      if (
+        status == ShippingStatusEnum.RETURNING &&
+        [ShippingStatusEnum.COMPLETED, ShippingStatusEnum.DELIVERED].includes(
+          order.status
+        )
+      ) {
+      } else if (nextShippingStatusMap[order.status] != status)
         throw new BadRequestError('Can not update this status');
       //update transaction if order status is WAIT_FOR_CONFIRMATION and payment method is not Cash
       if (
@@ -750,6 +914,17 @@ class OrderService extends BaseService<Order> {
           updateOrderStatusRequest.mediaFiles
         ),
       ]);
+      if (status == ShippingStatusEnum.BRAND_RECEIVED) {
+        await addUpdateRefundedStatusOrderToQueue(orderId);
+      }
+      if (status == ShippingStatusEnum.RETURNING) {
+        const masterConfig = await retrieveMasterConfig();
+        order.expiredReceivedTime = new Date(
+          Date.now() + Number(masterConfig.expiredReceivedTime)
+        );
+        await queryRunner.manager.save(Order, order);
+        await addUpdateBrandReceiveStatusOrderToQueue(order);
+      }
       await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -880,11 +1055,12 @@ class OrderService extends BaseService<Order> {
       if (!order) {
         throw new BadRequestError(`Order not found`);
       }
-      const cancelOrderRequest = await cancelOrderRequestRepository.findOne({
+      const cancelOrderRequest = await orderRequestRepository.findOne({
         where: {
           order: {
             id: order.id,
           },
+          type: OrderRequestTypeEnum.CANCEL,
         },
       });
       if (cancelOrderRequest)
@@ -925,10 +1101,11 @@ class OrderService extends BaseService<Order> {
         ]);
         cancelStatus = 1;
       } else if (order.status == ShippingStatusEnum.PREPARING_ORDER) {
-        const cancelOrderRequest = new CancelOrderRequest();
+        const cancelOrderRequest = new OrderRequest();
+        cancelOrderRequest.type = OrderRequestTypeEnum.CANCEL;
         cancelOrderRequest.reason = reason;
         cancelOrderRequest.order = order;
-        await queryRunner.manager.save(CancelOrderRequest, cancelOrderRequest);
+        await queryRunner.manager.save(OrderRequest, cancelOrderRequest);
         cancelStatus = 0;
       } else
         throw new BadRequestError(
@@ -1028,11 +1205,8 @@ class OrderService extends BaseService<Order> {
     });
   }
 
-  async getMyOrders(
-    search: string,
-    status: ShippingStatusEnum,
-    loginUser: string
-  ) {
+  async getMyOrders(searchOrderRequest: SearchOrderRequest, loginUser: string) {
+    const { search, statusList } = searchOrderRequest;
     const commonConditions = {
       relations: {
         account: true,
@@ -1060,12 +1234,12 @@ class OrderService extends BaseService<Order> {
       },
     };
     // if status is not empty, get my orders by status
-    if (status) {
+    if (statusList && statusList.length > 0) {
       return await repository.find({
         ...commonConditions,
         where: {
           ...commonConditions.where,
-          status: status,
+          status: In(statusList),
         },
       });
     }

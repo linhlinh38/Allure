@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne} from 'typeorm';
+import { Column, Entity, ManyToOne } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Voucher } from './voucher.entity';
 import { GroupProduct } from './groupProduct.entity';
@@ -9,7 +9,7 @@ export class GroupBuyingCriteria extends BaseEntity {
   })
   groupProduct: GroupProduct;
 
-  @ManyToOne(() => Voucher, (voucher) => voucher.criteria, { cascade: true })
+  @ManyToOne(() => Voucher, (voucher) => voucher.criterias, { cascade: true })
   voucher: Voucher;
 
   @Column({ type: 'integer', nullable: false })

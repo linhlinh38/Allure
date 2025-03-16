@@ -3,6 +3,8 @@ import {
   RequestStatusEnum,
   PaymentMethodEnum,
   ShippingStatusEnum,
+  ActionReceivedEnum,
+  OrderRequestTypeEnum,
 } from '../../utils/enum';
 import { Expose } from 'class-transformer';
 
@@ -54,9 +56,17 @@ export const OrderUpdateStatusSchema = z.object({
 export const SearchOrderSchema = z.object({
   body: z.object({
     search: z.string().trim().min(1, 'Search input is required').optional(),
-    status: z.nativeEnum(ShippingStatusEnum).optional(),
+    statusList: z.array(z.nativeEnum(ShippingStatusEnum)).optional(),
   }),
 });
+
+export class SearchOrderRequest {
+  @Expose()
+  search: string;
+
+  @Expose()
+  statusList: ShippingStatusEnum[];
+}
 
 export const UpdateOrderStatusSchema = z.object({
   body: z.object({
@@ -106,6 +116,27 @@ export const RequestStatusSchema = z.object({
     reasonRejected: z.string().optional(),
   }),
 });
+
+export const TakeReceivedActionSchema = z.object({
+  body: z.object({
+    action: z.nativeEnum(ActionReceivedEnum),
+  }),
+});
+
+export const GetMyRequestsSchema = z.object({
+  body: z.object({
+    statusList: z.array(z.nativeEnum(RequestStatusEnum)).optional(),
+    types: z.array(z.nativeEnum(OrderRequestTypeEnum)).optional(),
+  }),
+});
+
+export class GetMyRequestsRequest {
+  @Expose()
+  types: OrderRequestTypeEnum[];
+
+  @Expose()
+  statusList: RequestStatusEnum[];
+}
 
 export class MakeDicisionRefundRequest {
   @Expose()

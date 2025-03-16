@@ -4,7 +4,13 @@ import { AppDataSource } from '../dataSource';
 import { BadRequestError } from '../errors/error';
 import { BaseService } from './base.service';
 import { groupBuyingRepository } from '../repositories/groupBuying.repository';
-import { OrderEnum, ShippingStatusEnum, StatusEnum } from '../utils/enum';
+import {
+  OrderEnum,
+  ShippingStatusEnum,
+  StatusEnum,
+  VoucherApplyTypeEnum,
+  VoucherVisibilityEnum,
+} from '../utils/enum';
 import { GroupBuyingJoinEventRequest } from '../dtos/request/groupBuying.request';
 import { GroupBuying } from '../entities/groupBuying.entity';
 import { accountRepository } from '../repositories/account.repository';
@@ -22,6 +28,9 @@ import { Transaction } from '../entities/transaction.entity';
 import { transactionService } from './transaction.service';
 import { addGroupBuyingToQueue } from '../utils/queue/endGrBuyingQueue';
 import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
+import { Voucher } from '../entities/voucher.entity';
+import { Product } from '../entities/product.entity';
+import { Brand } from '../entities/brand.entity';
 
 const repository = AppDataSource.getRepository(GroupBuying);
 class GroupBuyingService extends BaseService<GroupBuying> {
@@ -581,6 +590,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
           groupProduct: {
             brand: true,
             criterias: { voucher: true },
+            products: true,
           },
         },
       });
@@ -654,6 +664,12 @@ class GroupBuyingService extends BaseService<GroupBuying> {
           const mostMatchingCriteria = criteriasDescThreshold.find(
             (criteria) => criteria.threshold <= countAffordableOrder
           );
+          const voucherCopy = await this.createCopyOfVoucher(
+            mostMatchingCriteria.voucher,
+            groupBuying.groupProduct.products,
+            groupBuying.groupProduct.brand,
+            queryRunner
+          );
 
           for (const order of orders) {
             const wallet = await walletRepository.findOne({
@@ -662,7 +678,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
               },
             });
             //apply voucher
-            order.voucher = mostMatchingCriteria.voucher;
+            order.voucher = voucherCopy;
             voucherService.applyShopVoucher(order);
             voucherService.calculateOrderPrice(order.parent);
             //check if order is affordable or not
@@ -700,6 +716,25 @@ class GroupBuyingService extends BaseService<GroupBuying> {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  async createCopyOfVoucher(
+    voucher: Voucher,
+    products: Product[],
+    brand: Brand,
+    queryRunner: QueryRunner
+  ) {
+    const { id, ...copy } = voucher;
+    copy.name = id + ' - ' + voucher.name;
+    copy.code = id + ' - ' + voucher.code;
+    copy.applyProducts = products;
+    copy.brand = brand;
+    copy.applyType = VoucherApplyTypeEnum.SPECIFIC;
+    copy.visibility = VoucherVisibilityEnum.GROUP;
+    copy.applyProducts = products;
+    copy.startTime = new Date();
+    copy.endTime = new Date();
+    return await queryRunner.manager.save(Voucher, copy);
   }
 
   private async cancelOneOrderInGroupbuying(

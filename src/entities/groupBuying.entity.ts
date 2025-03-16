@@ -14,7 +14,7 @@ import { CartItem } from "./cartItem.entity";
 
 @Entity('group_buyings')
 export class GroupBuying extends BaseEntity {
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamp with time zone' })
   endTime: Date;
 
   @Column({
