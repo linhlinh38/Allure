@@ -325,6 +325,8 @@ class ProductClassificationService extends BaseService<ProductClassification> {
           (classification.productDiscount.product.status ===
             ProductEnum.BANNED ||
             classification.productDiscount.product.status ===
+              ProductEnum.UN_PUBLISHED ||
+            classification.productDiscount.product.status ===
               ProductEnum.INACTIVE)
         ) {
           throw new BadRequestError(

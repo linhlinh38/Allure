@@ -25,10 +25,10 @@ export class Booking extends BaseEntity {
   @Column({ type: "double precision", default: 0 })
   totalPrice: number;
 
-  @Column({ type: "timestamp", name: "start_time" })
+  @Column({ type: "timestamp with time zone", name: "start_time" })
   startTime: Date;
 
-  @Column({ type: "timestamp", name: "end_time" })
+  @Column({ type: "timestamp with time zone", name: "end_time" })
   endTime: Date;
 
   @Column({ type: "double precision", default: 0, name: "voucher_discount" })
@@ -83,9 +83,9 @@ export class Booking extends BaseEntity {
   @JoinColumn({ name: "brand_id" })
   brand: Brand;
 
-  @ManyToOne(() => Account, { nullable: true })
-  @JoinColumn({ name: "assignee_to_interview_id" })
-  assigneeToInterview: Account;
+  // @ManyToOne(() => Account, { nullable: true })
+  // @JoinColumn({ name: 'assignee_to_interview_id' })
+  // assigneeToInterview: Account;
 
   @Column({ type: "varchar", length: 255, nullable: true })
   resultNote: string;

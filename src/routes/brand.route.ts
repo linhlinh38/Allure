@@ -32,9 +32,7 @@ brandRoute.post(
   validate(BrandCreateSchema),
   BrandController.requestCreateBrand
 );
-brandRoute.post(
-  '/toggle-follow/:id',
-  BrandController.toggleFollowBrand
-);
+brandRoute.post('/toggle-follow/:id', BrandController.toggleFollowBrand);
 brandRoute.get('/get-followed-brands', BrandController.getFollowedBrands);
+brandRoute.post('/assign-interview/:brandId', BrandController.assignInterview);
 export default brandRoute;

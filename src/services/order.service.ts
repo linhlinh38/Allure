@@ -20,6 +20,8 @@ import {
   MakeDicisionRejectRefundRequest,
   ComplaintRequestRequest,
   MakeDicisionComplaintRequest as MakeDicisionComplaintRequest,
+  SearchOrderRequest,
+  GetMyRequestsRequest,
 } from '../dtos/request/order.request';
 import { voucherRepository } from '../repositories/voucher.repository';
 import { productClassificationRepository } from '../repositories/productClassification.repository';
@@ -67,6 +69,38 @@ import { addUpdateBrandReceiveStatusOrderToQueue } from '../utils/queue/updateBr
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
+  async getMyRequests(
+    loginUser: string,
+    getMyRequestsRequest: GetMyRequestsRequest
+  ) {
+    const { types, statusList } = getMyRequestsRequest;
+    const queryBuilder = orderRequestRepository
+      .createQueryBuilder('orderRequest')
+      .leftJoinAndSelect('orderRequest.order', 'order')
+      .leftJoinAndSelect('orderRequest.mediaFiles', 'mediaFiles')
+      .leftJoinAndSelect(
+        'orderRequest.rejectedRefundRequest',
+        'rejectedRefundRequest'
+      )
+      .leftJoinAndSelect(
+        'rejectedRefundRequest.mediaFiles',
+        'rejectedRefundRequestMediaFiles'
+      )
+      .where('order.account.id = :loginUser', { loginUser })
+      .orderBy('orderRequest.createdAt', 'DESC');
+    this.queryBuilderForOrder(queryBuilder);
+    if (types && types.length > 0) {
+      queryBuilder.andWhere('orderRequest.type IN (:...types)', { types });
+    }
+    if (statusList && statusList.length > 0) {
+      queryBuilder.andWhere('orderRequest.status IN (:...statusList)', {
+        statusList,
+      });
+    }
+    const requests = await queryBuilder.getMany();
+    return requests;
+  }
+
   async takeReceivedAction(action: ActionReceivedEnum, orderId: string) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
@@ -106,7 +140,7 @@ class OrderService extends BaseService<Order> {
       } else {
         const masterConfig = await retrieveMasterConfig();
         order.expiredReceivedTime = new Date(
-          Date.now() + masterConfig.expiredReceivedTime
+          Date.now() + Number(masterConfig.expiredReceivedTime)
         );
         await queryRunner.manager.save(Order, order);
         await addUpdateBrandReceiveStatusOrderToQueue(order);
@@ -182,7 +216,8 @@ class OrderService extends BaseService<Order> {
         if (!reasonRejected)
           throw new BadRequestError('Reason Rejected required when rejected');
         complaintRequest.status = status;
-        complaintRequest.reasonRejected = makeDicisionComplaintRequest.reasonRejected;
+        complaintRequest.reasonRejected =
+          makeDicisionComplaintRequest.reasonRejected;
 
         await queryRunner.manager.save(OrderRequest, complaintRequest);
 
@@ -885,7 +920,7 @@ class OrderService extends BaseService<Order> {
       if (status == ShippingStatusEnum.RETURNING) {
         const masterConfig = await retrieveMasterConfig();
         order.expiredReceivedTime = new Date(
-          Date.now() + masterConfig.expiredReceivedTime
+          Date.now() + Number(masterConfig.expiredReceivedTime)
         );
         await queryRunner.manager.save(Order, order);
         await addUpdateBrandReceiveStatusOrderToQueue(order);
@@ -1170,11 +1205,8 @@ class OrderService extends BaseService<Order> {
     });
   }
 
-  async getMyOrders(
-    search: string,
-    status: ShippingStatusEnum,
-    loginUser: string
-  ) {
+  async getMyOrders(searchOrderRequest: SearchOrderRequest, loginUser: string) {
+    const { search, statusList } = searchOrderRequest;
     const commonConditions = {
       relations: {
         account: true,
@@ -1202,12 +1234,12 @@ class OrderService extends BaseService<Order> {
       },
     };
     // if status is not empty, get my orders by status
-    if (status) {
+    if (statusList && statusList.length > 0) {
       return await repository.find({
         ...commonConditions,
         where: {
           ...commonConditions.where,
-          status: status,
+          status: In(statusList),
         },
       });
     }

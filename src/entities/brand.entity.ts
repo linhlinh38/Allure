@@ -1,4 +1,11 @@
-import { Column, Entity, ManyToMany, OneToMany } from "typeorm";
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToMany,
+  ManyToOne,
+  OneToMany,
+} from "typeorm";
 import { BaseEntity } from "./base.entity";
 import { BrandStatusEnum } from "../utils/enum";
 import { Account } from "./account.entity";
@@ -106,4 +113,8 @@ export class Brand extends BaseEntity {
 
   @OneToMany(() => Booking, (booking) => booking.brand)
   bookings: Booking[];
+
+  @ManyToOne(() => Account, { nullable: true })
+  @JoinColumn({ name: "reviewer_id" })
+  reviewer: Account;
 }

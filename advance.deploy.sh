@@ -104,9 +104,5 @@ if ! docker ps | grep -q allure_app; then
   rollback
 fi
 
-# Check application health
-log "Checking application health..."
-# Add your health check here, for example:
-# curl -f http://localhost:3000/health || (log "Health check failed" && rollback)
 
 log "Application update completed successfully!"

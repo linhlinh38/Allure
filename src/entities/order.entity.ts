@@ -116,7 +116,11 @@ export class Order extends BaseEntity {
   @OneToMany(() => StatusTracking, (statusTracking) => statusTracking.order)
   statusTrackings: StatusTracking[];
 
-  @Column({ type: 'timestamp', name: 'expired_received_time', nullable: true })
+  @Column({
+    type: 'timestamp with time zone',
+    name: 'expired_received_time',
+    nullable: true,
+  })
   expiredReceivedTime: Date;
 
   // @OneToOne(

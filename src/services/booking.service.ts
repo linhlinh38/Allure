@@ -1,10 +1,5 @@
 import { In } from 'typeorm';
-import {
-  Between,
-  LessThanOrEqual,
-  MoreThanOrEqual,
-  SelectQueryBuilder,
-} from 'typeorm';
+import { Between, SelectQueryBuilder } from 'typeorm';
 import { AppDataSource } from '../dataSource';
 import { BookingRequest } from '../dtos/request/booking.request';
 import { Account } from '../entities/account.entity';
@@ -45,7 +40,6 @@ class BookingService extends BaseService<Booking> {
         id,
       },
       relations: {
-        assigneeToInterview: true,
         account: true,
         brand: true,
         slot: true,
@@ -58,15 +52,14 @@ class BookingService extends BaseService<Booking> {
     const booking = await bookingRepository.findOne({
       where: { id },
       relations: {
-        assigneeToInterview: true,
+        brand: {
+          reviewer: true,
+        },
       },
     });
     if (!booking) throw new BadRequestError(`Booking not found`);
-    if (
-      !booking.assigneeToInterview ||
-      booking.assigneeToInterview.id != loginUser
-    )
-      throw new BadRequestError('Only assignee can note result');
+    if (!booking.brand.reviewer || booking.brand.reviewer.id != loginUser)
+      throw new BadRequestError('Only reviewer can note result');
     booking.resultNote = resultNote;
     await repository.save(booking);
   }
@@ -78,30 +71,31 @@ class BookingService extends BaseService<Booking> {
       .leftJoinAndSelect('consultantService.images', 'consultantServiceImages');
   }
 
-  async assignForInterview(id: string, assigneeId: string) {
-    const booking = await bookingRepository.findOne({
-      where: { id },
-      relations: {
-        assigneeToInterview: true,
-      },
-    });
-    if (!booking) throw new BadRequestError('Booking not found');
-    if (booking.status == BookingStatusEnum.COMPLETED)
-      throw new BadRequestError(`Booking is completed. Can not assign`);
-    if (booking.assigneeToInterview?.id == assigneeId) return;
-    const assignee = await accountRepository.findOneBy({ id: assigneeId });
-    if (!assignee) throw new BadRequestError(`Assignee not found`);
-    const existedBookingThatTime = await bookingRepository.findOne({
-      where: {
-        startTime: LessThanOrEqual(booking.endTime),
-        endTime: MoreThanOrEqual(booking.startTime),
-        assigneeToInterview: { id: assigneeId },
-      },
-    });
-    if (existedBookingThatTime) throw new BadRequestError('Overlap time slot');
-    booking.assigneeToInterview = { id: assigneeId } as Account;
-    await booking.save();
-  }
+  // async assignForInterview(id: string, assigneeId: string) {
+  //   const booking = await bookingRepository.findOne({
+  //     where: { id },
+  //     relations: {
+  //       assigneeToInterview: true,
+  //     },
+  //   });
+  //   if (!booking) throw new BadRequestError('Booking not found');
+  //   if (booking.status == BookingStatusEnum.COMPLETED)
+  //     throw new BadRequestError(`Booking is completed. Can not assign`);
+  //   if (booking.assigneeToInterview?.id == assigneeId) return;
+  //   const assignee = await accountRepository.findOneBy({ id: assigneeId });
+  //   if (!assignee) throw new BadRequestError(`Assignee not found`);
+  //   const existedBookingThatTime = await bookingRepository.findOne({
+  //     where: {
+  //       startTime: LessThanOrEqual(booking.endTime),
+  //       endTime: MoreThanOrEqual(booking.startTime),
+  //       assigneeToInterview: { id: assigneeId },
+  //     },
+  //   });
+  //   if (existedBookingThatTime) throw new BadRequestError('Overlap time slot');
+  //   booking.assigneeToInterview = { id: assigneeId } as Account;
+  //   await booking.save();
+  // }
+
   async getMyBookings(loginUser: string) {
     const account = await accountRepository.findOne({
       where: {
@@ -121,7 +115,6 @@ class BookingService extends BaseService<Booking> {
           brand: true,
           account: true,
           slot: true,
-          assigneeToInterview: true,
         },
         order: {
           createdAt: 'DESC',
@@ -131,13 +124,12 @@ class BookingService extends BaseService<Booking> {
       return await bookingRepository.find({
         where: {
           // type: BookingTypeEnum.INTERVIEW,
-          assigneeToInterview: { id: loginUser },
+          brand: { reviewer: { id: loginUser } },
         },
         relations: {
           brand: true,
           account: true,
           slot: true,
-          assigneeToInterview: true,
         },
         order: {
           createdAt: 'DESC',
@@ -150,10 +142,9 @@ class BookingService extends BaseService<Booking> {
           account: { id: loginUser },
         },
         relations: {
-          brand: true,
+          brand: { reviewer: true },
           account: true,
           slot: true,
-          assigneeToInterview: true,
         },
         order: {
           createdAt: 'DESC',
@@ -162,13 +153,25 @@ class BookingService extends BaseService<Booking> {
     }
     return [];
   }
-  async getAvailableSlotsForInterview(startDate: Date, endDate: Date) {
+  async getMySlots(startDate: Date, endDate: Date, loginUser: string) {
     startDate = new Date(startDate);
     endDate = new Date(endDate);
     startDate.setHours(0, 0, 0, 0);
     endDate.setHours(23, 59, 59, 999);
+    const account = await accountRepository.findOne({
+      where: {
+        id: loginUser,
+      },
+      relations: {
+        role: true,
+        workingSlots: true,
+      },
+    });
+    if (![RoleEnum.CONSULTANT, RoleEnum.OPERATOR].includes(account.role.role)) {
+      throw new BadRequestError('Only apply for consultant or operator');
+    }
 
-    const slots = await slotRepository.find({});
+    const slots = account.workingSlots;
     const bookings = await bookingRepository.find({
       where: {
         startTime: Between(startDate, endDate),
@@ -177,17 +180,20 @@ class BookingService extends BaseService<Booking> {
           BookingStatusEnum.WAIT_FOR_CONFIRMATION,
           BookingStatusEnum.BOOKING_CONFIRMED,
           BookingStatusEnum.COMPLETED,
+          BookingStatusEnum.SERVICE_BOOKING_FORM_SUBMITED,
+          BookingStatusEnum.SENDED_RESULT_SHEET,
         ]),
       },
       relations: {
         slot: true,
       },
     });
-    const availableSlots = slots.filter((slot) => {
-      const bookedSlot = bookings.find((booking) => booking.slot.id == slot.id);
-      return !bookedSlot;
+    return slots.map((slot) => {
+      const isAvailable = !bookings.find(
+        (booking) => booking.slot.id == slot.id
+      );
+      return { ...slot, isAvailable };
     });
-    return availableSlots;
   }
 
   async updateStatus(id: string, status: BookingStatusEnum) {
