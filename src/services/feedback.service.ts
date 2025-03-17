@@ -191,7 +191,15 @@ class FeedbackService extends BaseService<Feedback> {
       case FeedbackFilterEnum.ALL:
         break;
       case FeedbackFilterEnum.IMAGE_VIDEO:
-        query.andWhere('mediaFiles.id IS NOT NULL');
+        query.andWhere(
+          (qb) =>
+            `EXISTS (${qb
+              .subQuery()
+              .select('1')
+              .from('media_files', 'fm')
+              .where('fm.feedback_id = feedback.id')
+              .getQuery()})`
+        );
         break;
       case FeedbackFilterEnum.RATING:
         if (!feedbackFilterRequest.value)
