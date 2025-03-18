@@ -20,7 +20,6 @@ import { ProductImage } from '../entities/productImage.entity';
 import { PreOrderProduct } from '../entities/preOrderProduct.entity';
 import { ProductDiscount } from '../entities/productDiscount.entity';
 import { File } from '../entities/file.entity';
-import { ParsedQs } from 'qs';
 import { Paging } from '../dtos/other/paging.dto';
 import { orderDetailRepository } from '../repositories/orderDetail.repository';
 import { RecommendProductsRequest } from '../dtos/request/product.request';
@@ -207,55 +206,6 @@ class ProductService extends BaseService<Product> {
     return products;
   }
   async getById(id: string) {
-    const rawSalesQuery = `
-      SELECT 
-        COALESCE(SUM(sales.sales_last_30_days), 0) AS sales_last_30_days
-      FROM product_classifications pc
-      JOIN products p ON pc.product_id = p.id
-      LEFT JOIN (
-        -- Lượt bán từ productClassification gốc
-        SELECT 
-          pc1.product_id, 
-          SUM(CASE WHEN od.created_at >= NOW() - INTERVAL '30 days' THEN od.quantity ELSE 0 END) AS sales_last_30_days
-        FROM order_details od
-        JOIN orders o ON od.order_id = o.id
-        JOIN product_classifications pc1 ON od.product_classification_id = pc1.id
-        WHERE o.status NOT IN ('${ShippingStatusEnum.CANCELLED}', '${ShippingStatusEnum.TO_PAY}', '${ShippingStatusEnum.JOIN_GROUP_BUYING}')
-        GROUP BY pc1.product_id
-
-        UNION ALL
-
-        -- Lượt bán từ productDiscount
-        SELECT 
-          pd.product_id, 
-          SUM(CASE WHEN od.created_at >= NOW() - INTERVAL '30 days' THEN od.quantity ELSE 0 END) AS sales_last_30_days
-        FROM order_details od
-        JOIN orders o ON od.order_id = o.id
-        JOIN product_classifications pc2 ON od.product_classification_id = pc2.id
-        JOIN product_discounts pd ON pc2.product_discount_id = pd.id
-        WHERE o.status NOT IN ('${ShippingStatusEnum.CANCELLED}', '${ShippingStatusEnum.TO_PAY}', '${ShippingStatusEnum.JOIN_GROUP_BUYING}')
-        GROUP BY pd.product_id
-
-        UNION ALL
-
-        -- Lượt bán từ preOrderProduct
-        SELECT 
-          pp.product_id, 
-          SUM(CASE WHEN od.created_at >= NOW() - INTERVAL '30 days' THEN od.quantity ELSE 0 END) AS sales_last_30_days
-        FROM order_details od
-        JOIN orders o ON od.order_id = o.id
-        JOIN product_classifications pc3 ON od.product_classification_id = pc3.id
-        JOIN pre_order_products pp ON pc3.pre_order_product_id = pp.id
-        WHERE o.status NOT IN ('${ShippingStatusEnum.CANCELLED}', '${ShippingStatusEnum.TO_PAY}', '${ShippingStatusEnum.JOIN_GROUP_BUYING}')
-        GROUP BY pp.product_id
-      ) AS sales ON pc.product_id = sales.product_id
-      WHERE pc.product_id = '${id}'
-      GROUP BY pc.product_id;
-    `;
-    const salesLast30Days = (
-      await orderDetailRepository.query(rawSalesQuery)
-    )[0].sales_last_30_days;
-
     const product = await repository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.category', 'category')
@@ -314,6 +264,55 @@ class ProductService extends BaseService<Product> {
       .where('product.id = :id', { id })
       .getOne();
     if (!product) throw new BadRequestError('Product not found');
+
+    const rawSalesQuery = `
+      SELECT 
+        COALESCE(SUM(sales.sales_last_30_days), 0) AS sales_last_30_days
+      FROM (
+        -- Lượt bán từ productClassification gốc
+        SELECT 
+          pc1.product_id, 
+          SUM(CASE WHEN od.created_at >= NOW() - INTERVAL '30 days' THEN od.quantity ELSE 0 END) AS sales_last_30_days
+        FROM order_details od
+        JOIN orders o ON od.order_id = o.id
+        JOIN product_classifications pc1 ON od.product_classification_id = pc1.id
+        WHERE o.status NOT IN ('${ShippingStatusEnum.CANCELLED}', '${ShippingStatusEnum.TO_PAY}', '${ShippingStatusEnum.JOIN_GROUP_BUYING}')
+        GROUP BY pc1.product_id
+
+        UNION ALL
+
+        -- Lượt bán từ productDiscount
+        SELECT 
+          pd.product_id, 
+          SUM(CASE WHEN od.created_at >= NOW() - INTERVAL '30 days' THEN od.quantity ELSE 0 END) AS sales_last_30_days
+        FROM order_details od
+        JOIN orders o ON od.order_id = o.id
+        JOIN product_classifications pc2 ON od.product_classification_id = pc2.id
+        JOIN product_discounts pd ON pc2.product_discount_id = pd.id
+        WHERE o.status NOT IN ('${ShippingStatusEnum.CANCELLED}', '${ShippingStatusEnum.TO_PAY}', '${ShippingStatusEnum.JOIN_GROUP_BUYING}')
+        GROUP BY pd.product_id
+
+        UNION ALL
+
+        -- Lượt bán từ preOrderProduct
+        SELECT 
+          pp.product_id, 
+          SUM(CASE WHEN od.created_at >= NOW() - INTERVAL '30 days' THEN od.quantity ELSE 0 END) AS sales_last_30_days
+        FROM order_details od
+        JOIN orders o ON od.order_id = o.id
+        JOIN product_classifications pc3 ON od.product_classification_id = pc3.id
+        JOIN pre_order_products pp ON pc3.pre_order_product_id = pp.id
+        WHERE o.status NOT IN ('${ShippingStatusEnum.CANCELLED}', '${ShippingStatusEnum.TO_PAY}', '${ShippingStatusEnum.JOIN_GROUP_BUYING}')
+        GROUP BY pp.product_id
+      ) AS sales
+      WHERE sales.product_id = '${id}'
+      GROUP BY sales.product_id;
+    `;
+    const salesLast30Days = (
+      await orderDetailRepository.query(rawSalesQuery)
+    )[0].sales_last_30_days;
+
+    
     return { ...product, salesLast30Days };
   }
 
