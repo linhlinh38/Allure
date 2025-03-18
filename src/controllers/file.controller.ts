@@ -30,12 +30,7 @@ export default class FileController {
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      const expectedHeaders = [
-        "section",
-        "orderIndex",
-        "mandatory",
-        "description",
-      ];
+      const expectedHeaders = ["section", "mandatory", "description"];
 
       const files = req.files as Express.Multer.File[];
       const results = [];
@@ -60,13 +55,7 @@ export default class FileController {
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      const expectedHeaders = [
-        "question",
-        "orderIndex",
-        "mandatory",
-        "answers",
-        "type",
-      ];
+      const expectedHeaders = ["question", "mandatory", "answers", "type"];
 
       const files = req.files as Express.Multer.File[];
       const results = [];

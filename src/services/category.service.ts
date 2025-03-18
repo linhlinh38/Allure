@@ -51,9 +51,9 @@ class CategoryService extends BaseService<Category> {
   }
   async beforeCreate(body: Category) {
     const checkCateName = await this.findBy(body.name, "name");
-    const masterConfig = await masterConfigService.findById(
-      "054dbb3b-9c39-47c2-bbc7-04839cacb7f2"
-    );
+    const [masterConfig] = await masterConfigService.findAll();
+    console.log(masterConfig);
+
     if (checkCateName.length > 0) {
       throw new BadRequestError("Category already Existed");
     }
@@ -100,9 +100,7 @@ class CategoryService extends BaseService<Category> {
     return depth;
   }
   async update(id: string, updatedData: Partial<Category>): Promise<Category> {
-    const masterConfig = await masterConfigService.findById(
-      "054dbb3b-9c39-47c2-bbc7-04839cacb7f2"
-    );
+    const [masterConfig] = await masterConfigService.findAll();
     const queryRunner = AppDataSource.createQueryRunner();
 
     await queryRunner.connect();

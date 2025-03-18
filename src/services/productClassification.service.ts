@@ -306,13 +306,26 @@ class ProductClassificationService extends BaseService<ProductClassification> {
           }
         );
 
+        //check classification valid
         if (!classification) {
           throw new BadRequestError("Classification invalid!");
+        }
+        //check product status before update
+        if (
+          classification.product &&
+          (classification.product.status === ProductEnum.BANNED ||
+            classification.product.status === ProductEnum.INACTIVE)
+        ) {
+          throw new BadRequestError(
+            `The Product is ${classification.product.status}!`
+          );
         }
         if (
           classification.productDiscount &&
           (classification.productDiscount.product.status ===
             ProductEnum.BANNED ||
+            classification.productDiscount.product.status ===
+              ProductEnum.UN_PUBLISHED ||
             classification.productDiscount.product.status ===
               ProductEnum.INACTIVE)
         ) {
@@ -336,39 +349,47 @@ class ProductClassificationService extends BaseService<ProductClassification> {
             "Classification quantity must be greater than 0!"
           );
         }
-        const originalClassification = await queryRunner.manager.findOne(
-          ProductClassification,
-          {
-            where: {
-              product: { id: classification.productDiscount.product.id },
-              title: classification.title,
-            },
+
+        //update classification quantity of product discount
+        if (classification.productDiscount) {
+          const originalClassification = await queryRunner.manager.findOne(
+            ProductClassification,
+            {
+              where: {
+                product: { id: classification.productDiscount.product.id },
+                title: classification.title,
+              },
+            }
+          );
+          if (
+            originalClassification.quantity -
+              (update.quantity - classification.quantity) <
+            0
+          ) {
+            throw new BadRequestError(
+              "Invalid classification quantity: Quantity should be smaller than the current stock"
+            );
           }
-        );
-        if (
-          originalClassification.quantity -
-            (update.quantity - classification.quantity) <
-          0
-        ) {
-          throw new BadRequestError(
-            "Invalid classification quantity: Quantity should be smaller than the current stock"
+          await queryRunner.manager.update(
+            ProductClassification,
+            { id: originalClassification.id },
+            {
+              quantity:
+                originalClassification.quantity -
+                (update.quantity - classification.quantity),
+            }
           );
         }
-        await queryRunner.manager.update(
-          ProductClassification,
-          { id: originalClassification.id },
-          {
-            quantity:
-              originalClassification.quantity -
-              (update.quantity - classification.quantity),
-          }
-        );
+
+        //update classification quantity of product, preOrderProduct, product discount
         const { classificationId, quantity } = update;
         await queryRunner.manager.update(
           ProductClassification,
           { id: classificationId },
           { quantity }
         );
+
+        //update status of product, preOrderProduct, productDiscount
         const currentDate = new Date();
         if (
           classification.product &&
