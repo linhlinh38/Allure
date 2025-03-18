@@ -56,7 +56,7 @@ export class Booking extends BaseEntity {
   })
   status: BookingStatusEnum;
 
-  @ManyToOne(() => Voucher, (voucher) => voucher.orders, {
+  @ManyToOne(() => Voucher, (voucher) => voucher.bookings, {
     nullable: true,
   })
   @JoinColumn({ name: 'voucher_id' })
