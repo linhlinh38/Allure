@@ -41,7 +41,7 @@ export default class ProductController {
   static async getById(req: Request, res: Response, next: NextFunction) {
     try {
       const product = await productService.getById(req.params.id);
-      if (!product) throw new NotFoundError('product not found');
+      
       return createNormalResponse(res, 'Get product success', product);
     } catch (err) {
       next(err);
