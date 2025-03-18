@@ -127,7 +127,8 @@ class VoucherService extends BaseService<Voucher> {
       const quantity = quantityMap.get(classification.id) || 0;
       let price = classification.price || 0;
       if (classification.productDiscount) {
-        price *= classification.productDiscount.discount;
+        price =
+          classification.price * (1 - classification.productDiscount.discount);
       }
       return total + price * quantity;
     }, 0);
