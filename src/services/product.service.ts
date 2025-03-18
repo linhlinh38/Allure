@@ -23,7 +23,6 @@ import { File } from '../entities/file.entity';
 import { Paging } from '../dtos/other/paging.dto';
 import { orderDetailRepository } from '../repositories/orderDetail.repository';
 import { RecommendProductsRequest } from '../dtos/request/product.request';
-import { productRepository } from '../repositories/product.repository';
 import { productClassificationService } from './productClassification.service';
 
 const repository = AppDataSource.getRepository(Product);
@@ -48,7 +47,6 @@ class ProductService extends BaseService<Product> {
       ? `AND (p.name ILIKE '%${recommendProductsRequest.search}%' OR p.sku ILIKE '%${recommendProductsRequest.search}%' OR p.description ILIKE '%${recommendProductsRequest.search}%')`
       : '';
     let orderBy = 'total_sales ASC';
-
     if (recommendProductsRequest.tag) {
       switch (recommendProductsRequest.tag) {
         case ProductTagEnum.BEST_SELLER:
@@ -145,16 +143,63 @@ class ProductService extends BaseService<Product> {
     const statistics = await orderDetailRepository.query(rawPagedQuery);
     const productIds = statistics.map((product) => product.product_id);
 
-    const products = await productRepository.find({
-      where: {
-        id: In(productIds),
-      },
-      relations: {
-        images: true,
-        category: { parentCategory: true },
-        brand: true,
-      },
-    });
+    const products = await repository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('category.parentCategory', 'parentCategory')
+      .leftJoinAndSelect('product.brand', 'brand')
+      .leftJoinAndSelect('product.certificates', 'certificates')
+      .leftJoinAndSelect(
+        'product.productClassifications',
+        'productClassifications',
+        'productClassifications.status = :classificationStatus',
+        { classificationStatus: StatusEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
+        'productClassifications.images',
+        'classificationImages',
+        'classificationImages.status = :imageStatus',
+        { imageStatus: StatusEnum.ACTIVE }
+      )
+      .leftJoinAndSelect('product.images', 'images')
+      .leftJoinAndSelect(
+        'product.productDiscounts',
+        'productDiscounts',
+        'productDiscounts.status = :discountActiveStatus',
+        { discountActiveStatus: ProductDiscountEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
+        'productDiscounts.productClassifications',
+        'productDiscount_productClassifications',
+        'productDiscount_productClassifications.status = :productDiscount_productClassifications',
+        { productDiscount_productClassifications: ProductDiscountEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
+        'productDiscount_productClassifications.images',
+        'productDiscount_productClassifications_images',
+        'productDiscount_productClassifications_images.status = :productDiscount_productClassifications_images',
+        { productDiscount_productClassifications_images: StatusEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
+        'product.preOrderProducts',
+        'preOrderProducts',
+        'preOrderProducts.status = :preOrderActiveStatus',
+        { preOrderActiveStatus: PreOrderProductEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
+        'preOrderProducts.productClassifications',
+        'preOrderProduct_productClassifications',
+        'preOrderProduct_productClassifications.status = :preOrderProduct_productClassifications',
+        { preOrderProduct_productClassifications: PreOrderProductEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
+        'preOrderProduct_productClassifications.images',
+        'preOrderProduct_productClassifications_images',
+        'preOrderProduct_productClassifications_images.status = :preOrderProduct_productClassifications_images',
+        { preOrderProduct_productClassifications_images: StatusEnum.ACTIVE }
+      )
+      .where('product.id IN (:...ids)', { ids: productIds })
+      .getMany();
     const productMap = new Map(products.map((item) => [item.id, item]));
     return {
       total,
@@ -177,33 +222,30 @@ class ProductService extends BaseService<Product> {
   }
 
   async getAll() {
-    const products = await this.repository
-      .createQueryBuilder('product')
-      .leftJoinAndSelect('product.category', 'category')
-      .leftJoinAndSelect('category.parentCategory', 'parentCategory')
-      .leftJoinAndSelect('product.brand', 'brand')
-      .leftJoinAndSelect(
-        'product.productClassifications',
-        'productClassifications',
-        'productClassifications.status = :classificationStatus',
-        { classificationStatus: StatusEnum.ACTIVE }
-      )
-      .leftJoinAndSelect(
-        'productClassifications.images',
-        'classificationImages',
-        'classificationImages.status = :imageStatus',
-        { imageStatus: StatusEnum.ACTIVE }
-      )
-      .leftJoinAndSelect(
-        'product.images',
-        'images',
-        'images.status = :productImageStatus',
-        { productImageStatus: StatusEnum.ACTIVE }
-      )
-      .getMany();
+    const products = await this.repository.find({
+      relations: {
+        category: {
+          parentCategory: true,
+        },
+        brand: true,
+        productClassifications: {
+          images: true,
+        },
+        images: true,
+      },
+      where: {
+        productClassifications: {
+          status: StatusEnum.ACTIVE,
+        },
+        images: {
+          status: StatusEnum.ACTIVE,
+        },
+      },
+    });
 
     return products;
   }
+
   async getById(id: string) {
     const product = await repository
       .createQueryBuilder('product')
@@ -311,7 +353,6 @@ class ProductService extends BaseService<Product> {
       await orderDetailRepository.query(rawSalesQuery)
     )[0].sales_last_30_days;
 
-    
     return { ...product, salesLast30Days };
   }
 
@@ -415,7 +456,7 @@ class ProductService extends BaseService<Product> {
     }
 
     if (filter.statuses && filter.statuses.length > 0) {
-      queryBuilder.andWhere("product.status IN (:...statuses)", {
+      queryBuilder.andWhere('product.status IN (:...statuses)', {
         statuses: filter.statuses,
       });
     }
