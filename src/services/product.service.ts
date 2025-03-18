@@ -1,8 +1,8 @@
-import { ILike, In, Not } from "typeorm";
-import { AppDataSource } from "../dataSource";
-import { Product } from "../entities/product.entity";
-import { ProductClassification } from "../entities/productClassification.entity";
-import { BadRequestError } from "../errors/error";
+import { ILike, In, Not } from 'typeorm';
+import { AppDataSource } from '../dataSource';
+import { Product } from '../entities/product.entity';
+import { ProductClassification } from '../entities/productClassification.entity';
+import { BadRequestError } from '../errors/error';
 import {
   BrandStatusEnum,
   FileEnum,
@@ -12,20 +12,20 @@ import {
   ProductTagEnum,
   ShippingStatusEnum,
   StatusEnum,
-} from "../utils/enum";
-import { BaseService } from "./base.service";
-import { brandService } from "./brand.service";
-import { categoryService } from "./category.service";
-import { ProductImage } from "../entities/productImage.entity";
-import { PreOrderProduct } from "../entities/preOrderProduct.entity";
-import { ProductDiscount } from "../entities/productDiscount.entity";
-import { File } from "../entities/file.entity";
-import { ParsedQs } from "qs";
-import { Paging } from "../dtos/other/paging.dto";
-import { orderDetailRepository } from "../repositories/orderDetail.repository";
-import { RecommendProductsRequest } from "../dtos/request/product.request";
-import { productRepository } from "../repositories/product.repository";
-import { productClassificationService } from "./productClassification.service";
+} from '../utils/enum';
+import { BaseService } from './base.service';
+import { brandService } from './brand.service';
+import { categoryService } from './category.service';
+import { ProductImage } from '../entities/productImage.entity';
+import { PreOrderProduct } from '../entities/preOrderProduct.entity';
+import { ProductDiscount } from '../entities/productDiscount.entity';
+import { File } from '../entities/file.entity';
+import { ParsedQs } from 'qs';
+import { Paging } from '../dtos/other/paging.dto';
+import { orderDetailRepository } from '../repositories/orderDetail.repository';
+import { RecommendProductsRequest } from '../dtos/request/product.request';
+import { productRepository } from '../repositories/product.repository';
+import { productClassificationService } from './productClassification.service';
 
 const repository = AppDataSource.getRepository(Product);
 
@@ -47,19 +47,19 @@ class ProductService extends BaseService<Product> {
   ) {
     const searchCondition = recommendProductsRequest.search
       ? `AND (p.name ILIKE '%${recommendProductsRequest.search}%' OR p.sku ILIKE '%${recommendProductsRequest.search}%' OR p.description ILIKE '%${recommendProductsRequest.search}%')`
-      : "";
-    let orderBy = "total_sales ASC";
+      : '';
+    let orderBy = 'total_sales ASC';
 
     if (recommendProductsRequest.tag) {
       switch (recommendProductsRequest.tag) {
         case ProductTagEnum.BEST_SELLER:
-          orderBy = "total_sales DESC";
+          orderBy = 'total_sales DESC';
           break;
         case ProductTagEnum.HOT:
-          orderBy = "sales_last_30_days DESC";
+          orderBy = 'sales_last_30_days DESC';
           break;
         case ProductTagEnum.NEW:
-          orderBy = "p.created_at DESC";
+          orderBy = 'p.created_at DESC';
           break;
         default:
           break;
@@ -180,26 +180,26 @@ class ProductService extends BaseService<Product> {
 
   async getAll() {
     const products = await this.repository
-      .createQueryBuilder("product")
-      .leftJoinAndSelect("product.category", "category")
-      .leftJoinAndSelect("category.parentCategory", "parentCategory")
-      .leftJoinAndSelect("product.brand", "brand")
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('category.parentCategory', 'parentCategory')
+      .leftJoinAndSelect('product.brand', 'brand')
       .leftJoinAndSelect(
-        "product.productClassifications",
-        "productClassifications",
-        "productClassifications.status = :classificationStatus",
+        'product.productClassifications',
+        'productClassifications',
+        'productClassifications.status = :classificationStatus',
         { classificationStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "productClassifications.images",
-        "classificationImages",
-        "classificationImages.status = :imageStatus",
+        'productClassifications.images',
+        'classificationImages',
+        'classificationImages.status = :imageStatus',
         { imageStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "product.images",
-        "images",
-        "images.status = :productImageStatus",
+        'product.images',
+        'images',
+        'images.status = :productImageStatus',
         { productImageStatus: StatusEnum.ACTIVE }
       )
       .getMany();
@@ -207,93 +207,142 @@ class ProductService extends BaseService<Product> {
     return products;
   }
   async getById(id: string) {
+    const rawSalesQuery = `
+      SELECT 
+        COALESCE(SUM(sales.sales_last_30_days), 0) AS sales_last_30_days
+      FROM product_classifications pc
+      JOIN products p ON pc.product_id = p.id
+      LEFT JOIN (
+        -- Lượt bán từ productClassification gốc
+        SELECT 
+          pc1.product_id, 
+          SUM(CASE WHEN od.created_at >= NOW() - INTERVAL '30 days' THEN od.quantity ELSE 0 END) AS sales_last_30_days
+        FROM order_details od
+        JOIN orders o ON od.order_id = o.id
+        JOIN product_classifications pc1 ON od.product_classification_id = pc1.id
+        WHERE o.status NOT IN ('${ShippingStatusEnum.CANCELLED}', '${ShippingStatusEnum.TO_PAY}', '${ShippingStatusEnum.JOIN_GROUP_BUYING}')
+        GROUP BY pc1.product_id
+
+        UNION ALL
+
+        -- Lượt bán từ productDiscount
+        SELECT 
+          pd.product_id, 
+          SUM(CASE WHEN od.created_at >= NOW() - INTERVAL '30 days' THEN od.quantity ELSE 0 END) AS sales_last_30_days
+        FROM order_details od
+        JOIN orders o ON od.order_id = o.id
+        JOIN product_classifications pc2 ON od.product_classification_id = pc2.id
+        JOIN product_discounts pd ON pc2.product_discount_id = pd.id
+        WHERE o.status NOT IN ('${ShippingStatusEnum.CANCELLED}', '${ShippingStatusEnum.TO_PAY}', '${ShippingStatusEnum.JOIN_GROUP_BUYING}')
+        GROUP BY pd.product_id
+
+        UNION ALL
+
+        -- Lượt bán từ preOrderProduct
+        SELECT 
+          pp.product_id, 
+          SUM(CASE WHEN od.created_at >= NOW() - INTERVAL '30 days' THEN od.quantity ELSE 0 END) AS sales_last_30_days
+        FROM order_details od
+        JOIN orders o ON od.order_id = o.id
+        JOIN product_classifications pc3 ON od.product_classification_id = pc3.id
+        JOIN pre_order_products pp ON pc3.pre_order_product_id = pp.id
+        WHERE o.status NOT IN ('${ShippingStatusEnum.CANCELLED}', '${ShippingStatusEnum.TO_PAY}', '${ShippingStatusEnum.JOIN_GROUP_BUYING}')
+        GROUP BY pp.product_id
+      ) AS sales ON pc.product_id = sales.product_id
+      WHERE pc.product_id = '${id}'
+      GROUP BY pc.product_id;
+    `;
+    const salesLast30Days = (
+      await orderDetailRepository.query(rawSalesQuery)
+    )[0].sales_last_30_days;
+
     const product = await repository
-      .createQueryBuilder("product")
-      .leftJoinAndSelect("product.category", "category")
-      .leftJoinAndSelect("category.parentCategory", "parentCategory")
-      .leftJoinAndSelect("product.brand", "brand")
-      .leftJoinAndSelect("product.certificates", "certificates")
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('category.parentCategory', 'parentCategory')
+      .leftJoinAndSelect('product.brand', 'brand')
+      .leftJoinAndSelect('product.certificates', 'certificates')
       .leftJoinAndSelect(
-        "product.productClassifications",
-        "productClassifications",
-        "productClassifications.status = :classificationStatus",
+        'product.productClassifications',
+        'productClassifications',
+        'productClassifications.status = :classificationStatus',
         { classificationStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "productClassifications.images",
-        "classificationImages",
-        "classificationImages.status = :imageStatus",
+        'productClassifications.images',
+        'classificationImages',
+        'classificationImages.status = :imageStatus',
         { imageStatus: StatusEnum.ACTIVE }
       )
-      .leftJoinAndSelect("product.images", "images")
+      .leftJoinAndSelect('product.images', 'images')
       .leftJoinAndSelect(
-        "product.productDiscounts",
-        "productDiscounts",
-        "productDiscounts.status = :discountActiveStatus",
+        'product.productDiscounts',
+        'productDiscounts',
+        'productDiscounts.status = :discountActiveStatus',
         { discountActiveStatus: ProductDiscountEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "productDiscounts.productClassifications",
-        "productDiscount_productClassifications",
-        "productDiscount_productClassifications.status = :productDiscount_productClassifications",
+        'productDiscounts.productClassifications',
+        'productDiscount_productClassifications',
+        'productDiscount_productClassifications.status = :productDiscount_productClassifications',
         { productDiscount_productClassifications: ProductDiscountEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "productDiscount_productClassifications.images",
-        "productDiscount_productClassifications_images",
-        "productDiscount_productClassifications_images.status = :productDiscount_productClassifications_images",
+        'productDiscount_productClassifications.images',
+        'productDiscount_productClassifications_images',
+        'productDiscount_productClassifications_images.status = :productDiscount_productClassifications_images',
         { productDiscount_productClassifications_images: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "product.preOrderProducts",
-        "preOrderProducts",
-        "preOrderProducts.status = :preOrderActiveStatus",
+        'product.preOrderProducts',
+        'preOrderProducts',
+        'preOrderProducts.status = :preOrderActiveStatus',
         { preOrderActiveStatus: PreOrderProductEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "preOrderProducts.productClassifications",
-        "preOrderProduct_productClassifications",
-        "preOrderProduct_productClassifications.status = :preOrderProduct_productClassifications",
+        'preOrderProducts.productClassifications',
+        'preOrderProduct_productClassifications',
+        'preOrderProduct_productClassifications.status = :preOrderProduct_productClassifications',
         { preOrderProduct_productClassifications: PreOrderProductEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "preOrderProduct_productClassifications.images",
-        "preOrderProduct_productClassifications_images",
-        "preOrderProduct_productClassifications_images.status = :preOrderProduct_productClassifications_images",
+        'preOrderProduct_productClassifications.images',
+        'preOrderProduct_productClassifications_images',
+        'preOrderProduct_productClassifications_images.status = :preOrderProduct_productClassifications_images',
         { preOrderProduct_productClassifications_images: StatusEnum.ACTIVE }
       )
-      .where("product.id = :id", { id })
+      .where('product.id = :id', { id })
       .getOne();
-
-    return product;
+    if (!product) throw new BadRequestError('Product not found');
+    return { ...product, salesLast30Days };
   }
 
   async getByBrand(id: string) {
     const products = await this.repository
-      .createQueryBuilder("product")
-      .leftJoinAndSelect("product.category", "category")
-      .leftJoinAndSelect("category.parentCategory", "parentCategory")
-      .leftJoinAndSelect("product.brand", "brand")
-      .leftJoinAndSelect("product.certificates", "certificates")
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('category.parentCategory', 'parentCategory')
+      .leftJoinAndSelect('product.brand', 'brand')
+      .leftJoinAndSelect('product.certificates', 'certificates')
       .leftJoinAndSelect(
-        "product.productClassifications",
-        "productClassifications",
-        "productClassifications.status = :classificationStatus",
+        'product.productClassifications',
+        'productClassifications',
+        'productClassifications.status = :classificationStatus',
         { classificationStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "productClassifications.images",
-        "classificationImages",
-        "classificationImages.status = :imageStatus",
+        'productClassifications.images',
+        'classificationImages',
+        'classificationImages.status = :imageStatus',
         { imageStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "product.images",
-        "images",
-        "images.status = :productImageStatus",
+        'product.images',
+        'images',
+        'images.status = :productImageStatus',
         { productImageStatus: StatusEnum.ACTIVE }
       )
-      .where("product.brand = :id", { id })
+      .where('product.brand = :id', { id })
       .getMany();
 
     return products;
@@ -301,30 +350,30 @@ class ProductService extends BaseService<Product> {
 
   async getByCategory(id: string) {
     const products = await this.repository
-      .createQueryBuilder("product")
-      .leftJoinAndSelect("product.category", "category")
-      .leftJoinAndSelect("category.parentCategory", "parentCategory")
-      .leftJoinAndSelect("product.brand", "brand")
-      .leftJoinAndSelect("product.certificates", "certificates")
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('category.parentCategory', 'parentCategory')
+      .leftJoinAndSelect('product.brand', 'brand')
+      .leftJoinAndSelect('product.certificates', 'certificates')
       .leftJoinAndSelect(
-        "product.productClassifications",
-        "productClassifications",
-        "productClassifications.status = :classificationStatus",
+        'product.productClassifications',
+        'productClassifications',
+        'productClassifications.status = :classificationStatus',
         { classificationStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "productClassifications.images",
-        "classificationImages",
-        "classificationImages.status = :imageStatus",
+        'productClassifications.images',
+        'classificationImages',
+        'classificationImages.status = :imageStatus',
         { imageStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "product.images",
-        "images",
-        "images.status = :productImageStatus",
+        'product.images',
+        'images',
+        'images.status = :productImageStatus',
         { productImageStatus: StatusEnum.ACTIVE }
       )
-      .where("product.category = :id", { id })
+      .where('product.category = :id', { id })
       .getMany();
 
     return products;
@@ -334,35 +383,35 @@ class ProductService extends BaseService<Product> {
     items: Product[];
     total: number;
   }> {
-    const queryBuilder = this.repository.createQueryBuilder("product");
+    const queryBuilder = this.repository.createQueryBuilder('product');
 
     queryBuilder
-      .leftJoinAndSelect("product.brand", "brand")
-      .leftJoinAndSelect("product.certificates", "certificates")
-      .leftJoinAndSelect("product.category", "category")
-      .leftJoinAndSelect("category.parentCategory", "parentCategory")
+      .leftJoinAndSelect('product.brand', 'brand')
+      .leftJoinAndSelect('product.certificates', 'certificates')
+      .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('category.parentCategory', 'parentCategory')
       .leftJoinAndSelect(
-        "product.productClassifications",
-        "productClassifications",
-        "productClassifications.status = :classificationStatus",
+        'product.productClassifications',
+        'productClassifications',
+        'productClassifications.status = :classificationStatus',
         { classificationStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "productClassifications.images",
-        "classification_images",
-        "classification_images.status = :imageStatus",
+        'productClassifications.images',
+        'classification_images',
+        'classification_images.status = :imageStatus',
         { imageStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "product.images",
-        "product_images",
-        "product_images.status = :status",
+        'product.images',
+        'product_images',
+        'product_images.status = :status',
         { status: StatusEnum.ACTIVE }
       );
 
     if (filter.search) {
       queryBuilder.andWhere(
-        "(product.name ILIKE :search OR product.sku ILIKE :search OR product.description ILIKE :search)",
+        '(product.name ILIKE :search OR product.sku ILIKE :search OR product.description ILIKE :search)',
         { search: `%${filter.search}%` }
       );
     }
@@ -374,20 +423,20 @@ class ProductService extends BaseService<Product> {
     }
 
     if (filter.brandId) {
-      queryBuilder.andWhere("product.brand.id = :brandId", {
+      queryBuilder.andWhere('product.brand.id = :brandId', {
         brandId: filter.brandId,
       });
     }
 
     if (filter.categoryId) {
-      queryBuilder.andWhere("product.category.id = :categoryId", {
+      queryBuilder.andWhere('product.category.id = :categoryId', {
         categoryId: filter.categoryId,
       });
     }
 
     queryBuilder.orderBy(
       `product.${filter.sortBy}`,
-      filter.order.toUpperCase() as "ASC" | "DESC"
+      filter.order.toUpperCase() as 'ASC' | 'DESC'
     );
 
     queryBuilder.take(filter.limit).skip((filter.page - 1) * filter.limit);
@@ -400,16 +449,16 @@ class ProductService extends BaseService<Product> {
   async beforeCreate(body: any) {
     if (body.category) {
       const checkCategory = await categoryService.findById(body.category);
-      if (!checkCategory) throw new BadRequestError("Category not found");
+      if (!checkCategory) throw new BadRequestError('Category not found');
     }
     if (body.brand) {
       const checkBrand = await brandService.findById(body.brand);
 
       if (!checkBrand || checkBrand.status !== BrandStatusEnum.ACTIVE) {
-        throw new BadRequestError("Brand not found");
+        throw new BadRequestError('Brand not found');
       }
     }
-    if (body.sku && body.sku !== "") {
+    if (body.sku && body.sku !== '') {
       const checkSku = await this.repository.find({
         where: {
           brand: { id: body.brand },
@@ -419,12 +468,12 @@ class ProductService extends BaseService<Product> {
       });
 
       if (checkSku.length !== 0)
-        throw new BadRequestError("sku already exists");
+        throw new BadRequestError('sku already exists');
     }
     if (body.productClassifications) {
       for (const classification of body.productClassifications) {
-        if (!classification.sku || classification.sku === "") {
-          throw new BadRequestError("sku is required");
+        if (!classification.sku || classification.sku === '') {
+          throw new BadRequestError('sku is required');
         }
         const checkSku = await productClassificationService.checkSkuUniqueness(
           classification.sku,
@@ -446,22 +495,22 @@ class ProductService extends BaseService<Product> {
       where: {
         id: id,
       },
-      relations: ["brand"],
+      relations: ['brand'],
     });
-    if (!product) throw new BadRequestError("Product not found");
+    if (!product) throw new BadRequestError('Product not found');
 
     if (body.category) {
       const checkCategory = await categoryService.findById(body.category);
-      if (!checkCategory) throw new BadRequestError("Category not found");
+      if (!checkCategory) throw new BadRequestError('Category not found');
     }
     if (body.brand) {
       const checkBrand = await brandService.findById(body.brand);
       if (!checkBrand || checkBrand.status !== BrandStatusEnum.ACTIVE)
-        throw new BadRequestError("Brand not found");
+        throw new BadRequestError('Brand not found');
     }
     if (
       body.sku &&
-      body.sku !== "" &&
+      body.sku !== '' &&
       body?.status !== ProductEnum.BANNED &&
       body?.status !== ProductEnum.INACTIVE &&
       product.status !== ProductEnum.BANNED &&
@@ -476,7 +525,7 @@ class ProductService extends BaseService<Product> {
         },
       });
       if (checkSku.length !== 0)
-        throw new BadRequestError("sku already exists");
+        throw new BadRequestError('sku already exists');
     }
 
     if (
@@ -494,13 +543,13 @@ class ProductService extends BaseService<Product> {
       });
 
       if (checkSku.length !== 0)
-        throw new BadRequestError("sku already exists");
+        throw new BadRequestError('sku already exists');
     }
 
     if (body.productClassifications) {
       for (const classification of body.productClassifications) {
         if (
-          (classification.sku || classification.sku !== "") &&
+          (classification.sku || classification.sku !== '') &&
           !classification.id
         ) {
           const checkSku =
@@ -517,7 +566,7 @@ class ProductService extends BaseService<Product> {
             );
         }
         if (
-          (classification.sku || classification.sku !== "") &&
+          (classification.sku || classification.sku !== '') &&
           classification.id
         ) {
           const checkSku =
@@ -621,7 +670,7 @@ class ProductService extends BaseService<Product> {
       });
 
       if (!product) {
-        throw new Error("Product not found.");
+        throw new Error('Product not found.');
       }
 
       if (
@@ -652,7 +701,7 @@ class ProductService extends BaseService<Product> {
 
             const productDiscounts = await productDiscountRepository.find({
               where: { product: { id } },
-              relations: ["productClassifications"],
+              relations: ['productClassifications'],
             });
 
             for (const discount of productDiscounts) {
@@ -730,7 +779,7 @@ class ProductService extends BaseService<Product> {
 
       const updatedProduct = await productRepository.findOne({
         where: { id },
-        relations: ["productClassifications", "images"],
+        relations: ['productClassifications', 'images'],
       });
 
       return updatedProduct!;
@@ -825,7 +874,7 @@ class ProductService extends BaseService<Product> {
       where: {
         name: ILike(`%${searchKey}%`),
       },
-      select: ["name"],
+      select: ['name'],
     });
 
     return products.map((product) => product.name);
