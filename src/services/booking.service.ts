@@ -154,7 +154,6 @@ class BookingService extends BaseService<Booking> {
         relations: {
           brand: { reviewer: true },
           consultantService: { account: true },
-          voucher: true,
           account: true,
           slot: true,
         },
@@ -171,7 +170,6 @@ class BookingService extends BaseService<Booking> {
         relations: {
           brand: { reviewer: true },
           consultantService: { account: true },
-          voucher: true,
           account: true,
           slot: true,
         },
@@ -295,10 +293,6 @@ class BookingService extends BaseService<Booking> {
       createdBooking.account = new Account();
       createdBooking.account.id = loginUser;
       createdBooking.consultantService = consultantService;
-      if (bookingRequest.voucher) {
-        createdBooking.voucher = new Voucher();
-        createdBooking.voucher.id = bookingRequest.voucher;
-      }
       await createdBooking.save();
       return;
     }

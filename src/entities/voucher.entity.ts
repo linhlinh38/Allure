@@ -80,9 +80,6 @@ export class Voucher extends BaseEntity {
   @OneToMany(() => Order, (order) => order.voucher)
   orders: Order[];
 
-  @OneToMany(() => Booking, (booking) => booking.voucher)
-  bookings: Booking[];
-
   @OneToMany(() => VoucherWallet, (wallet) => wallet.voucher, { cascade: true })
   wallets: VoucherWallet[];
 
