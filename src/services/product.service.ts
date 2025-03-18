@@ -77,13 +77,12 @@ class ProductService extends BaseService<Product> {
 
     const rawPagedQuery = `
       SELECT 
-        pc.product_id AS product_id,
+        sales.product_id AS product_id,
         COALESCE(SUM(sales.total_quantity), 0) AS total_sales,
         COALESCE(SUM(sales.sales_last_30_days), 0) AS sales_last_30_days,
         COALESCE(SUM(sales.total_ratings), 0) AS total_ratings,
         COALESCE(AVG(sales.average_rating), 0) AS average_rating
-      FROM product_classifications pc
-      JOIN products p ON pc.product_id = p.id
+      FROM products p
       LEFT JOIN (
         -- Lượt bán từ productClassification gốc
         SELECT 
@@ -132,9 +131,9 @@ class ProductService extends BaseService<Product> {
         LEFT JOIN feedbacks fb ON fb.order_detail_id = od.id
         WHERE o.status NOT IN ('${ShippingStatusEnum.CANCELLED}', '${ShippingStatusEnum.TO_PAY}', '${ShippingStatusEnum.JOIN_GROUP_BUYING}')
         GROUP BY pp.product_id
-      ) AS sales ON pc.product_id = sales.product_id
+      ) AS sales ON p.id = sales.product_id
       WHERE TRUE ${searchCondition}
-      GROUP BY pc.product_id, p.created_at
+      GROUP BY sales.product_id, p.created_at
       ORDER BY ${orderBy}
       LIMIT ${limit} OFFSET ${offset};
     `;
