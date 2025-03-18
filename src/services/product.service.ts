@@ -351,7 +351,7 @@ class ProductService extends BaseService<Product> {
     `;
     const salesLast30Days = (
       await orderDetailRepository.query(rawSalesQuery)
-    )[0].sales_last_30_days;
+    )[0]?.sales_last_30_days || 0;
 
     return { ...product, salesLast30Days };
   }
