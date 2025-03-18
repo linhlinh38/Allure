@@ -933,12 +933,14 @@ class VoucherService extends BaseService<Voucher> {
   applyShopVoucher(childOrder: Order) {
     const voucher = childOrder.voucher;
     let applyOrderDetails = childOrder.orderDetails;
-    let sumPrice = applyOrderDetails.reduce((total, orderDetail) => {
-      return total + orderDetail.subTotal;
-    }, 0);
+    let sumPrice = applyOrderDetails.reduce(
+      (total, orderDetail) => total + orderDetail.subTotal,
+      0
+    );
     let applyProductClassificationIds = applyOrderDetails.map(
       (orderDetail) => orderDetail.productClassification.id
     );
+
     if (voucher.applyType == VoucherApplyTypeEnum.SPECIFIC) {
       const applyProductIds = voucher.applyProducts.map(
         (product) => product.id
@@ -958,18 +960,20 @@ class VoucherService extends BaseService<Voucher> {
           orderDetail.productClassification.product?.id
         );
       });
+
       applyProductClassificationIds = filterApplyOrderDetails.map(
         (orderDetail) => orderDetail.productClassification.id
       );
-      sumPrice = filterApplyOrderDetails.reduce((total, orderDetail) => {
-        return total + orderDetail.subTotal;
-      }, 0);
+      sumPrice = filterApplyOrderDetails.reduce(
+        (total, orderDetail) => total + orderDetail.subTotal,
+        0
+      );
     }
-    if (voucher.minOrderValue) {
-      if (sumPrice < voucher.minOrderValue) {
-        throw new BadRequestError(`Minimum order value is not enough`);
-      }
+
+    if (voucher.minOrderValue && sumPrice < voucher.minOrderValue) {
+      throw new BadRequestError(`Minimum order value is not enough`);
     }
+
     let discount = 0;
     if (voucher.discountType == DiscountTypeEnum.AMOUNT) {
       discount = voucher.maxDiscount
@@ -984,7 +988,11 @@ class VoucherService extends BaseService<Voucher> {
           )
         : Math.min(sumPrice, sumPrice * voucher.discountValue);
     }
-    applyOrderDetails.forEach((orderDetail) => {
+
+    let totalAppliedDiscount = 0;
+    let lastIndex = -1;
+
+    applyOrderDetails.forEach((orderDetail, index) => {
       if (
         applyProductClassificationIds.includes(
           orderDetail.productClassification.id
@@ -993,9 +1001,20 @@ class VoucherService extends BaseService<Voucher> {
         orderDetail.shopVoucherDiscount = Math.floor(
           (orderDetail.subTotal / sumPrice) * discount
         );
-        orderDetail.totalPrice =
-          orderDetail.subTotal - orderDetail.shopVoucherDiscount;
+        totalAppliedDiscount += orderDetail.shopVoucherDiscount;
+        lastIndex = index;
       }
+    });
+
+    // Điều chỉnh phần chênh lệch
+    let difference = discount - totalAppliedDiscount;
+    if (difference > 0 && lastIndex !== -1) {
+      applyOrderDetails[lastIndex].shopVoucherDiscount += difference;
+    }
+
+    applyOrderDetails.forEach((orderDetail) => {
+      orderDetail.totalPrice =
+        orderDetail.subTotal - orderDetail.shopVoucherDiscount;
     });
   }
 
@@ -1004,12 +1023,14 @@ class VoucherService extends BaseService<Voucher> {
     let applyOrderDetails = totalOrder.children.flatMap(
       (order) => order.orderDetails
     );
-    let sumPrice = applyOrderDetails.reduce((total, orderDetail) => {
-      return total + orderDetail.totalPrice;
-    }, 0);
+    let sumPrice = applyOrderDetails.reduce(
+      (total, orderDetail) => total + orderDetail.totalPrice,
+      0
+    );
     let applyProductClassificationIds = applyOrderDetails.map(
       (orderDetail) => orderDetail.productClassification.id
     );
+
     if (voucher.applyType == VoucherApplyTypeEnum.SPECIFIC) {
       const applyProductIds = voucher.applyProducts.map(
         (product) => product.id
@@ -1029,18 +1050,20 @@ class VoucherService extends BaseService<Voucher> {
           orderDetail.productClassification.product?.id
         );
       });
+
       applyProductClassificationIds = filterApplyOrderDetails.map(
         (orderDetail) => orderDetail.productClassification.id
       );
-      sumPrice = filterApplyOrderDetails.reduce((total, orderDetail) => {
-        return total + orderDetail.totalPrice;
-      }, 0);
+      sumPrice = filterApplyOrderDetails.reduce(
+        (total, orderDetail) => total + orderDetail.totalPrice,
+        0
+      );
     }
-    if (voucher.minOrderValue) {
-      if (sumPrice < voucher.minOrderValue) {
-        throw new BadRequestError(`Minimum order value is not enough`);
-      }
+
+    if (voucher.minOrderValue && sumPrice < voucher.minOrderValue) {
+      throw new BadRequestError(`Minimum order value is not enough`);
     }
+
     let discount = 0;
     if (voucher.discountType == DiscountTypeEnum.AMOUNT) {
       discount = voucher.maxDiscount
@@ -1055,7 +1078,11 @@ class VoucherService extends BaseService<Voucher> {
           )
         : Math.min(sumPrice, sumPrice * voucher.discountValue);
     }
-    applyOrderDetails.forEach((orderDetail) => {
+
+    let totalAppliedDiscount = 0;
+    let lastIndex = -1;
+
+    applyOrderDetails.forEach((orderDetail, index) => {
       if (
         applyProductClassificationIds.includes(
           orderDetail.productClassification.id
@@ -1064,8 +1091,19 @@ class VoucherService extends BaseService<Voucher> {
         orderDetail.platformVoucherDiscount = Math.floor(
           (orderDetail.totalPrice / sumPrice) * discount
         );
-        orderDetail.totalPrice -= orderDetail.platformVoucherDiscount;
+        totalAppliedDiscount += orderDetail.platformVoucherDiscount;
+        lastIndex = index;
       }
+    });
+
+    // Điều chỉnh phần chênh lệch
+    let difference = discount - totalAppliedDiscount;
+    if (difference > 0 && lastIndex !== -1) {
+      applyOrderDetails[lastIndex].platformVoucherDiscount += difference;
+    }
+
+    applyOrderDetails.forEach((orderDetail) => {
+      orderDetail.totalPrice -= orderDetail.platformVoucherDiscount;
     });
   }
 
