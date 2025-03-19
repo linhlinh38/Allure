@@ -12,7 +12,6 @@ import {
   BookingTypeEnum,
   PaymentMethodEnum,
 } from "../utils/enum";
-import { Voucher } from "./voucher.entity";
 import { Account } from "./account.entity";
 import { StatusTracking } from "./statusTracking.entity";
 import { ConsultantService } from "./consultantService.entity";
@@ -30,9 +29,6 @@ export class Booking extends BaseEntity {
 
   @Column({ type: "timestamp with time zone", name: "end_time" })
   endTime: Date;
-
-  @Column({ type: "double precision", default: 0, name: "voucher_discount" })
-  voucherDiscount: number = 0;
 
   @Column({
     type: "enum",
@@ -62,12 +58,6 @@ export class Booking extends BaseEntity {
     enum: BookingStatusEnum,
   })
   status: BookingStatusEnum;
-
-  @ManyToOne(() => Voucher, (voucher) => voucher.orders, {
-    nullable: true,
-  })
-  @JoinColumn({ name: "voucher_id" })
-  voucher: Voucher;
 
   @ManyToOne(() => Slot, (slot) => slot.bookings, {
     nullable: true,

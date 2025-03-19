@@ -79,7 +79,10 @@ class AccountService extends BaseService<Account> {
       .createQueryBuilder("account")
       .leftJoinAndSelect("account.brands", "brand")
       .leftJoinAndSelect("account.role", "role")
-      .leftJoinAndSelect("account.addresses", "addresses");
+      .leftJoinAndSelect("account.addresses", "addresses")
+      .leftJoinAndSelect("account.files", "files")
+      .leftJoinAndSelect("account.consultantServices", "consultantServices")
+      .leftJoinAndSelect("consultantServices.systemService", "systemService");
 
     if (username) {
       queryBuilder.andWhere("account.username LIKE :username", {

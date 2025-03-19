@@ -70,7 +70,10 @@ async function filterAccounts(req: Request, res: Response, next: NextFunction) {
     };
 
     const accounts = await accountService.filterAccounts(filter);
-    return createNormalResponse(res, "Get accounts success", accounts);
+    const responseData = accounts.items.map((acc) =>
+      plainToClass(AccountResponse, acc)
+    );
+    return createNormalResponse(res, "Get accounts success", responseData);
   } catch (err) {
     next(err);
   }

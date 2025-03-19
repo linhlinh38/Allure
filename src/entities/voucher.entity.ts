@@ -6,74 +6,75 @@ import {
   ManyToMany,
   ManyToOne,
   OneToMany,
-} from 'typeorm';
-import { BaseEntity } from './base.entity';
+} from "typeorm";
+import { BaseEntity } from "./base.entity";
 import {
   StatusEnum,
   VoucherApplyTypeEnum,
   VoucherVisibilityEnum,
-} from '../utils/enum';
-import { Brand } from './brand.entity';
-import { Order } from './order.entity';
-import { GroupBuyingCriteria } from './groupBuyingCriteria.entity';
-import { VoucherWallet } from './voucherWallet.entity';
-import { Product } from './product.entity';
+} from "../utils/enum";
+import { Brand } from "./brand.entity";
+import { Order } from "./order.entity";
+import { GroupBuyingCriteria } from "./groupBuyingCriteria.entity";
+import { VoucherWallet } from "./voucherWallet.entity";
+import { Product } from "./product.entity";
+import { Booking } from "./booking.entity";
 
-@Entity('vouchers')
+@Entity("vouchers")
 export class Voucher extends BaseEntity {
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ type: "varchar", length: 100 })
   name: string;
 
-  @Column({ type: 'varchar', length: 100, unique: true })
+  @Column({ type: "varchar", length: 100, unique: true })
   code: string;
 
-  @Column({ type: 'varchar', length: 50, nullable: false })
+  @Column({ type: "varchar", length: 50, nullable: false })
   discountType: string;
 
-  @Column({ type: 'double precision' })
+  @Column({ type: "double precision" })
   discountValue: number;
 
-  @Column({ type: 'double precision', nullable: true })
+  @Column({ type: "double precision", nullable: true })
   maxDiscount: number;
 
-  @Column({ type: 'double precision', nullable: true })
+  @Column({ type: "double precision", nullable: true })
   minOrderValue: number;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: "varchar", length: 255, nullable: true })
   description: string;
 
   @Column({
-    type: 'enum',
+    type: "enum",
     enum: StatusEnum,
     default: StatusEnum.ACTIVE,
   })
   status: StatusEnum;
 
-  @Column({ type: 'integer', nullable: true })
+  @Column({ type: "integer", nullable: true })
   amount: number;
 
-  @Column({ type: 'timestamp with time zone', nullable: true })
+  @Column({ type: "timestamp with time zone", nullable: true })
   startTime: Date;
 
-  @Column({ type: 'timestamp with time zone', nullable: true })
+  @Column({ type: "timestamp with time zone", nullable: true })
   endTime: Date;
 
   @Column({
-    type: 'enum',
+    type: "enum",
     enum: VoucherApplyTypeEnum,
     default: VoucherApplyTypeEnum.ALL,
   })
   applyType: VoucherApplyTypeEnum;
 
   @Column({
-    type: 'enum',
+    type: "enum",
     enum: VoucherVisibilityEnum,
     default: VoucherVisibilityEnum.PUBLIC,
   })
   visibility: VoucherVisibilityEnum;
 
   @ManyToOne(() => Brand, (brand) => brand.vouchers)
-  @JoinColumn({ name: 'brand_id' })
+  @JoinColumn({ name: "brand_id" })
   brand: Brand;
 
   @OneToMany(() => Order, (order) => order.voucher)
@@ -84,9 +85,9 @@ export class Voucher extends BaseEntity {
 
   @ManyToMany(() => Product)
   @JoinTable({
-    name: 'voucher_apply_product',
-    joinColumn: { name: 'account_id', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'product_id', referencedColumnName: 'id' },
+    name: "voucher_apply_product",
+    joinColumn: { name: "account_id", referencedColumnName: "id" },
+    inverseJoinColumn: { name: "product_id", referencedColumnName: "id" },
   })
   applyProducts: Product[];
 
