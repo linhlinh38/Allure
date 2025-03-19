@@ -248,7 +248,7 @@ class OrderService extends BaseService<Order> {
           (async () => {
             const wallet = await walletRepository.findOne({
               where: {
-                id: order.account.id,
+                owner: { id: order.account.id },
               },
             });
             wallet.balance += order.totalPrice;
