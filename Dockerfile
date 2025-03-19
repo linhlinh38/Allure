@@ -17,7 +17,7 @@ ENV NODE_ENV production
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci 
+RUN npm i 
 
 COPY --from=builder /app/build ./build
 
