@@ -20,14 +20,13 @@ import { ProductImage } from "../entities/productImage.entity";
 import { PreOrderProduct } from "../entities/preOrderProduct.entity";
 import { ProductDiscount } from "../entities/productDiscount.entity";
 import { File } from "../entities/file.entity";
-import { ParsedQs } from "qs";
 import { Paging } from "../dtos/other/paging.dto";
 import { orderDetailRepository } from "../repositories/orderDetail.repository";
 import { RecommendProductsRequest } from "../dtos/request/product.request";
-import { productRepository } from "../repositories/product.repository";
 import { productClassificationService } from "./productClassification.service";
+import { productRepository } from "../repositories/product.repository";
 
-const repository = AppDataSource.getRepository(Product);
+const repository = productRepository;
 
 interface ProductFilter {
   search?: string; // Search across multiple fields
@@ -49,7 +48,6 @@ class ProductService extends BaseService<Product> {
       ? `AND (p.name ILIKE '%${recommendProductsRequest.search}%' OR p.sku ILIKE '%${recommendProductsRequest.search}%' OR p.description ILIKE '%${recommendProductsRequest.search}%')`
       : "";
     let orderBy = "total_sales ASC";
-
     if (recommendProductsRequest.tag) {
       switch (recommendProductsRequest.tag) {
         case ProductTagEnum.BEST_SELLER:
@@ -78,13 +76,12 @@ class ProductService extends BaseService<Product> {
 
     const rawPagedQuery = `
       SELECT 
-        pc.product_id AS product_id,
+        sales.product_id AS product_id,
         COALESCE(SUM(sales.total_quantity), 0) AS total_sales,
         COALESCE(SUM(sales.sales_last_30_days), 0) AS sales_last_30_days,
         COALESCE(SUM(sales.total_ratings), 0) AS total_ratings,
         COALESCE(AVG(sales.average_rating), 0) AS average_rating
-      FROM product_classifications pc
-      JOIN products p ON pc.product_id = p.id
+      FROM products p
       LEFT JOIN (
         -- Lượt bán từ productClassification gốc
         SELECT 
@@ -133,9 +130,9 @@ class ProductService extends BaseService<Product> {
         LEFT JOIN feedbacks fb ON fb.order_detail_id = od.id
         WHERE o.status NOT IN ('${ShippingStatusEnum.CANCELLED}', '${ShippingStatusEnum.TO_PAY}', '${ShippingStatusEnum.JOIN_GROUP_BUYING}')
         GROUP BY pp.product_id
-      ) AS sales ON pc.product_id = sales.product_id
+      ) AS sales ON p.id = sales.product_id
       WHERE TRUE ${searchCondition}
-      GROUP BY pc.product_id, p.created_at
+      GROUP BY sales.product_id, p.created_at
       ORDER BY ${orderBy}
       LIMIT ${limit} OFFSET ${offset};
     `;
@@ -147,16 +144,63 @@ class ProductService extends BaseService<Product> {
     const statistics = await orderDetailRepository.query(rawPagedQuery);
     const productIds = statistics.map((product) => product.product_id);
 
-    const products = await productRepository.find({
-      where: {
-        id: In(productIds),
-      },
-      relations: {
-        images: true,
-        category: { parentCategory: true },
-        brand: true,
-      },
-    });
+    const products = await repository
+      .createQueryBuilder("product")
+      .leftJoinAndSelect("product.category", "category")
+      .leftJoinAndSelect("category.parentCategory", "parentCategory")
+      .leftJoinAndSelect("product.brand", "brand")
+      .leftJoinAndSelect("product.certificates", "certificates")
+      .leftJoinAndSelect(
+        "product.productClassifications",
+        "productClassifications",
+        "productClassifications.status = :classificationStatus",
+        { classificationStatus: StatusEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
+        "productClassifications.images",
+        "classificationImages",
+        "classificationImages.status = :imageStatus",
+        { imageStatus: StatusEnum.ACTIVE }
+      )
+      .leftJoinAndSelect("product.images", "images")
+      .leftJoinAndSelect(
+        "product.productDiscounts",
+        "productDiscounts",
+        "productDiscounts.status = :discountActiveStatus",
+        { discountActiveStatus: ProductDiscountEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
+        "productDiscounts.productClassifications",
+        "productDiscount_productClassifications",
+        "productDiscount_productClassifications.status = :productDiscount_productClassifications",
+        { productDiscount_productClassifications: ProductDiscountEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
+        "productDiscount_productClassifications.images",
+        "productDiscount_productClassifications_images",
+        "productDiscount_productClassifications_images.status = :productDiscount_productClassifications_images",
+        { productDiscount_productClassifications_images: StatusEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
+        "product.preOrderProducts",
+        "preOrderProducts",
+        "preOrderProducts.status = :preOrderActiveStatus",
+        { preOrderActiveStatus: PreOrderProductEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
+        "preOrderProducts.productClassifications",
+        "preOrderProduct_productClassifications",
+        "preOrderProduct_productClassifications.status = :preOrderProduct_productClassifications",
+        { preOrderProduct_productClassifications: PreOrderProductEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
+        "preOrderProduct_productClassifications.images",
+        "preOrderProduct_productClassifications_images",
+        "preOrderProduct_productClassifications_images.status = :preOrderProduct_productClassifications_images",
+        { preOrderProduct_productClassifications_images: StatusEnum.ACTIVE }
+      )
+      .where("product.id IN (:...ids)", { ids: productIds })
+      .getMany();
     const productMap = new Map(products.map((item) => [item.id, item]));
     return {
       total,
@@ -179,33 +223,30 @@ class ProductService extends BaseService<Product> {
   }
 
   async getAll() {
-    const products = await this.repository
-      .createQueryBuilder("product")
-      .leftJoinAndSelect("product.category", "category")
-      .leftJoinAndSelect("category.parentCategory", "parentCategory")
-      .leftJoinAndSelect("product.brand", "brand")
-      .leftJoinAndSelect(
-        "product.productClassifications",
-        "productClassifications",
-        "productClassifications.status = :classificationStatus",
-        { classificationStatus: StatusEnum.ACTIVE }
-      )
-      .leftJoinAndSelect(
-        "productClassifications.images",
-        "classificationImages",
-        "classificationImages.status = :imageStatus",
-        { imageStatus: StatusEnum.ACTIVE }
-      )
-      .leftJoinAndSelect(
-        "product.images",
-        "images",
-        "images.status = :productImageStatus",
-        { productImageStatus: StatusEnum.ACTIVE }
-      )
-      .getMany();
+    const products = await this.repository.find({
+      relations: {
+        category: {
+          parentCategory: true,
+        },
+        brand: true,
+        productClassifications: {
+          images: true,
+        },
+        images: true,
+      },
+      where: {
+        productClassifications: {
+          status: StatusEnum.ACTIVE,
+        },
+        images: {
+          status: StatusEnum.ACTIVE,
+        },
+      },
+    });
 
     return products;
   }
+
   async getById(id: string) {
     const product = await repository
       .createQueryBuilder("product")
@@ -264,8 +305,56 @@ class ProductService extends BaseService<Product> {
       )
       .where("product.id = :id", { id })
       .getOne();
+    if (!product) throw new BadRequestError("Product not found");
 
-    return product;
+    const rawSalesQuery = `
+      SELECT 
+        COALESCE(SUM(sales.sales_last_30_days), 0) AS sales_last_30_days
+      FROM (
+        -- Lượt bán từ productClassification gốc
+        SELECT 
+          pc1.product_id, 
+          SUM(CASE WHEN od.created_at >= NOW() - INTERVAL '30 days' THEN od.quantity ELSE 0 END) AS sales_last_30_days
+        FROM order_details od
+        JOIN orders o ON od.order_id = o.id
+        JOIN product_classifications pc1 ON od.product_classification_id = pc1.id
+        WHERE o.status NOT IN ('${ShippingStatusEnum.CANCELLED}', '${ShippingStatusEnum.TO_PAY}', '${ShippingStatusEnum.JOIN_GROUP_BUYING}')
+        GROUP BY pc1.product_id
+
+        UNION ALL
+
+        -- Lượt bán từ productDiscount
+        SELECT 
+          pd.product_id, 
+          SUM(CASE WHEN od.created_at >= NOW() - INTERVAL '30 days' THEN od.quantity ELSE 0 END) AS sales_last_30_days
+        FROM order_details od
+        JOIN orders o ON od.order_id = o.id
+        JOIN product_classifications pc2 ON od.product_classification_id = pc2.id
+        JOIN product_discounts pd ON pc2.product_discount_id = pd.id
+        WHERE o.status NOT IN ('${ShippingStatusEnum.CANCELLED}', '${ShippingStatusEnum.TO_PAY}', '${ShippingStatusEnum.JOIN_GROUP_BUYING}')
+        GROUP BY pd.product_id
+
+        UNION ALL
+
+        -- Lượt bán từ preOrderProduct
+        SELECT 
+          pp.product_id, 
+          SUM(CASE WHEN od.created_at >= NOW() - INTERVAL '30 days' THEN od.quantity ELSE 0 END) AS sales_last_30_days
+        FROM order_details od
+        JOIN orders o ON od.order_id = o.id
+        JOIN product_classifications pc3 ON od.product_classification_id = pc3.id
+        JOIN pre_order_products pp ON pc3.pre_order_product_id = pp.id
+        WHERE o.status NOT IN ('${ShippingStatusEnum.CANCELLED}', '${ShippingStatusEnum.TO_PAY}', '${ShippingStatusEnum.JOIN_GROUP_BUYING}')
+        GROUP BY pp.product_id
+      ) AS sales
+      WHERE sales.product_id = '${id}'
+      GROUP BY sales.product_id;
+    `;
+    const salesLast30Days = (
+      await orderDetailRepository.query(rawSalesQuery)
+    )[0]?.sales_last_30_days || 0;
+
+    return { ...product, salesLast30Days };
   }
 
   async getByBrand(id: string) {
@@ -766,6 +855,7 @@ class ProductService extends BaseService<Product> {
       if (!product) {
         throw new Error(`Product with id ${productId} not found`);
       }
+      const currentStatus = product.status;
 
       product.status = status;
       await productRepository.save(product);
@@ -784,7 +874,7 @@ class ProductService extends BaseService<Product> {
         if (status === ProductEnum.BANNED) {
           await productClassificationRepository.update(
             { product: { id: productId } },
-            { status: StatusEnum.BANNED, isAvailable: false }
+            { status: StatusEnum.BANNED }
           );
         } else {
           await productClassificationRepository.update(
@@ -803,10 +893,35 @@ class ProductService extends BaseService<Product> {
           { status: StatusEnum.ACTIVE }
         );
       }
-      if (status === ProductEnum.UN_PUBLISHED) {
+      if (
+        currentStatus !== ProductEnum.BANNED &&
+        status === ProductEnum.UN_PUBLISHED
+      ) {
         await productDiscountRepository.update(
           { product: { id: productId }, status: ProductDiscountEnum.ACTIVE },
           { status: ProductDiscountEnum.INACTIVE }
+        );
+      }
+
+      if (
+        currentStatus === ProductEnum.BANNED &&
+        status === ProductEnum.UN_PUBLISHED
+      ) {
+        await productClassificationRepository.update(
+          {
+            product: { id: productId },
+            status: StatusEnum.BANNED,
+            isAvailable: true,
+          },
+          { status: StatusEnum.ACTIVE }
+        );
+        await productClassificationRepository.update(
+          {
+            product: { id: productId },
+            status: StatusEnum.BANNED,
+            isAvailable: false,
+          },
+          { status: StatusEnum.INACTIVE }
         );
       }
 
