@@ -65,13 +65,10 @@ class ProductService extends BaseService<Product> {
     const limit = paging.limit;
     const offset = (paging.page - 1) * paging.limit;
     const rawTotalQuery = `
-      SELECT COUNT(*) AS total
-      FROM (
-        SELECT p.id
-        FROM products p
-        WHERE TRUE ${searchCondition}
-      ) AS total_query;
-`;
+      SELECT COUNT(DISTINCT p.id) as total
+      FROM products p
+      WHERE TRUE ${searchCondition};
+    `;
 
     const rawPagedQuery = `
       SELECT 
