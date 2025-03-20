@@ -7,11 +7,9 @@ import { createNormalResponse } from '../utils/response';
 export class FirebaseAuthController {
   static async generateToken(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      return createNormalResponse(
-        res,
-        'Generate token success',
-        await firebaseAuthService.generateCustomToken(req.loginUser)
-      );
+      return createNormalResponse(res, 'Generate token success', {
+        token: await firebaseAuthService.generateCustomToken(req.loginUser),
+      });
     } catch (error) {
       next(error);
     }
