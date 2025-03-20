@@ -45,7 +45,14 @@ class AccountService extends BaseService<Account> {
   async getById(accountId: string) {
     const account = await repository.findOne({
       where: { id: accountId },
-      relations: ["role", "brands", "cartItems", "addresses"],
+      relations: {
+        role: true,
+        brands: {
+          reviewer: true,
+        },
+        cartItems: true,
+        addresses: true,
+      },
     });
 
     if (!account) {
