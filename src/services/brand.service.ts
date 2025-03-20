@@ -45,6 +45,7 @@ class BrandService extends BaseService<Brand> {
       where: { id },
       relations: {
         documents: true,
+        reviewer: true
       },
     });
     if (!brand) throw new BadRequestError('Brand not found');
