@@ -42,8 +42,8 @@ export default class ProductController {
   static async getById(req: Request, res: Response, next: NextFunction) {
     try {
       const product = await productService.getById(req.params.id);
-      
-      return createNormalResponse(res, 'Get product success', product);
+
+      return createNormalResponse(res, "Get product success", product);
     } catch (err) {
       next(err);
     }
@@ -75,6 +75,8 @@ export default class ProductController {
         search,
         brandId,
         categoryId,
+        maxPrice,
+        minPrice,
         statuses,
         sortBy,
         order,
@@ -85,11 +87,17 @@ export default class ProductController {
       // Construct the filter object
       const filter = {
         search: search?.toString(),
-        brandId: brandId?.toString(),
-        categoryId: categoryId?.toString(),
+        brandId: brandId
+          ? ((brandId as string).split(",") as string[])
+          : undefined,
+        categoryId: categoryId
+          ? ((categoryId as string).split(",") as string[])
+          : undefined,
         statuses: statuses
           ? ((statuses as string).split(",") as ProductEnum[])
           : undefined,
+        maxPrice: maxPrice ? Number(maxPrice) : undefined,
+        minPrice: minPrice ? Number(minPrice) : undefined,
         sortBy: (sortBy?.toString() as keyof Product) ?? "id",
         order: order?.toString() ?? "ASC",
         page: page ? Number(page) : 1,
@@ -102,7 +110,6 @@ export default class ProductController {
       next(err);
     }
   }
-
   static async searchBy(req: Request, res: Response, next: NextFunction) {
     try {
       const products = await productService.findBy(
