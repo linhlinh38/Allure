@@ -35,8 +35,10 @@ interface ProductFilter {
   limit?: number; // Number of items per page
   page?: number; // Page number (for pagination)
   statuses?: ProductEnum[]; // Filter by status
-  brandId?: string; // Filter by brand
-  categoryId?: string; // Filter by category
+  brandId?: string[]; // Filter by brand
+  categoryId?: string[]; // Filter by category
+  minPrice?: number; // Minimum price
+  maxPrice?: number; // Maximum price
 }
 
 class ProductService extends BaseService<Product> {
@@ -462,16 +464,31 @@ class ProductService extends BaseService<Product> {
       });
     }
 
-    if (filter.brandId) {
-      queryBuilder.andWhere("product.brand.id = :brandId", {
-        brandId: filter.brandId,
+    if (filter.brandId && filter.brandId.length > 0) {
+      queryBuilder.andWhere("product.brand.id IN (:...brandIds)", {
+        brandIds: filter.brandId,
       });
     }
 
-    if (filter.categoryId) {
-      queryBuilder.andWhere("product.category.id = :categoryId", {
-        categoryId: filter.categoryId,
+    if (filter.categoryId && filter.categoryId.length > 0) {
+      queryBuilder.andWhere("product.category.id IN (:...categoryIds)", {
+        categoryIds: filter.categoryId,
       });
+    }
+
+    if (filter.minPrice || filter.maxPrice) {
+      const minPrice = filter.minPrice ?? 0;
+      const maxPrice = filter.maxPrice ?? Number.MAX_SAFE_INTEGER;
+      queryBuilder.andWhere(
+        `EXISTS (
+        SELECT 1WHERE pc.product_id = product.id
+        FROM product_classifications pc
+        WHERE pc.product_id = product.id
+          AND pc.status = :classificationStatus
+          AND pc.price BETWEEN :minPrice AND :maxPrice
+      )`,
+        { classificationStatus: StatusEnum.ACTIVE, minPrice, maxPrice }
+      );
     }
 
     queryBuilder.orderBy(
