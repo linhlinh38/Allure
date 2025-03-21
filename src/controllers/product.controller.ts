@@ -1,12 +1,11 @@
-import { NextFunction, Request, Response } from "express";
-import { productService } from "../services/product.service";
-import { createNormalResponse } from "../utils/response";
-import { NotFoundError } from "../errors/error";
-import { Product } from "../entities/product.entity";
-import { Paging } from "../dtos/other/paging.dto";
-import { plainToInstance } from "class-transformer";
-import { RecommendProductsRequest } from "../dtos/request/product.request";
-import { ProductEnum } from "../utils/enum";
+import { NextFunction, Request, Response } from 'express';
+import { productService } from '../services/product.service';
+import { createNormalResponse } from '../utils/response';
+import { NotFoundError } from '../errors/error';
+import { Paging } from '../dtos/other/paging.dto';
+import { plainToInstance } from 'class-transformer';
+import { RecommendProductsRequest } from '../dtos/request/product.request';
+import { ProductEnum, ProductTagEnum } from '../utils/enum';
 export default class ProductController {
   static async getProducts(req: Request, res: Response, next: NextFunction) {
     const paging = {
@@ -23,7 +22,7 @@ export default class ProductController {
       );
       return createNormalResponse(
         res,
-        "Get products success",
+        'Get products success',
         await productService.getProducts(paging, recommendProductsRequest)
       );
     } catch (err) {
@@ -33,7 +32,7 @@ export default class ProductController {
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
       const products = await productService.getAll();
-      return createNormalResponse(res, "Get all product success", products);
+      return createNormalResponse(res, 'Get all product success', products);
     } catch (err) {
       next(err);
     }
@@ -43,7 +42,7 @@ export default class ProductController {
     try {
       const product = await productService.getById(req.params.id);
 
-      return createNormalResponse(res, "Get product success", product);
+      return createNormalResponse(res, 'Get product success', product);
     } catch (err) {
       next(err);
     }
@@ -52,8 +51,8 @@ export default class ProductController {
   static async getByBrand(req: Request, res: Response, next: NextFunction) {
     try {
       const product = await productService.getByBrand(req.params.id);
-      if (!product) throw new NotFoundError("product not found");
-      return createNormalResponse(res, "Get product success", product);
+      if (!product) throw new NotFoundError('product not found');
+      return createNormalResponse(res, 'Get product success', product);
     } catch (err) {
       next(err);
     }
@@ -62,8 +61,8 @@ export default class ProductController {
   static async getByCategory(req: Request, res: Response, next: NextFunction) {
     try {
       const product = await productService.getByCategory(req.params.id);
-      if (!product) throw new NotFoundError("product not found");
-      return createNormalResponse(res, "Get product success", product);
+      if (!product) throw new NotFoundError('product not found');
+      return createNormalResponse(res, 'Get product success', product);
     } catch (err) {
       next(err);
     }
@@ -88,24 +87,27 @@ export default class ProductController {
       const filter = {
         search: search?.toString(),
         brandId: brandId
-          ? ((brandId as string).split(",") as string[])
+          ? ((brandId as string).split(',') as string[])
           : undefined,
         categoryId: categoryId
-          ? ((categoryId as string).split(",") as string[])
+          ? ((categoryId as string).split(',') as string[])
           : undefined,
         statuses: statuses
-          ? ((statuses as string).split(",") as ProductEnum[])
+          ? ((statuses as string).split(',') as ProductEnum[])
           : undefined,
         maxPrice: maxPrice ? Number(maxPrice) : undefined,
         minPrice: minPrice ? Number(minPrice) : undefined,
-        sortBy: (sortBy?.toString() as keyof Product) ?? "id",
-        order: order?.toString() ?? "ASC",
+        sortBy: sortBy as ProductTagEnum,
+        order: order?.toString() ?? 'ASC',
         page: page ? Number(page) : 1,
         limit: limit ? Number(limit) : 10,
       };
 
-      const product = await productService.filteredProducts(filter);
-      return createNormalResponse(res, "Get products success", product);
+      return createNormalResponse(
+        res,
+        'Get products success',
+        await productService.filteredProducts(filter)
+      );
     } catch (err) {
       next(err);
     }
@@ -116,7 +118,7 @@ export default class ProductController {
         req.params.value,
         req.params.option
       );
-      return createNormalResponse(res, "Get product success", products);
+      return createNormalResponse(res, 'Get product success', products);
     } catch (err) {
       next(err);
     }
@@ -131,7 +133,7 @@ export default class ProductController {
       const products = await productService.searchProductsName(
         req.params.searchKey
       );
-      return createNormalResponse(res, "Get product name success", products);
+      return createNormalResponse(res, 'Get product name success', products);
     } catch (err) {
       next(err);
     }
@@ -140,7 +142,7 @@ export default class ProductController {
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
       await productService.updateProduct(req.body, req.params.id);
-      return createNormalResponse(res, "Update product success");
+      return createNormalResponse(res, 'Update product success');
     } catch (err) {
       next(err);
     }
@@ -153,7 +155,7 @@ export default class ProductController {
   ) {
     try {
       await productService.updateProductStatus(req.params.id, req.body.status);
-      return createNormalResponse(res, "Update product success");
+      return createNormalResponse(res, 'Update product success');
     } catch (err) {
       next(err);
     }
@@ -162,7 +164,7 @@ export default class ProductController {
   static async create(req: Request, res: Response, next: NextFunction) {
     try {
       const product = await productService.createProduct(req.body);
-      return createNormalResponse(res, "Create product success", {
+      return createNormalResponse(res, 'Create product success', {
         id: product.id,
       });
     } catch (err) {
