@@ -36,11 +36,11 @@ import {
   OrderEnum,
   PaymentMethodEnum,
   ShippingStatusEnum,
-  TransactionStatusEnum,
   VoucherVisibilityEnum,
   VoucherWalletStatus,
   OrderRequestTypeEnum,
   ActionReceivedEnum,
+  TransactionTypeEnum,
 } from '../utils/enum';
 import { validate as isUUID } from 'uuid';
 import { addressRepository } from '../repositories/address.repository';
@@ -54,7 +54,6 @@ import { voucherWalletRepository } from '../repositories/voucherWallet.reposiror
 import { walletRepository } from '../repositories/wallet.reposirory';
 import { Wallet } from '../entities/wallet.entity';
 import { Transaction } from '../entities/transaction.entity';
-import { transactionRepository } from '../repositories/transaction.repository';
 import { transactionService } from './transaction.service';
 import { walletService } from './wallet.service';
 import { MediaFile } from '../entities/mediaFile.entity';
@@ -238,10 +237,11 @@ class OrderService extends BaseService<Order> {
           //create transaction
           (async () => {
             const transaction =
-              transactionService.createTransactionFromNormalOrder(
-                complaintRequest.order
+              await transactionService.createTransactionFromChildOrder(
+                complaintRequest.order,
+                TransactionTypeEnum.ORDER_REFUND
               );
-            transaction.status = TransactionStatusEnum.REFUNDED;
+            transaction.type = TransactionTypeEnum.ORDER_REFUND;
             await queryRunner.manager.save(Transaction, transaction);
           })(),
           //refund to wallet
@@ -890,12 +890,8 @@ class OrderService extends BaseService<Order> {
         status == ShippingStatusEnum.WAIT_FOR_CONFIRMATION &&
         order.paymentMethod != PaymentMethodEnum.CASH
       ) {
-        const transaction = await transactionRepository.findOne({
-          where: {
-            order: { id: orderId },
-          },
-        });
-        transaction.status = TransactionStatusEnum.COMPLETED;
+        const transaction =
+          await transactionService.createTransactionFromChildOrder(order, TransactionTypeEnum.ORDER_PURCHASE);
         await queryRunner.manager.save(Transaction, transaction);
       }
       await Promise.all([
@@ -1635,11 +1631,11 @@ class OrderService extends BaseService<Order> {
         accountId
       );
 
-      //create pending transaction
-      const transactions = createdParentOrder.children.map((childOrder) => {
-        return transactionService.createTransactionFromNormalOrder(childOrder);
-      });
-      await queryRunner.manager.save(Transaction, transactions);
+      // //create pending transaction
+      // const transactions = createdParentOrder.children.map((childOrder) => {
+      //   return transactionService.createTransactionFromChildOrder(childOrder);
+      // });
+      // await queryRunner.manager.save(Transaction, transactions);
 
       await queryRunner.commitTransaction();
       return createdParentOrder;

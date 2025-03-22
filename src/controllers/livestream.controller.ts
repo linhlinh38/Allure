@@ -2,7 +2,6 @@ import { NextFunction, Request, Response } from "express";
 import { livestreamService } from "../services/livestream.service";
 import { createNormalResponse } from "../utils/response";
 import { NotFoundError } from "../errors/error";
-import { Auth } from "googleapis";
 import { AuthRequest } from "../middleware/authentication";
 export default class livestreamController {
   static async getAll(req: Request, res: Response, next: NextFunction) {

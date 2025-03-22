@@ -2,7 +2,10 @@ import express from 'express';
 import authentication from '../middleware/authentication';
 import validate from '../utils/validate';
 import TransactionController from '../controllers/transaction.controller';
-import { FilterTransactionSchema, getStatisticsSchema } from '../dtos/request/transaction.request';
+import {
+  FilterTransactionSchema,
+  GetStatisticsSchema,
+} from '../dtos/request/transaction.request';
 const transactionRouter = express.Router();
 
 transactionRouter.use(authentication);
@@ -15,13 +18,13 @@ transactionRouter.post(
 
 transactionRouter.post(
   '/get-user-spending-statistics',
-  validate(getStatisticsSchema),
+  validate(GetStatisticsSchema),
   TransactionController.getUserSpendingStatistics
 );
 
 transactionRouter.post(
   '/get-brand-revenue-statistics/:brandId',
-  validate(getStatisticsSchema),
+  validate(GetStatisticsSchema),
   TransactionController.getBrandRevenueStatistics
 );
 
