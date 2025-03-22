@@ -5,7 +5,6 @@ import {
   PaymentMethodEnum,
   ShippingStatusEnum,
   StatisticsTimeEnum,
-  TransactionStatusEnum,
   TransactionTypeEnum,
 } from '../utils/enum';
 import { BaseService } from './base.service';
@@ -21,6 +20,7 @@ import { BadRequestError } from '../errors/error';
 import { Paging } from '../dtos/other/paging.dto';
 import { transactionRepository } from '../repositories/transaction.repository';
 import { orderService } from './order.service';
+import { walletRepository } from '../repositories/wallet.reposirory';
 
 const repository = AppDataSource.getRepository(Transaction);
 class TransactionService extends BaseService<Transaction> {
@@ -53,7 +53,7 @@ class TransactionService extends BaseService<Transaction> {
     loginUser: string,
     filterTransactionRequest: FilterTransactionRequest
   ) {
-    const { status, type, startDate, endDate } = filterTransactionRequest;
+    const { statuses, types, startDate, endDate } = filterTransactionRequest;
     const query = transactionRepository
       .createQueryBuilder('transaction')
       .leftJoinAndSelect('transaction.buyer', 'buyer')
@@ -63,8 +63,10 @@ class TransactionService extends BaseService<Transaction> {
       .orderBy('transaction.createdAt', 'DESC');
     orderService.queryBuilderForOrder(query);
 
-    if (status) query.andWhere('transaction.status = :status', { status });
-    if (type) query.andWhere('transaction.type = :type', { type });
+    if (statuses && statuses.length > 0)
+      query.andWhere('transaction.status IN (:...statuses)', { statuses });
+    if (types && types.length > 0)
+      query.andWhere('transaction.type IN (:...types)', { types });
     if (startDate && endDate)
       query.andWhere('transaction.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
@@ -77,14 +79,15 @@ class TransactionService extends BaseService<Transaction> {
     loginUser: string,
     filterTransactionRequest: FilterTransactionRequest
   ) {
-    const { status, type, startDate, endDate } = filterTransactionRequest;
+    const { statuses, types, startDate, endDate } = filterTransactionRequest;
     const query = transactionRepository
       .createQueryBuilder('transaction')
       .select('COUNT(*)', 'total')
       .innerJoin('transaction.buyer', 'buyer')
       .where('buyer.id = :loginUser', { loginUser });
-    if (status) query.andWhere('transaction.status = :status', { status });
-    if (type) query.andWhere('transaction.type = :type', { type });
+    if (statuses)
+      query.andWhere('transaction.status IN (:...statuses)', { statuses });
+    if (types) query.andWhere('transaction.type IN (:...types)', { types });
     if (startDate && endDate)
       query.andWhere('transaction.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
@@ -216,7 +219,6 @@ class TransactionService extends BaseService<Transaction> {
       where: { order: { id: orderId } },
     });
     if (!transaction) return;
-    transaction.status = TransactionStatusEnum.CANCELLED;
     await queryRunner.manager.save(transaction);
   }
 
@@ -230,20 +232,52 @@ class TransactionService extends BaseService<Transaction> {
     transaction.amount = order.totalPrice;
     transaction.brand = groupBuying.groupProduct.brand;
     transaction.paymentMethod = PaymentMethodEnum.WALLET;
-    transaction.type = TransactionTypeEnum.PURCHASE;
-    transaction.status = TransactionStatusEnum.COMPLETED;
+    transaction.type = TransactionTypeEnum.ORDER_PURCHASE;
     return transaction;
   }
 
-  createTransactionFromNormalOrder(childOrder: Order) {
+  async createTransactionFromChildOrder(
+    childOrder: Order,
+    type  : TransactionTypeEnum
+  ) {
+    
     const transaction = new Transaction();
     transaction.order = childOrder;
     transaction.buyer = childOrder.account;
     transaction.amount = childOrder.totalPrice;
     transaction.brand = childOrder.brand;
-    transaction.type = TransactionTypeEnum.PURCHASE;
-    transaction.status = TransactionStatusEnum.PENDING;
-    transaction.paymentMethod = childOrder.paymentMethod;
+
+    const wallet = await walletRepository.findOne({
+      where: {
+        id: childOrder.account.id,
+      },
+    });
+    if (!wallet) throw new BadRequestError(`Wallet not found`);
+    transaction.balanceAfterTransaction = wallet.balance;
+    if(type) {
+      switch (type) {
+        case TransactionTypeEnum.ORDER_PURCHASE:
+          transaction.type = TransactionTypeEnum.ORDER_PURCHASE;
+          transaction.paymentMethod = childOrder.paymentMethod;
+          transaction.balanceAfterTransaction -= childOrder.totalPrice;
+          if (transaction.balanceAfterTransaction < 0) {
+            throw new BadRequestError(`Balance wallet not enough`);
+          }
+          break;
+        case TransactionTypeEnum.ORDER_REFUND:
+          transaction.type = TransactionTypeEnum.ORDER_REFUND;
+          transaction.paymentMethod = PaymentMethodEnum.WALLET;
+          transaction.balanceAfterTransaction += childOrder.totalPrice;
+          break;
+        case TransactionTypeEnum.ORDER_CANCEL:
+          transaction.type = TransactionTypeEnum.ORDER_CANCEL;
+          transaction.paymentMethod = PaymentMethodEnum.WALLET;
+          transaction.balanceAfterTransaction += childOrder.totalPrice;
+          break;
+        default:
+          throw new BadRequestError(`Invalid transaction type`);
+      }
+    }
     return transaction;
   }
 

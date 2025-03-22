@@ -1,8 +1,12 @@
 import { Expose } from 'class-transformer';
 import { z } from 'zod';
-import { StatisticsTimeEnum, TransactionStatusEnum, TransactionTypeEnum } from '../../utils/enum';
+import {
+  StatisticsTimeEnum,
+  TransactionStatusEnum,
+  TransactionTypeEnum,
+} from '../../utils/enum';
 
-export const getStatisticsSchema = z.object({
+export const GetStatisticsSchema = z.object({
   body: z.object({
     type: z.nativeEnum(StatisticsTimeEnum),
     startDate: z
@@ -24,8 +28,8 @@ export const getStatisticsSchema = z.object({
 
 export const FilterTransactionSchema = z.object({
   body: z.object({
-    type: z.nativeEnum(TransactionTypeEnum).optional(),
-    status: z.nativeEnum(TransactionStatusEnum).optional(),
+    types: z.array(z.nativeEnum(TransactionTypeEnum)).optional(),
+    statuses: z.array(z.nativeEnum(TransactionStatusEnum)).optional(),
     startDate: z
       .string()
       .refine(
@@ -45,10 +49,10 @@ export const FilterTransactionSchema = z.object({
 
 export class FilterTransactionRequest {
   @Expose()
-  type: TransactionTypeEnum;
+  types: TransactionTypeEnum[];
 
   @Expose()
-  status: TransactionStatusEnum;
+  statuses: TransactionStatusEnum[];
 
   @Expose()
   startDate: Date;

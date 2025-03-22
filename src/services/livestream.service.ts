@@ -1,12 +1,11 @@
 import { In } from "typeorm";
 import { AppDataSource } from "../dataSource";
 import { LiveStream } from "../entities/livestream.entity";
-import { Role } from "../entities/role.entity";
 import { BadRequestError } from "../errors/error";
 import { productRepository } from "../repositories/product.repository";
 import { BaseService } from "./base.service";
 import { LiveStreamEnum } from "../utils/enum";
-import { RtcTokenBuilder, RtcRole } from "agora-access-token";
+import { RtcTokenBuilder } from "agora-access-token";
 import { config } from "../configs/envConfig";
 import { LivestreamTokenData } from "../dtos/request/livestreamToken.request";
 
