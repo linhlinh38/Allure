@@ -15,7 +15,7 @@ interface FilterOptions {
   endTime?: Date;
   productId?: string;
   brandId?: string;
-  status?: PreOrderProductEnum;
+  status?: PreOrderProductEnum[];
   sortBy?: string;
   order?: string;
   limit?: number;
@@ -206,8 +206,10 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
       queryBuilder.andWhere("brand.id = :brandId", { brandId });
     }
 
-    if (status) {
-      queryBuilder.andWhere("preOrderProduct.status = :status", { status });
+    if (status && status.length > 0) {
+      queryBuilder.andWhere("preOrderProduct.status IN (:...statuses)", {
+        statuses: status,
+      });
     }
 
     queryBuilder

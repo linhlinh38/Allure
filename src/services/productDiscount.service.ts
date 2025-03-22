@@ -16,7 +16,7 @@ interface FilterOptions {
   endTime?: Date;
   productId?: string;
   brandId?: string;
-  status?: ProductDiscountEnum;
+  status?: ProductDiscountEnum[];
   sortBy?: string;
   order?: string;
   limit?: number;
@@ -256,8 +256,10 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
       queryBuilder.andWhere("brand.id = :brandId", { brandId });
     }
 
-    if (status) {
-      queryBuilder.andWhere("productDiscount.status = :status", { status });
+    if (status && status.length > 0) {
+      queryBuilder.andWhere("productDiscount.status IN (:...statuses)", {
+        statuses: status,
+      });
     }
 
     queryBuilder

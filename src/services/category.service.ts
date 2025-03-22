@@ -1,6 +1,7 @@
 import { AppDataSource } from "../dataSource";
 import { Category } from "../entities/category.entity";
 import { BadRequestError } from "../errors/error";
+import { StatusEnum } from "../utils/enum";
 import { BaseService } from "./base.service";
 import { masterConfigService } from "./masterConfig.service";
 
@@ -49,6 +50,66 @@ class CategoryService extends BaseService<Category> {
 
     return category;
   }
+
+  async filterCategories(filter: {
+    name?: string;
+    level?: number;
+    parentCategoryId?: string;
+    statuses?: StatusEnum[];
+    sortBy?: keyof Category;
+    order?: "ASC" | "DESC";
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    items: Category[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const queryBuilder = this.repository.createQueryBuilder("category");
+
+    // Filter by name
+    if (filter.name) {
+      queryBuilder.andWhere("category.name ILIKE :name", {
+        name: `%${filter.name}%`,
+      });
+    }
+
+    // Filter by level
+    if (filter.level !== undefined) {
+      queryBuilder.andWhere("category.level = :level", { level: filter.level });
+    }
+
+    // Filter by parent category
+    if (filter.parentCategoryId) {
+      queryBuilder.andWhere("category.parentCategory.id = :parentCategoryId", {
+        parentCategoryId: filter.parentCategoryId,
+      });
+    }
+
+    // Filter by statuses
+    if (filter.statuses && filter.statuses.length > 0) {
+      queryBuilder.andWhere("category.status IN (:...statuses)", {
+        statuses: filter.statuses,
+      });
+    }
+
+    // Sorting
+    const sortBy = filter.sortBy || "id"; // Default to sorting by "id"
+    const order = filter.order || "ASC"; // Default to ascending order
+    queryBuilder.orderBy(`category.${sortBy}`, order);
+
+    // Pagination
+    const page = filter.page || 1; // Default to page 1
+    const limit = filter.limit || 10; // Default to 10 items per page
+    queryBuilder.skip((page - 1) * limit).take(limit);
+
+    // Execute the query
+    const [items, total] = await queryBuilder.getManyAndCount();
+
+    return { items, total, page, limit };
+  }
+
   async beforeCreate(body: Category) {
     const checkCateName = await this.findBy(body.name, "name");
     const [masterConfig] = await masterConfigService.findAll();
@@ -125,6 +186,9 @@ class CategoryService extends BaseService<Category> {
       }
       if (updatedData.detail) {
         category.detail = updatedData.detail;
+      }
+      if (updatedData.status) {
+        category.status = updatedData.status;
       }
 
       // Handle parentCategory update

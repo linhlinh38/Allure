@@ -2,6 +2,7 @@ import { Entity, Column, ManyToOne, OneToMany, JoinColumn } from "typeorm";
 import { BaseEntity } from "./base.entity";
 import { Product } from "./product.entity";
 import { SystemService } from "./systemService.entity";
+import { StatusEnum } from "../utils/enum";
 
 @Entity("categories")
 export class Category extends BaseEntity {
@@ -29,4 +30,11 @@ export class Category extends BaseEntity {
 
   @OneToMany(() => SystemService, (service) => service.category)
   services: SystemService[];
+
+  @Column({
+    type: "enum",
+    enum: StatusEnum,
+    default: StatusEnum.ACTIVE,
+  })
+  status: StatusEnum;
 }
