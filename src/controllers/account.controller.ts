@@ -85,7 +85,7 @@ async function filterAccounts(req: Request, res: Response, next: NextFunction) {
       plainToClass(AccountResponse, acc)
     );
     return createNormalResponse(res, "Get accounts success", {
-      ...responseData,
+      items: responseData,
       total: accounts.total,
       page: accounts.page,
       limit: accounts.limit,
