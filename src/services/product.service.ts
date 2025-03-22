@@ -126,7 +126,7 @@ class ProductService extends BaseService<Product> {
         GROUP BY p.id
       )
       SELECT 
-        sales.product_id AS product_id,
+        p.id AS product_id,
         COALESCE(SUM(sales.total_quantity), 0) AS total_sales,
         COALESCE(SUM(sales.sales_last_30_days), 0) AS sales_last_30_days,
         COALESCE(SUM(sales.total_ratings), 0) AS total_ratings,
@@ -185,7 +185,7 @@ class ProductService extends BaseService<Product> {
         GROUP BY pp.product_id
       ) AS sales ON p.id = sales.product_id
       WHERE TRUE ${condition}
-      GROUP BY sales.product_id, p.created_at, pp.min_price, pp.max_price
+      GROUP BY p.id, p.created_at, pp.min_price, pp.max_price
       ORDER BY ${orderBy}
       LIMIT ${limit} OFFSET ${offset};
     `;
