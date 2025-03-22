@@ -77,12 +77,16 @@ export default class BookingController {
     }
   }
 
-  static async getMySlots(req: AuthRequest, res: Response, next: NextFunction) {
+  static async getSomeoneSlots(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
-      const slots = await bookingService.getMySlots(
+      const slots = await bookingService.getSomeoneSlots(
         req.body.startDate,
         req.body.endDate,
-        req.loginUser
+        req.params.accountId
       );
       return createNormalResponse(res, 'Get slots success', slots);
     } catch (err) {
