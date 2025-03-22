@@ -88,7 +88,7 @@ export default class PreOrderProductController {
         endTime,
         productId,
         brandId,
-        status,
+        statuses,
         sortBy,
         order,
         limit,
@@ -100,7 +100,9 @@ export default class PreOrderProductController {
         endTime: endTime ? new Date(endTime.toString()) : undefined,
         productId: productId?.toString(),
         brandId: brandId?.toString(),
-        status: status ? (status as PreOrderProductEnum) : undefined,
+        status: statuses
+          ? ((statuses as string).split(",") as PreOrderProductEnum[])
+          : undefined,
         sortBy: sortBy?.toString() ?? "id",
         order: order?.toString() ?? "ASC",
         page: page ? Number(page) : 1,
