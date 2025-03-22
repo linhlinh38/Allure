@@ -52,6 +52,20 @@ class CartItemService extends BaseService<CartItem> {
       );
       if (!checkClassification)
         throw new BadRequestError("Classification not found");
+      if (
+        checkClassification.quantity <= 0 ||
+        checkClassification.status !== StatusEnum.ACTIVE
+      ) {
+        throw new BadRequestError("Can not add invalid Product");
+      }
+
+      if (checkClassification.quantity < body.quantity) {
+        throw new BadRequestError("Quantity is not enough");
+      }
+
+      if (checkCart.quantity + body.quantity > checkClassification.quantity) {
+        throw new BadRequestError("Quantity is not enough");
+      }
     }
   }
 
@@ -215,7 +229,7 @@ class CartItemService extends BaseService<CartItem> {
         groupBuyingId: body.groupBuying,
       });
     } else {
-      queryBuilder.andWhere('cartItem.group_buying_id is NULL');
+      queryBuilder.andWhere("cartItem.group_buying_id is NULL");
     }
     const check = await queryBuilder.getMany();
 
