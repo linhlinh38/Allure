@@ -10,6 +10,8 @@ const transactionRouter = express.Router();
 
 transactionRouter.use(authentication);
 
+transactionRouter.post('/deposit', TransactionController.deposit);
+
 transactionRouter.post(
   '/filter',
   validate(FilterTransactionSchema),

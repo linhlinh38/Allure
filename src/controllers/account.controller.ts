@@ -19,6 +19,8 @@ import {
 } from "../services/mail.service";
 import { AccountUpdateStatusType } from "../dtos/request/account.request";
 import { createNormalResponse } from "../utils/response";
+import { walletRepository } from "../repositories/wallet.reposirory";
+import { Wallet } from "../entities/wallet.entity";
 
 async function getAllAccount(req: Request, res: Response, next: NextFunction) {
   try {
@@ -183,6 +185,18 @@ async function verifyAccount(
       status: AccountStatusEnum.ACTIVE,
       isEmailVerify: true,
     });
+    const wallet = await walletRepository.findOne({
+      where: {
+        owner: { id: req.params.id },
+      },
+    });
+    if (!wallet) {
+      const newWallet = new Wallet();
+      newWallet.owner = { id: req.params.id } as Account;
+      newWallet.balance = 0;
+      await walletRepository.save(newWallet);
+    }
+    
     return res.status(200).send({ message: "Update account success" });
   } catch (error) {
     next(error);

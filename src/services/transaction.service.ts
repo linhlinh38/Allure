@@ -21,9 +21,44 @@ import { Paging } from '../dtos/other/paging.dto';
 import { transactionRepository } from '../repositories/transaction.repository';
 import { orderService } from './order.service';
 import { walletRepository } from '../repositories/wallet.reposirory';
+import { payos } from '../utils/payos';
+import { Account } from '../entities/account.entity';
 
 const repository = AppDataSource.getRepository(Transaction);
 class TransactionService extends BaseService<Transaction> {
+  async deposit(orderId: string, loginUser: string) {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const data = await payos.getPaymentLinkInformation(orderId);
+      if (data.status == 'PAID') {
+        const wallet = await walletRepository.findOne({
+          where: {
+            owner: { id: loginUser },
+          },
+        });
+        if (!wallet) throw new BadRequestError(`Wallet not found`);
+        wallet.balance += data.amount;
+        await queryRunner.manager.save(wallet);
+        const transaction =
+          await transactionService.createTransactionFromDeposit(
+            data.amount,
+            loginUser
+          );
+        await queryRunner.manager.save(transaction);
+      } else {
+        throw new BadRequestError(`This transaction is not paid`);
+      }
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
   async filter(
     filterTransactionRequest: FilterTransactionRequest,
     loginUser: string,
@@ -35,7 +70,6 @@ class TransactionService extends BaseService<Transaction> {
       loginUser,
       filterTransactionRequest
     );
-    console.log(total);
 
     const totalPages = Math.ceil(total / paging.limit);
     const query = this.getTransactionsQuery(loginUser, filterTransactionRequest)
@@ -53,7 +87,7 @@ class TransactionService extends BaseService<Transaction> {
     loginUser: string,
     filterTransactionRequest: FilterTransactionRequest
   ) {
-    const { statuses, types, startDate, endDate } = filterTransactionRequest;
+    const { types, startDate, endDate } = filterTransactionRequest;
     const query = transactionRepository
       .createQueryBuilder('transaction')
       .leftJoinAndSelect('transaction.buyer', 'buyer')
@@ -63,8 +97,6 @@ class TransactionService extends BaseService<Transaction> {
       .orderBy('transaction.createdAt', 'DESC');
     orderService.queryBuilderForOrder(query);
 
-    if (statuses && statuses.length > 0)
-      query.andWhere('transaction.status IN (:...statuses)', { statuses });
     if (types && types.length > 0)
       query.andWhere('transaction.type IN (:...types)', { types });
     if (startDate && endDate)
@@ -79,14 +111,12 @@ class TransactionService extends BaseService<Transaction> {
     loginUser: string,
     filterTransactionRequest: FilterTransactionRequest
   ) {
-    const { statuses, types, startDate, endDate } = filterTransactionRequest;
+    const { types, startDate, endDate } = filterTransactionRequest;
     const query = transactionRepository
       .createQueryBuilder('transaction')
       .select('COUNT(*)', 'total')
       .innerJoin('transaction.buyer', 'buyer')
       .where('buyer.id = :loginUser', { loginUser });
-    if (statuses)
-      query.andWhere('transaction.status IN (:...statuses)', { statuses });
     if (types) query.andWhere('transaction.type IN (:...types)', { types });
     if (startDate && endDate)
       query.andWhere('transaction.createdAt BETWEEN :startDate AND :endDate', {
@@ -236,11 +266,27 @@ class TransactionService extends BaseService<Transaction> {
     return transaction;
   }
 
+  async createTransactionFromDeposit(amount: number, loginUser: string) {
+    const transaction = new Transaction();
+    transaction.amount = amount;
+    transaction.buyer = { id: loginUser } as Account;
+    transaction.paymentMethod = PaymentMethodEnum.BANK_TRANSFER;
+    transaction.type = TransactionTypeEnum.DEPOSIT;
+
+    const wallet = await walletRepository.findOne({
+      where: {
+        owner: { id: loginUser },
+      },
+    });
+    if (!wallet) throw new BadRequestError(`Wallet not found`);
+    transaction.balanceAfterTransaction = wallet.balance + amount;
+    return transaction;
+  }
+
   async createTransactionFromChildOrder(
     childOrder: Order,
-    type  : TransactionTypeEnum
+    type: TransactionTypeEnum
   ) {
-    
     const transaction = new Transaction();
     transaction.order = childOrder;
     transaction.buyer = childOrder.account;
@@ -249,12 +295,12 @@ class TransactionService extends BaseService<Transaction> {
 
     const wallet = await walletRepository.findOne({
       where: {
-        id: childOrder.account.id,
+        owner: { id: childOrder.account.id },
       },
     });
     if (!wallet) throw new BadRequestError(`Wallet not found`);
     transaction.balanceAfterTransaction = wallet.balance;
-    if(type) {
+    if (type) {
       switch (type) {
         case TransactionTypeEnum.ORDER_PURCHASE:
           transaction.type = TransactionTypeEnum.ORDER_PURCHASE;
