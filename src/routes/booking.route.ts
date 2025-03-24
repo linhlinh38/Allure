@@ -5,7 +5,7 @@ import validate from '../utils/validate';
 import {
   BookingCreateSchema,
   BookingUpdateStatusSchema,
-  GetMySlotsSchema,
+  GetSomeoneSlotsSchema,
   NoteResultSchema,
 } from '../dtos/request/booking.request';
 const bookingRoute = express.Router();
@@ -35,9 +35,9 @@ bookingRoute.get(
   BookingController.getStatusBookingInterview
 );
 bookingRoute.post(
-  '/get-my-slots',
-  validate(GetMySlotsSchema),
-  BookingController.getMySlots
+  '/get-someone-slots/:accountId',
+  validate(GetSomeoneSlotsSchema),
+  BookingController.getSomeoneSlots
 );
 bookingRoute.post(
   '/note-result/:id',

@@ -248,7 +248,7 @@ class OrderService extends BaseService<Order> {
           (async () => {
             const wallet = await walletRepository.findOne({
               where: {
-                id: order.account.id,
+                owner: { id: order.account.id },
               },
             });
             wallet.balance += order.totalPrice;
@@ -378,7 +378,7 @@ class OrderService extends BaseService<Order> {
         if (!reasonRejected)
           throw new BadRequestError('Reason Rejected required when rejected');
         rejectRefundRequest.status = status;
-        rejectRefundRequest.reason =
+        rejectRefundRequest.reasonRejected =
           makeDicisionRejectRefundRequest.reasonRejected;
         await queryRunner.manager.save(OrderRequest, rejectRefundRequest);
         isApproved = false;

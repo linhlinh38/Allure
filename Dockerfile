@@ -3,7 +3,8 @@ FROM node:latest AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN npm i 
+
 
 COPY . .
 
@@ -17,7 +18,7 @@ ENV NODE_ENV production
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm i 
 
 COPY --from=builder /app/build ./build
 

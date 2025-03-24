@@ -221,9 +221,11 @@ export enum FeedbackFilterEnum {
 }
 
 export enum ProductTagEnum {
-  BEST_SELLER = "BEST_SELLER",
-  HOT = "HOT",
-  NEW = "NEW",
+  BEST_SELLER = 'BEST_SELLER',
+  HOT = 'HOT',
+  NEW = 'NEW',
+  PRICE_ASC = 'PRICE_ASC',
+  PRICE_DESC = 'PRICE_DESC',
 }
 
 export enum StatisticsTimeEnum {

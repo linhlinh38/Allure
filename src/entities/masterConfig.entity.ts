@@ -1,8 +1,8 @@
-import { Entity, Column, OneToMany } from "typeorm";
-import { StatusEnum } from "../utils/enum";
-import { BaseEntity } from "./base.entity";
-import { BannerConfig } from "./bannerConfig.entity";
-import { oneDay, oneMinute, oneMonth, oneWeek } from "../utils/time";
+import { Entity, Column, OneToMany } from 'typeorm';
+import { StatusEnum } from '../utils/enum';
+import { BaseEntity } from './base.entity';
+import { BannerConfig } from './bannerConfig.entity';
+import { oneDay, oneMinute, oneMonth, oneWeek } from '../utils/time';
 
 @Entity('master_configs')
 export class MasterConfig extends BaseEntity {
@@ -90,6 +90,131 @@ export class MasterConfig extends BaseEntity {
   })
   expiredReceivedTime: number;
 
+  @Column({
+    name: 'max_feedback_images',
+    type: 'int',
+    default: 4,
+  })
+  maxFeedbackImages: number;
+
+  @Column({
+    name: 'max_feedback_videos',
+    type: 'int',
+    default: 1,
+  })
+  maxFeedbackVideos: number;
+
+  @Column({
+    name: 'max_feedback_size',
+    type: 'bigint',
+    default: 10 * 1024 * 1024,
+  })
+  maxFeedbackSize: number;
+
+  @Column({
+    name: 'max_product_images',
+    type: 'int',
+    default: 7,
+  })
+  maxProductImages: number;
+
+  @Column({
+    name: 'max_product_classification_images',
+    type: 'int',
+    default: 4,
+  })
+  maxProductClassificationImages: number;
+
+  @Column({
+    name: 'amount_product_warning',
+    type: 'int',
+    default: 15,
+  })
+  amountProductWarning: number;
+
+  @Column({
+    name: 'max_evidence_images',
+    type: 'int',
+    default: 4,
+  })
+  maxEvidenceImages: number;
+
+  @Column({
+    name: 'max_evidence_videos',
+    type: 'int',
+    default: 2,
+  })
+  maxEvidenceVideos: number;
+
+  @Column({
+    name: 'max_evidence_size',
+    type: 'bigint',
+    default: 15 * 1024 * 1024,
+  })
+  maxEvidenceSize: number;
+
+  @Column({
+    name: 'sample_consultation_criteria_sections_url',
+    type: 'varchar',
+    nullable: true,
+  })
+  sampleConsultationCriteriaSectionsUrl: string;
+
+  @Column({
+    name: 'sample_consultation_criteria_sections_name',
+    type: 'varchar',
+    nullable: true,
+  })
+  sampleConsultationCriteriaSectionsName: string;
+
+  @Column({
+    name: 'request_return_order_max_images',
+    type: 'int',
+    default: 4,
+  })
+  requestReturnOrderMaxImages: number;
+
+  @Column({
+    name: 'request_return_order_max_videos',
+    type: 'int',
+    default: 1,
+  })
+  requestReturnOrderMaxVideos: number;
+
+  @Column({
+    name: 'request_return_order_max_size',
+    type: 'bigint',
+    default: 10 * 1024 * 1024,
+  })
+  requestReturnOrderMaxSize: number;
+
+  @Column({
+    name: 'pending_admin_check_reject_refund_request_time',
+    type: 'bigint',
+    default: 2 * oneDay,
+  })
+  pendingAdminCheckRejectRefundRequestTime: number;
+
+  @Column({
+    name: 'pending_admin_check_complaint_request_time',
+    type: 'bigint',
+    default: 2 * oneDay,
+  })
+  pendingAdminCheckComplaintRequestTime: number;
+
+  @Column({
+    name: 'expired_customer_received_time',
+    type: 'bigint',
+    default: 2 * oneDay,
+  })
+  expiredCustomerReceivedTime: number;
+
+  @Column({
+    name: 'pending_customer_shipping_return_time',
+    type: 'bigint',
+    default: 2 * oneDay,
+  })
+  pendingCustomerShippingReturnTime: number;
 
   @Column({
     type: 'enum',

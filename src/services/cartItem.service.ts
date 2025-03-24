@@ -214,6 +214,8 @@ class CartItemService extends BaseService<CartItem> {
       queryBuilder.andWhere("cartItem.group_buying_id = :groupBuyingId", {
         groupBuyingId: body.groupBuying,
       });
+    } else {
+      queryBuilder.andWhere('cartItem.group_buying_id is NULL');
     }
     const check = await queryBuilder.getMany();
 

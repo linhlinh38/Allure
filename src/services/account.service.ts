@@ -17,9 +17,9 @@ const repository = AppDataSource.getRepository(Account);
 interface FilterOptions {
   username?: string;
   email?: string;
-  role?: string;
+  role?: string[];
   brand?: string;
-  status?: AccountStatusEnum;
+  status?: AccountStatusEnum[];
   sortBy?: string;
   order?: string;
   limit?: number;
@@ -45,7 +45,14 @@ class AccountService extends BaseService<Account> {
   async getById(accountId: string) {
     const account = await repository.findOne({
       where: { id: accountId },
-      relations: ["role", "brands", "cartItems", "addresses"],
+      relations: {
+        role: true,
+        brands: {
+          reviewer: true,
+        },
+        cartItems: true,
+        addresses: true,
+      },
     });
 
     if (!account) {
@@ -96,7 +103,9 @@ class AccountService extends BaseService<Account> {
       });
     }
 
-    if (role) {
+    if (role && Array.isArray(role)) {
+      queryBuilder.andWhere("role.role IN (:...roles)", { roles: role });
+    } else if (role) {
       queryBuilder.andWhere("role.role = :role", { role });
     }
 
@@ -104,7 +113,11 @@ class AccountService extends BaseService<Account> {
       queryBuilder.andWhere("brand.name = :brand", { brand });
     }
 
-    if (status) {
+    if (status && Array.isArray(status)) {
+      queryBuilder.andWhere("account.status IN (:...statuses)", {
+        statuses: status,
+      });
+    } else if (status) {
       queryBuilder.andWhere("account.status = :status", { status });
     }
 

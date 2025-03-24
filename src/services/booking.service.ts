@@ -180,7 +180,7 @@ class BookingService extends BaseService<Booking> {
     }
     return [];
   }
-  async getMySlots(startDate: Date, endDate: Date, loginUser: string) {
+  async getSomeoneSlots(startDate: Date, endDate: Date, loginUser: string) {
     startDate = new Date(startDate);
     endDate = new Date(endDate);
     startDate.setHours(0, 0, 0, 0);

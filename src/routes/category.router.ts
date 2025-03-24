@@ -17,6 +17,7 @@ categoryRouter.post(
 
 categoryRouter.get("/get-by-id/:id", CategoryController.getById);
 categoryRouter.get("/", CategoryController.getAll);
+categoryRouter.get("/filter-category", CategoryController.filterCategories);
 categoryRouter.put(
   "/:id",
   validate(CategoryUpdateSchema),

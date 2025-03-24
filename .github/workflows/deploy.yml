@@ -50,7 +50,7 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          source: "docker-compose.*.yml,deploy.sh,advance.deploy.sh"
+          source: "docker-compose.*.yml,deploy.sh,advance.deploy.sh,Dockerfile,Dockerfile.migrations"
           target: "~/allure-app"
           overwrite: true
 
