@@ -129,8 +129,8 @@ export class Order extends BaseEntity {
   // )
   // cancelOrderRequest: CancelOrderRequest;
 
-  @OneToOne(() => Transaction, (transaction) => transaction.order)
-  transaction: Transaction;
+  @OneToMany(() => Transaction, (transaction) => transaction.order)
+  transactions: Transaction[];
 
   // @OneToOne(() => RefundRequest, (refundRequest) => refundRequest.order)
   // refundRequest: RefundRequest;

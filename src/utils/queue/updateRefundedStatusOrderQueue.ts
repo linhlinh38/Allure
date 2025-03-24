@@ -8,7 +8,7 @@ import {
   OrderEnum,
   OrderRequestTypeEnum,
   ShippingStatusEnum,
-  TransactionStatusEnum,
+  TransactionTypeEnum,
 } from '../enum';
 import { AppDataSource } from '../../dataSource';
 import { Order } from '../../entities/order.entity';
@@ -84,10 +84,10 @@ const updateRefundedStatusOrderQueueWorker = new Worker(
           //create transaction
           (async () => {
             const transaction =
-              transactionService.createTransactionFromNormalOrder(
-                complaintRequest.order
+              await transactionService.createTransactionFromChildOrder(
+                complaintRequest.order,
+                TransactionTypeEnum.ORDER_REFUND
               );
-            transaction.status = TransactionStatusEnum.REFUNDED;
             await queryRunner.manager.save(Transaction, transaction);
           })(),
           //refund to wallet

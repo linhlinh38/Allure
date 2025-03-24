@@ -18,7 +18,6 @@ import { Order } from "./order.entity";
 import { GroupBuyingCriteria } from "./groupBuyingCriteria.entity";
 import { VoucherWallet } from "./voucherWallet.entity";
 import { Product } from "./product.entity";
-import { Booking } from "./booking.entity";
 
 @Entity("vouchers")
 export class Voucher extends BaseEntity {

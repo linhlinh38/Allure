@@ -18,6 +18,7 @@ import { ConsultantService } from "./consultantService.entity";
 import { Slot } from "./slot.entity";
 import { Report } from "./report.entity";
 import { Brand } from "./brand.entity";
+import { Transaction } from "./transaction.entity";
 
 @Entity("bookings")
 export class Booking extends BaseEntity {
@@ -91,4 +92,7 @@ export class Booking extends BaseEntity {
 
   @OneToOne(() => Report, (report) => report.booking)
   report: Report;
+
+  @OneToMany(() => Transaction, (transaction) => transaction.booking)
+  transactions: Transaction[];
 }
