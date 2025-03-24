@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AccountStatusEnum, GenderEnum, StatusEnum } from "../../utils/enum";
+import { AccountStatusEnum, GenderEnum } from "../../utils/enum";
 import moment from "moment";
 import { AddressCreateSchema } from "./address.request";
 import { FileCreateSchema } from "./file.request";

@@ -1,8 +1,6 @@
 import { In } from "typeorm";
 import {
   Between,
-  LessThanOrEqual,
-  MoreThanOrEqual,
   SelectQueryBuilder,
 } from "typeorm";
 import { AppDataSource } from "../dataSource";
@@ -17,7 +15,6 @@ import { BaseService } from "./base.service";
 import { accountRepository } from "../repositories/account.repository";
 import { brandRepository } from "../repositories/brand.repository";
 import { consultantServiceRepository } from "../repositories/consultantService.repository";
-import { Voucher } from "../entities/voucher.entity";
 
 const repository = AppDataSource.getRepository(Booking);
 class BookingService extends BaseService<Booking> {

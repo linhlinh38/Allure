@@ -1,21 +1,24 @@
 import { Column, Entity, ManyToOne } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Account } from './account.entity';
-import {
-  PaymentMethodEnum,
-  TransactionStatusEnum as TransactionStatusEnum,
-  TransactionTypeEnum as TransactionTypeEnum,
-} from '../utils/enum';
+import { PaymentMethodEnum, TransactionTypeEnum } from '../utils/enum';
 import { Order } from './order.entity';
 import { Brand } from './brand.entity';
+import { Booking } from './booking.entity';
 
 @Entity('transactions')
 export class Transaction extends BaseEntity {
-  @ManyToOne(() => Order, (order) => order.transaction, {
+  @ManyToOne(() => Order, (order) => order.transactions, {
     nullable: true,
     onDelete: 'SET NULL',
   })
   order: Order;
+
+  @ManyToOne(() => Booking, (booking) => booking.transactions, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  booking: Booking;
 
   @ManyToOne(() => Account, (buyer) => buyer.transactions)
   buyer: Account;
@@ -27,17 +30,28 @@ export class Transaction extends BaseEntity {
   amount: number;
 
   @Column({
+    type: 'double precision',
+    default: 0,
+    name: 'balance_after_transaction',
+  })
+  balanceAfterTransaction: number;
+
+  @Column({
     type: 'enum',
     enum: PaymentMethodEnum,
   })
   paymentMethod: PaymentMethodEnum;
 
-  @Column({ type: 'enum', enum: TransactionTypeEnum })
-  type: TransactionTypeEnum;
-
   @Column({
     type: 'enum',
-    enum: TransactionStatusEnum,
+    enum: TransactionTypeEnum,
+    default: TransactionTypeEnum.ORDER_PURCHASE,
   })
-  status: TransactionStatusEnum;
+  type: TransactionTypeEnum;
+
+  @Column({ type: 'text', nullable: true })
+  description: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  metadata: Record<string, any>;
 }
