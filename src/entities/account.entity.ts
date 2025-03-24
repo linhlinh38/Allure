@@ -26,6 +26,7 @@ import { Slot } from "./slot.entity";
 import { Booking } from "./booking.entity";
 import { Transaction } from "./transaction.entity";
 import { Report } from "./report.entity";
+import { FCMToken } from "./FCMToken.entity";
 
 @Entity("accounts")
 export class Account extends BaseEntity {
@@ -115,6 +116,9 @@ export class Account extends BaseEntity {
 
   @OneToOne(() => Wallet, (wallet) => wallet.owner)
   wallet: Wallet;
+
+  @OneToOne(() => FCMToken, (fcmToken) => fcmToken.account)
+  fcmToken: FCMToken;
 
   @OneToMany(() => ConsultantService, (service) => service.account, {
     nullable: true,

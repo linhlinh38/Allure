@@ -21,4 +21,6 @@ admin.initializeApp({
 });
 
 const bucket = admin.storage().bucket();
-export {bucket};
+
+const messaging = admin.messaging();
+export { bucket, messaging };
