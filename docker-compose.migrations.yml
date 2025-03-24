@@ -2,12 +2,10 @@ version: "3.9"
 
 services:
   migrations:
-    build:
-      context: .
-      dockerfile: Dockerfile.migrations
+    image: minhpham11311/allure-migrations:latest
     environment:
       - NODE_ENV=${NODE_ENV:-production}
-      - DB_HOST=160.250.133.135
+      - DB_HOST=${DB_HOST:-allure_db}
       - DB_PORT=${DB_PORT:-5432}
       - DB_USER=${DB_USER:-postgres}
       - DB_PASS=${DB_PASS:-Admin@123}
