@@ -31,6 +31,7 @@ import transactionRouter from "./transaction.route";
 import reportRouter from "./report.route";
 import livestreamRouter from "./livestream.route";
 import firebaseAuthRouter from "./firebaseAuth.route";
+import FCMRouter from "./fcm.route";
 
 const router = express.Router();
 router.use("/accounts", accountRouter);
@@ -68,4 +69,6 @@ router.use("/transactions", transactionRouter);
 router.use("/reports", reportRouter);
 router.use("/livestreams", livestreamRouter);
 router.use('/firebase-auth', firebaseAuthRouter);
+router.use('/fcm', FCMRouter);
+;
 export default router;
