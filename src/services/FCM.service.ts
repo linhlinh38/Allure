@@ -1,6 +1,6 @@
 import { messaging } from '../configs/firebaseConfig';
 import { BadRequestError } from '../errors/error';
-import { fcmTokenRepository } from '../repositories/FCMToken.repository';
+import { fcmTokenRepository } from '../repositories/fcmToken.repository';
 
 export class FCMService {
   static async sendNotification(

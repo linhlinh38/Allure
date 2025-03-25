@@ -9,6 +9,7 @@ import { BaseService } from './base.service';
 import { accountRepository } from '../repositories/account.repository';
 import { BadRequestError } from '../errors/error';
 import { RoleEnum } from '../utils/enum';
+import { Account } from '../entities/account.entity';
 
 const repository = AppDataSource.getRepository(Slot);
 class SlotService extends BaseService<Slot> {
@@ -55,16 +56,25 @@ class SlotService extends BaseService<Slot> {
         });
       });
       await queryRunner.manager.save(slots);
-      const allSlots = await repository.find({});
-      const accounts = await accountRepository.find({
+
+      // Lấy tất cả slots (bao gồm cả slots mới) từ transaction
+      const allSlots = await queryRunner.manager.find(Slot, {});
+
+      const accounts = await queryRunner.manager.find(Account, {
         where: {
           role: { role: In([RoleEnum.ADMIN, RoleEnum.OPERATOR]) },
         },
+        relations: {
+          workingSlots: true,
+        },
       });
+
+      // Cập nhật working slots mới cho tất cả accounts
       accounts.forEach((account) => {
         account.workingSlots = allSlots;
       });
       await queryRunner.manager.save(accounts);
+
       await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();
