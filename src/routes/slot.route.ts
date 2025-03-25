@@ -1,7 +1,11 @@
 import express from 'express';
 import authentication from '../middleware/authentication';
 import validate from '../utils/validate';
-import { BulkSlotCreateSchema, UpdateWokingSlotSchema } from '../dtos/request/slot.request';
+import {
+  BulkSlotCreateSchema,
+  UpdateWokingSlotSchema,
+  UpdateSlotSchema,
+} from '../dtos/request/slot.request';
 import SlotController from '../controllers/slot.controller';
 const slotRouter = express.Router();
 
@@ -22,5 +26,10 @@ slotRouter.post(
 slotRouter.get(
   '/get-working-slots-of-consultant/:accountId',
   SlotController.getWorkingSlotsOfConsultant
+);
+slotRouter.post(
+  '/update-slot/:id',
+  validate(UpdateSlotSchema),
+  SlotController.updateSlot
 );
 export default slotRouter;

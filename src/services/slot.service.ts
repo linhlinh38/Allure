@@ -3,6 +3,7 @@ import { AppDataSource } from '../dataSource';
 import {
   SlotRequest,
   UpdateWorkingSlotRequest,
+  UpdateSlotRequest,
 } from '../dtos/request/slot.request';
 import { Slot } from '../entities/slot.entity';
 import { BaseService } from './base.service';
@@ -10,6 +11,7 @@ import { accountRepository } from '../repositories/account.repository';
 import { BadRequestError } from '../errors/error';
 import { RoleEnum } from '../utils/enum';
 import { Account } from '../entities/account.entity';
+import { slotRepository } from '../repositories/slot.repository';
 
 const repository = AppDataSource.getRepository(Slot);
 class SlotService extends BaseService<Slot> {
@@ -91,6 +93,29 @@ class SlotService extends BaseService<Slot> {
         startTime: 'ASC',
       },
     });
+  }
+
+  async updateSlot(id: string, updateSlotRequest: UpdateSlotRequest) {
+    const slot = await slotRepository.findOne({
+      where: { id },
+    });
+
+    if (!slot) {
+      throw new BadRequestError('Slot not found');
+    }
+
+    // Update only provided fields
+    if (updateSlotRequest.weekDay !== undefined) {
+      slot.weekDay = updateSlotRequest.weekDay;
+    }
+    if (updateSlotRequest.startTime) {
+      slot.startTime = updateSlotRequest.startTime;
+    }
+    if (updateSlotRequest.endTime) {
+      slot.endTime = updateSlotRequest.endTime;
+    }
+
+    return await slotRepository.save(slot);
   }
 
   constructor() {

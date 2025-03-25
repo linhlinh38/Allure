@@ -17,6 +17,8 @@ import { walletRepository } from '../../repositories/wallet.reposirory';
 import { transactionService } from '../../services/transaction.service';
 import { Transaction } from '../../entities/transaction.entity';
 import { VoucherWallet } from '../../entities/voucherWallet.entity';
+import { FCMService } from '../../services/FCM.service';
+import { fcmTokenRepository } from '../../repositories/fcmToken.repository';
 
 export const updateRefundedStatusOrderQueue = new Queue(
   'updateRefundedStatusOrderQueue',
@@ -110,6 +112,36 @@ const updateRefundedStatusOrderQueueWorker = new Worker(
           await queryRunner.manager.save(VoucherWallet, voucherWallet);
         }
         isUpdate = true;
+
+        // Gửi thông báo cho người dùng
+        const fcmToken = await fcmTokenRepository.findOne({
+          where: {
+            account: {
+              id: order.account.id,
+            },
+          },
+        });
+
+        if (fcmToken?.token) {
+          try {
+            await FCMService.sendNotification(
+              fcmToken.token,
+              'Hoàn tiền thành công',
+              `Đơn hàng #${
+                order.id
+              } của bạn đã được hoàn tiền ${order.totalPrice.toLocaleString(
+                'vi-VN'
+              )}đ vào ví`,
+              {
+                type: 'REFUND_SUCCESS',
+                orderId: order.id,
+                amount: order.totalPrice.toString(),
+              }
+            );
+          } catch (err) {
+            Logging.error('Failed to send FCM notification:' + err);
+          }
+        }
       }
       Logging.warning(
         isUpdate ? 'Updated status to REFUNDED' : 'Not update status'
