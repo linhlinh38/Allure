@@ -1,22 +1,22 @@
-import { Column, Entity, ManyToOne } from 'typeorm';
-import { BaseEntity } from './base.entity';
-import { Account } from './account.entity';
-import { PaymentMethodEnum, TransactionTypeEnum } from '../utils/enum';
-import { Order } from './order.entity';
-import { Brand } from './brand.entity';
-import { Booking } from './booking.entity';
+import { Column, Entity, ManyToOne } from "typeorm";
+import { BaseEntity } from "./base.entity";
+import { Account } from "./account.entity";
+import { PaymentMethodEnum, TransactionTypeEnum } from "../utils/enum";
+import { Order } from "./order.entity";
+import { Brand } from "./brand.entity";
+import { Booking } from "./booking.entity";
 
-@Entity('transactions')
+@Entity("transactions")
 export class Transaction extends BaseEntity {
   @ManyToOne(() => Order, (order) => order.transactions, {
     nullable: true,
-    onDelete: 'SET NULL',
+    onDelete: "SET NULL",
   })
   order: Order;
 
   @ManyToOne(() => Booking, (booking) => booking.transactions, {
     nullable: true,
-    onDelete: 'SET NULL',
+    onDelete: "SET NULL",
   })
   booking: Booking;
 
@@ -26,32 +26,37 @@ export class Transaction extends BaseEntity {
   @ManyToOne(() => Brand, (brand) => brand.transactions, { nullable: true })
   brand: Brand;
 
-  @Column({ type: 'double precision' })
+  @ManyToOne(() => Account, (consultant) => consultant.transactions, {
+    nullable: true,
+  })
+  consultant: Account;
+
+  @Column({ type: "double precision" })
   amount: number;
 
   @Column({
-    type: 'double precision',
+    type: "double precision",
     default: 0,
-    name: 'balance_after_transaction',
+    name: "balance_after_transaction",
   })
   balanceAfterTransaction: number;
 
   @Column({
-    type: 'enum',
+    type: "enum",
     enum: PaymentMethodEnum,
   })
   paymentMethod: PaymentMethodEnum;
 
   @Column({
-    type: 'enum',
+    type: "enum",
     enum: TransactionTypeEnum,
     default: TransactionTypeEnum.ORDER_PURCHASE,
   })
   type: TransactionTypeEnum;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   description: string;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: "jsonb", nullable: true })
   metadata: Record<string, any>;
 }
