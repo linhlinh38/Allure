@@ -1,20 +1,17 @@
-import { In } from "typeorm";
-import {
-  Between,
-  SelectQueryBuilder,
-} from "typeorm";
-import { AppDataSource } from "../dataSource";
-import { BookingRequest } from "../dtos/request/booking.request";
-import { Account } from "../entities/account.entity";
-import { Booking } from "../entities/booking.entity";
-import { BadRequestError } from "../errors/error";
-import { bookingRepository } from "../repositories/booking.repository";
-import { slotRepository } from "../repositories/slot.repository";
-import { BookingStatusEnum, BookingTypeEnum, RoleEnum } from "../utils/enum";
-import { BaseService } from "./base.service";
-import { accountRepository } from "../repositories/account.repository";
-import { brandRepository } from "../repositories/brand.repository";
-import { consultantServiceRepository } from "../repositories/consultantService.repository";
+import { In } from 'typeorm';
+import { Between, SelectQueryBuilder } from 'typeorm';
+import { AppDataSource } from '../dataSource';
+import { BookingRequest } from '../dtos/request/booking.request';
+import { Account } from '../entities/account.entity';
+import { Booking } from '../entities/booking.entity';
+import { BadRequestError } from '../errors/error';
+import { bookingRepository } from '../repositories/booking.repository';
+import { slotRepository } from '../repositories/slot.repository';
+import { BookingStatusEnum, BookingTypeEnum, RoleEnum } from '../utils/enum';
+import { BaseService } from './base.service';
+import { accountRepository } from '../repositories/account.repository';
+import { brandRepository } from '../repositories/brand.repository';
+import { consultantServiceRepository } from '../repositories/consultantService.repository';
 
 const repository = AppDataSource.getRepository(Booking);
 class BookingService extends BaseService<Booking> {
@@ -24,7 +21,7 @@ class BookingService extends BaseService<Booking> {
         id: brandId,
       },
     });
-    if (!brand) throw new BadRequestError("Brand not found");
+    if (!brand) throw new BadRequestError('Brand not found');
     const booking = await bookingRepository.findOne({
       where: {
         brand: { id: brandId },
@@ -35,7 +32,7 @@ class BookingService extends BaseService<Booking> {
         ]),
       },
     });
-    if (!booking) throw new BadRequestError("Booking not found");
+    if (!booking) throw new BadRequestError('Booking not found');
     return booking;
   }
   async getById(id: string) {
@@ -49,7 +46,7 @@ class BookingService extends BaseService<Booking> {
         slot: true,
       },
     });
-    if (!booking) throw new BadRequestError("Booking not found");
+    if (!booking) throw new BadRequestError('Booking not found');
     return booking;
   }
   async noteResult(id: string, resultNote: string, loginUser: string) {
@@ -63,16 +60,16 @@ class BookingService extends BaseService<Booking> {
     });
     if (!booking) throw new BadRequestError(`Booking not found`);
     if (!booking.brand.reviewer || booking.brand.reviewer.id != loginUser)
-      throw new BadRequestError("Only reviewer can note result");
+      throw new BadRequestError('Only reviewer can note result');
     booking.resultNote = resultNote;
     await repository.save(booking);
   }
 
   queryBuilderForBooking(queryBuilder: SelectQueryBuilder<any>) {
     queryBuilder
-      .leftJoinAndSelect("booking.consultantService", "consultantService")
-      .leftJoinAndSelect("consultantService.account", "consultant")
-      .leftJoinAndSelect("consultantService.images", "consultantServiceImages");
+      .leftJoinAndSelect('booking.consultantService', 'consultantService')
+      .leftJoinAndSelect('consultantService.account', 'consultant')
+      .leftJoinAndSelect('consultantService.images', 'consultantServiceImages');
   }
 
   // async assignForInterview(id: string, assigneeId: string) {
@@ -121,7 +118,7 @@ class BookingService extends BaseService<Booking> {
           slot: true,
         },
         order: {
-          createdAt: "DESC",
+          createdAt: 'DESC',
         },
       });
     } else if (account.role.role == RoleEnum.OPERATOR) {
@@ -136,7 +133,7 @@ class BookingService extends BaseService<Booking> {
           slot: true,
         },
         order: {
-          createdAt: "DESC",
+          createdAt: 'DESC',
         },
       });
     } else if (
@@ -155,7 +152,7 @@ class BookingService extends BaseService<Booking> {
           slot: true,
         },
         order: {
-          createdAt: "DESC",
+          createdAt: 'DESC',
         },
       });
     } else if (account.role.role == RoleEnum.CONSULTANT) {
@@ -171,7 +168,7 @@ class BookingService extends BaseService<Booking> {
           slot: true,
         },
         order: {
-          createdAt: "DESC",
+          createdAt: 'DESC',
         },
       });
     }
@@ -192,7 +189,7 @@ class BookingService extends BaseService<Booking> {
       },
     });
     if (![RoleEnum.CONSULTANT, RoleEnum.OPERATOR].includes(account.role.role)) {
-      throw new BadRequestError("Only apply for consultant or operator");
+      throw new BadRequestError('Only apply for consultant or operator');
     }
 
     const slots = account.workingSlots;
@@ -226,25 +223,64 @@ class BookingService extends BaseService<Booking> {
         id,
       },
     });
-    if (!booking) throw new BadRequestError("Booking not found");
+    if (!booking) throw new BadRequestError('Booking not found');
     booking.status = status;
     await booking.save();
   }
-  async createBooking(bookingRequest: BookingRequest, loginUser: string) {
-    const bookings = await repository.find({
-      where: { account: { id: loginUser } },
-      relations: ["slot"],
-      order: { createdAt: "DESC" },
-      take: 1,
-    });
-    const booking = bookings[0];
-    if (booking && booking.status == BookingStatusEnum.WAIT_FOR_CONFIRMATION)
-      throw new BadRequestError(
-        "You have already booked a slot. Please wait for process"
-      );
 
+  async isSlotBooked(bookingRequest: BookingRequest) {
+    if (bookingRequest.type == BookingTypeEnum.INTERVIEW) {
+      const brand = await brandRepository.findOne({
+        where: {
+          id: bookingRequest.brandId,
+        },
+        relations: {
+          reviewer: true,
+        },
+      });
+      const reviewer = brand.reviewer;
+      const existedBooking = await bookingRepository.findOne({
+        where: {
+          brand: { reviewer: { id: reviewer.id } },
+          slot: { id: bookingRequest.slot },
+          startTime: bookingRequest.startTime,
+          endTime: bookingRequest.endTime,
+          status: In([
+            BookingStatusEnum.BOOKING_CONFIRMED,
+            BookingStatusEnum.WAIT_FOR_CONFIRMATION,
+          ]),
+        },
+      });
+      if (existedBooking) throw new BadRequestError('Slot has been booked');
+    } else {
+      const consultantService = await consultantServiceRepository.findOne({
+        where: {
+          id: bookingRequest.consultantService,
+        },
+        relations: {
+          account: true,
+        },
+      });
+      const consultant = consultantService.account;
+      const existedBooking = await bookingRepository.findOne({
+        where: {
+          consultantService: { account: { id: consultant.id } },
+          slot: { id: bookingRequest.slot },
+          startTime: bookingRequest.startTime,
+          endTime: bookingRequest.endTime,
+          status: In([
+            BookingStatusEnum.BOOKING_CONFIRMED,
+            BookingStatusEnum.WAIT_FOR_CONFIRMATION,
+          ]),
+        },
+      });
+      if (existedBooking) throw new BadRequestError('Slot has been booked');
+    }
+  }
+
+  async createBooking(bookingRequest: BookingRequest, loginUser: string) {
     const slot = await slotRepository.findOneBy({ id: bookingRequest.slot });
-    if (!slot) throw new BadRequestError("Slot not found");
+    if (!slot) throw new BadRequestError('Slot not found');
 
     const existedBooking = await bookingRepository.findOne({
       where: {
@@ -257,15 +293,28 @@ class BookingService extends BaseService<Booking> {
         ]),
       },
     });
-    if (existedBooking) throw new BadRequestError("Slot has been booked");
+    if (existedBooking) throw new BadRequestError('Slot has been booked');
 
     if (bookingRequest.type == BookingTypeEnum.INTERVIEW) {
       if (!bookingRequest.brandId)
-        throw new BadRequestError("BrandId required");
+        throw new BadRequestError('BrandId required');
       const brand = await brandRepository.findOne({
         where: { id: bookingRequest.brandId },
       });
-      if (!brand) throw new BadRequestError("Brand not found");
+      if (!brand) throw new BadRequestError('Brand not found');
+
+      const bookings = await repository.find({
+        where: { account: { id: loginUser }, type: BookingTypeEnum.INTERVIEW },
+        relations: ['slot'],
+        order: { createdAt: 'DESC' },
+        take: 1,
+      });
+      const booking = bookings && bookings.length > 0 && bookings[0];
+      if (booking && booking.status == BookingStatusEnum.WAIT_FOR_CONFIRMATION)
+        throw new BadRequestError(
+          'You have already booked a slot. Please wait for process'
+        );
+      await this.isSlotBooked(bookingRequest);
 
       const createdBooking = new Booking();
       Object.assign(createdBooking, bookingRequest);
@@ -277,12 +326,14 @@ class BookingService extends BaseService<Booking> {
       return;
     } else {
       if (!bookingRequest.consultantService)
-        throw new BadRequestError("ConsultantServiceId required");
+        throw new BadRequestError('ConsultantServiceId required');
       const consultantService = await consultantServiceRepository.findOne({
         where: { id: bookingRequest.consultantService },
       });
       if (!consultantService)
-        throw new BadRequestError("ConsultantService not found");
+        throw new BadRequestError('ConsultantService not found');
+
+      await this.isSlotBooked(bookingRequest);
 
       const createdBooking = new Booking();
       Object.assign(createdBooking, bookingRequest);
@@ -297,12 +348,12 @@ class BookingService extends BaseService<Booking> {
   async getStatusBookingInterview(loginUser: string) {
     const bookings = await repository.find({
       where: { account: { id: loginUser } },
-      relations: ["slot"],
-      order: { createdAt: "DESC" },
+      relations: ['slot'],
+      order: { createdAt: 'DESC' },
       take: 1,
     });
     const booking = bookings[0];
-    if (!booking) throw new BadRequestError("Booking not found");
+    if (!booking) throw new BadRequestError('Booking not found');
     if (
       booking.startTime.getTime() <= Date.now() &&
       booking.status == BookingStatusEnum.WAIT_FOR_CONFIRMATION
