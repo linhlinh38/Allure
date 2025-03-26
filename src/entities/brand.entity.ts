@@ -52,11 +52,11 @@ export class Brand extends BaseEntity {
   phone: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 255 })
+  @Column({ type: "varchar", length: 255, nullable: true })
   address: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 100 })
+  @Column({ type: "varchar", length: 100, nullable: true })
   businessTaxCode: string;
 
   @Expose()
