@@ -4,7 +4,7 @@ import validate from "../utils/validate";
 import {
   BulkSlotCreateSchema,
   UpdateWokingSlotSchema,
-  UpdateSlotSchema,
+  ActiveSlotSchema,
 } from "../dtos/request/slot.request";
 import SlotController from "../controllers/slot.controller";
 const slotRouter = express.Router();
@@ -13,11 +13,12 @@ slotRouter.get("/", SlotController.getAll);
 
 slotRouter.use(authentication);
 
-slotRouter.post(
-  "/bulk-create",
-  validate(BulkSlotCreateSchema),
-  SlotController.bulkCreate
-);
+// slotRouter.post(
+//   '/bulk-create',
+//   validate(BulkSlotCreateSchema),
+//   SlotController.bulkCreate
+// );
+
 slotRouter.post(
   "/update-working-slots",
   validate(UpdateWokingSlotSchema),
@@ -28,8 +29,8 @@ slotRouter.get(
   SlotController.getWorkingSlotsOfConsultant
 );
 slotRouter.post(
-  "/update-slot/:id",
-  validate(UpdateSlotSchema),
-  SlotController.updateSlot
+  "/active-slots/",
+  validate(ActiveSlotSchema),
+  SlotController.activeSlots
 );
 export default slotRouter;
