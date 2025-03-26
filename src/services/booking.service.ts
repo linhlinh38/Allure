@@ -1,30 +1,27 @@
-import { In } from "typeorm";
-import { Between, SelectQueryBuilder } from "typeorm";
-import { AppDataSource } from "../dataSource";
-import { BookingRequest } from "../dtos/request/booking.request";
-import { Account } from "../entities/account.entity";
-import { Booking } from "../entities/booking.entity";
-import { BadRequestError } from "../errors/error";
-import { bookingRepository } from "../repositories/booking.repository";
-import { slotRepository } from "../repositories/slot.repository";
+import { In } from 'typeorm';
+import { Between, SelectQueryBuilder } from 'typeorm';
+import { AppDataSource } from '../dataSource';
+import { BookingRequest } from '../dtos/request/booking.request';
+import { Account } from '../entities/account.entity';
+import { Booking } from '../entities/booking.entity';
+import { BadRequestError } from '../errors/error';
+import { bookingRepository } from '../repositories/booking.repository';
+import { slotRepository } from '../repositories/slot.repository';
 import {
   BookingStatusEnum,
   BookingTypeEnum,
   PaymentMethodEnum,
   RoleEnum,
-  TransactionStatusEnum,
   TransactionTypeEnum,
-} from "../utils/enum";
-import { BaseService } from "./base.service";
-import { accountRepository } from "../repositories/account.repository";
-import { brandRepository } from "../repositories/brand.repository";
-import { consultantServiceRepository } from "../repositories/consultantService.repository";
-import { Voucher } from "../entities/voucher.entity";
-import { walletRepository } from "../repositories/wallet.reposirory";
-import { statusTrackingRepository } from "../repositories/statusTracking.repository";
-import { StatusTracking } from "../entities/statusTracking.entity";
-import { Wallet } from "../entities/wallet.entity";
-import { Transaction } from "../entities/transaction.entity";
+} from '../utils/enum';
+import { BaseService } from './base.service';
+import { accountRepository } from '../repositories/account.repository';
+import { brandRepository } from '../repositories/brand.repository';
+import { consultantServiceRepository } from '../repositories/consultantService.repository';
+import { walletRepository } from '../repositories/wallet.reposirory';
+import { StatusTracking } from '../entities/statusTracking.entity';
+import { Wallet } from '../entities/wallet.entity';
+import { Transaction } from '../entities/transaction.entity';
 
 const repository = AppDataSource.getRepository(Booking);
 class BookingService extends BaseService<Booking> {
@@ -298,8 +295,8 @@ class BookingService extends BaseService<Booking> {
     try {
       const bookings = await repository.find({
         where: { account: { id: loginUser } },
-        relations: ["slot"],
-        order: { createdAt: "DESC" },
+        relations: ['slot'],
+        order: { createdAt: 'DESC' },
         take: 1,
       });
       const booking = bookings[0];
@@ -309,46 +306,38 @@ class BookingService extends BaseService<Booking> {
         booking.status == BookingStatusEnum.WAIT_FOR_CONFIRMATION
       )
         throw new BadRequestError(
-          "You have already booked a slot. Please wait for process"
+          'You have already booked a slot. Please wait for process'
         );
 
       const slot = await slotRepository.findOneBy({ id: bookingRequest.slot });
-      if (!slot) throw new BadRequestError("Slot not found");
+      if (!slot) throw new BadRequestError('Slot not found');
 
-      await this.isSlotBooked(bookingRequest);
-    const existedBooking = await bookingRepository.findOne({
-      where: {
-        slot: { id: bookingRequest.slot },
-        startTime: bookingRequest.startTime,
-        endTime: bookingRequest.endTime,
-        status: In([
-          BookingStatusEnum.BOOKING_CONFIRMED,
-          BookingStatusEnum.WAIT_FOR_CONFIRMATION,
-        ]),
-      },
-    });
-    if (existedBooking) throw new BadRequestError("Slot has been booked");
+      if (bookingRequest.type == BookingTypeEnum.INTERVIEW) {
+        if (!bookingRequest.brandId)
+          throw new BadRequestError('BrandId required');
+        const brand = await brandRepository.findOne({
+          where: { id: bookingRequest.brandId },
+        });
+        if (!brand) throw new BadRequestError('Brand not found');
 
-    if (bookingRequest.type == BookingTypeEnum.INTERVIEW) {
-      if (!bookingRequest.brandId)
-        throw new BadRequestError('BrandId required');
-      const brand = await brandRepository.findOne({
-        where: { id: bookingRequest.brandId },
-      });
-      if (!brand) throw new BadRequestError('Brand not found');
-
-      const bookings = await repository.find({
-        where: { account: { id: loginUser }, type: BookingTypeEnum.INTERVIEW },
-        relations: ['slot'],
-        order: { createdAt: 'DESC' },
-        take: 1,
-      });
-      const booking = bookings && bookings.length > 0 && bookings[0];
-      if (booking && booking.status == BookingStatusEnum.WAIT_FOR_CONFIRMATION)
-        throw new BadRequestError(
-          'You have already booked a slot. Please wait for process'
-        );
-      await this.isSlotBooked(bookingRequest);
+        const bookings = await repository.find({
+          where: {
+            account: { id: loginUser },
+            type: BookingTypeEnum.INTERVIEW,
+          },
+          relations: ['slot'],
+          order: { createdAt: 'DESC' },
+          take: 1,
+        });
+        const booking = bookings && bookings.length > 0 && bookings[0];
+        if (
+          booking &&
+          booking.status == BookingStatusEnum.WAIT_FOR_CONFIRMATION
+        )
+          throw new BadRequestError(
+            'You have already booked a slot. Please wait for process'
+          );
+        await this.isSlotBooked(bookingRequest);
 
         const createdBooking = new Booking();
         Object.assign(createdBooking, bookingRequest);
@@ -359,13 +348,13 @@ class BookingService extends BaseService<Booking> {
         await queryRunner.manager.save(Booking, createdBooking);
       } else {
         if (!bookingRequest.consultantService)
-          throw new BadRequestError("ConsultantServiceId required");
+          throw new BadRequestError('ConsultantServiceId required');
         const consultantService = await consultantServiceRepository.findOne({
           where: { id: bookingRequest.consultantService },
         });
         if (!consultantService)
-          throw new BadRequestError("ConsultantService not found");
-await this.isSlotBooked(bookingRequest);
+          throw new BadRequestError('ConsultantService not found');
+        await this.isSlotBooked(bookingRequest);
         let createdBooking = new Booking();
         Object.assign(createdBooking, bookingRequest);
         createdBooking.status = BookingStatusEnum.TO_PAY;
@@ -437,16 +426,16 @@ await this.isSlotBooked(bookingRequest);
       // Find the booking
       const booking = await bookingRepository.findOne({
         where: { id: bookingId },
-        relations: ["account"],
+        relations: ['account'],
       });
 
       const user = await accountRepository.findOne({
         where: { id: loginUser },
-        relations: ["role"],
+        relations: ['role'],
       });
 
       if (!booking) {
-        throw new BadRequestError("Booking not found");
+        throw new BadRequestError('Booking not found');
       }
 
       if (
@@ -475,7 +464,7 @@ await this.isSlotBooked(bookingRequest);
           owner: { id: booking.account.id },
         },
       });
-      if (!wallet) throw new BadRequestError("Dont have wallet");
+      if (!wallet) throw new BadRequestError('Dont have wallet');
       wallet.balance += booking.totalPrice;
       await queryRunner.manager.save(Wallet, wallet);
 
@@ -487,7 +476,7 @@ await this.isSlotBooked(bookingRequest);
 
       await queryRunner.commitTransaction();
 
-      return { message: "Booking cancelled successfully" };
+      return { message: 'Booking cancelled successfully' };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
