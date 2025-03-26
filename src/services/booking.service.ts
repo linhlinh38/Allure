@@ -12,7 +12,6 @@ import {
   BookingTypeEnum,
   PaymentMethodEnum,
   RoleEnum,
-  TransactionStatusEnum,
   TransactionTypeEnum,
 } from "../utils/enum";
 import { BaseService } from "./base.service";
@@ -242,6 +241,56 @@ class BookingService extends BaseService<Booking> {
     await booking.save();
   }
 
+  async isSlotBooked(bookingRequest: BookingRequest) {
+    if (bookingRequest.type == BookingTypeEnum.INTERVIEW) {
+      const brand = await brandRepository.findOne({
+        where: {
+          id: bookingRequest.brandId,
+        },
+        relations: {
+          reviewer: true,
+        },
+      });
+      const reviewer = brand.reviewer;
+      const existedBooking = await bookingRepository.findOne({
+        where: {
+          brand: { reviewer: { id: reviewer.id } },
+          slot: { id: bookingRequest.slot },
+          startTime: bookingRequest.startTime,
+          endTime: bookingRequest.endTime,
+          status: In([
+            BookingStatusEnum.BOOKING_CONFIRMED,
+            BookingStatusEnum.WAIT_FOR_CONFIRMATION,
+          ]),
+        },
+      });
+      if (existedBooking) throw new BadRequestError("Slot has been booked");
+    } else {
+      const consultantService = await consultantServiceRepository.findOne({
+        where: {
+          id: bookingRequest.consultantService,
+        },
+        relations: {
+          account: true,
+        },
+      });
+      const consultant = consultantService.account;
+      const existedBooking = await bookingRepository.findOne({
+        where: {
+          consultantService: { account: { id: consultant.id } },
+          slot: { id: bookingRequest.slot },
+          startTime: bookingRequest.startTime,
+          endTime: bookingRequest.endTime,
+          status: In([
+            BookingStatusEnum.BOOKING_CONFIRMED,
+            BookingStatusEnum.WAIT_FOR_CONFIRMATION,
+          ]),
+        },
+      });
+      if (existedBooking) throw new BadRequestError("Slot has been booked");
+    }
+  }
+
   async createBooking(bookingRequest: BookingRequest, loginUser: string) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
@@ -266,19 +315,6 @@ class BookingService extends BaseService<Booking> {
       const slot = await slotRepository.findOneBy({ id: bookingRequest.slot });
       if (!slot) throw new BadRequestError("Slot not found");
 
-      const existedBooking = await bookingRepository.findOne({
-        where: {
-          slot: { id: bookingRequest.slot },
-          startTime: bookingRequest.startTime,
-          endTime: bookingRequest.endTime,
-          status: In([
-            BookingStatusEnum.BOOKING_CONFIRMED,
-            BookingStatusEnum.WAIT_FOR_CONFIRMATION,
-          ]),
-        },
-      });
-      if (existedBooking) throw new BadRequestError("Slot has been booked");
-
       if (bookingRequest.type == BookingTypeEnum.INTERVIEW) {
         if (!bookingRequest.brandId)
           throw new BadRequestError("BrandId required");
@@ -286,6 +322,25 @@ class BookingService extends BaseService<Booking> {
           where: { id: bookingRequest.brandId },
         });
         if (!brand) throw new BadRequestError("Brand not found");
+
+        const bookings = await repository.find({
+          where: {
+            account: { id: loginUser },
+            type: BookingTypeEnum.INTERVIEW,
+          },
+          relations: ["slot"],
+          order: { createdAt: "DESC" },
+          take: 1,
+        });
+        const booking = bookings && bookings.length > 0 && bookings[0];
+        if (
+          booking &&
+          booking.status == BookingStatusEnum.WAIT_FOR_CONFIRMATION
+        )
+          throw new BadRequestError(
+            "You have already booked a slot. Please wait for process"
+          );
+        await this.isSlotBooked(bookingRequest);
 
         const createdBooking = new Booking();
         Object.assign(createdBooking, bookingRequest);
@@ -302,7 +357,7 @@ class BookingService extends BaseService<Booking> {
         });
         if (!consultantService)
           throw new BadRequestError("ConsultantService not found");
-
+        await this.isSlotBooked(bookingRequest);
         let createdBooking = new Booking();
         Object.assign(createdBooking, bookingRequest);
         createdBooking.status = BookingStatusEnum.TO_PAY;

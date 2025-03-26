@@ -20,6 +20,12 @@ export const UpdateWokingSlotSchema = z.object({
   }),
 });
 
+export const ActiveSlotSchema = z.object({
+  body: z.object({
+    slotIds: z.array(z.string()),
+  }),
+});
+
 export class UpdateWorkingSlotRequest {
   @Expose()
   slotIds: string[];
@@ -34,4 +40,9 @@ export class SlotItem {
 export class SlotRequest {
   @Expose()
   slots: SlotItem[];
+}
+
+export class ActiveSlotRequest {
+  @Expose()
+  slotIds: string[];
 }

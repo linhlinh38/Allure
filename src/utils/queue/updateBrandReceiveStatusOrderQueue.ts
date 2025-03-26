@@ -7,6 +7,8 @@ import { ShippingStatusEnum } from '../enum';
 import { AppDataSource } from '../../dataSource';
 import { Order } from '../../entities/order.entity';
 import { orderService } from '../../services/order.service';
+import { FCMService } from '../../services/FCM.service';
+import { fcmTokenRepository } from '../../repositories/fcmToken.repository';
 
 export const updateBrandReceiveStatusOrderQueue = new Queue(
   'updateBrandReceiveStatusOrderQueue',
@@ -67,6 +69,32 @@ const uupdateBrandReceiveStatusOrderQueueWorker = new Worker(
           ),
         ]);
         isUpdate = true;
+
+        // Gửi thông báo cho người dùng
+        const fcmToken = await fcmTokenRepository.findOne({
+          where: {
+            account: {
+              id: order.account.id,
+            },
+          },
+        });
+
+        if (fcmToken?.token) {
+          try {
+            await FCMService.sendNotification(
+              fcmToken.token,
+              'Brand đã nhận hàng hoàn trả',
+              `Đơn hàng #${order.id} của bạn đã được brand xác nhận nhận hàng hoàn trả`,
+              {
+                type: 'BRAND_RECEIVED_RETURN',
+                orderId: order.id,
+              }
+            );
+          } catch (err) {
+            Logging.error('Failed to send FCM notification:' + err);
+          }
+        }
+
         Logging.warning(
           isUpdate ? 'Updated status to BRAND_RECEIVED' : 'Not update status'
         );

@@ -3,6 +3,7 @@ import { createNormalResponse } from '../utils/response';
 import { slotService } from '../services/slot.service';
 import { plainToInstance } from 'class-transformer';
 import {
+  ActiveSlotRequest,
   SlotRequest,
   UpdateWorkingSlotRequest,
 } from '../dtos/request/slot.request';
@@ -67,6 +68,19 @@ export default class SlotController {
         'Get all slots success',
         await slotService.getAll()
       );
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async activeSlots(req: Request, res: Response, next: NextFunction) {
+    try {
+      const activeSlotsRequest = plainToInstance(ActiveSlotRequest, req.body, {
+        excludeExtraneousValues: true,
+      });
+
+      await slotService.activeSlots(activeSlotsRequest);
+      return createNormalResponse(res, 'Update slots active status success');
     } catch (err) {
       next(err);
     }
