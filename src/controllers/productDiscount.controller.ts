@@ -19,7 +19,7 @@ export default class ProductDiscountController {
       const productDiscounts = await productDiscountService.getAll();
       return createNormalResponse(
         res,
-        'Get all Product Discounts success',
+        "Get all Product Discounts success",
         productDiscounts
       );
     } catch (err) {
@@ -39,7 +39,7 @@ export default class ProductDiscountController {
         );
       return createNormalResponse(
         res,
-        'Get all Product Discount success',
+        "Get all Product Discount success",
         PreOrderProducts
       );
     } catch (err) {
@@ -59,7 +59,7 @@ export default class ProductDiscountController {
         );
       return createNormalResponse(
         res,
-        'Get all Product Discount success',
+        "Get all Product Discount success",
         PreOrderProducts
       );
     } catch (err) {
@@ -79,7 +79,7 @@ export default class ProductDiscountController {
         );
       return createNormalResponse(
         res,
-        'Get all Product Discount success',
+        "Get all Product Discount success",
         PreOrderProducts
       );
     } catch (err) {
@@ -98,7 +98,7 @@ export default class ProductDiscountController {
         endTime,
         productId,
         brandId,
-        status,
+        statuses,
         sortBy,
         order,
         limit,
@@ -110,9 +110,11 @@ export default class ProductDiscountController {
         endTime: endTime ? new Date(endTime.toString()) : undefined,
         productId: productId?.toString(),
         brandId: brandId?.toString(),
-        status: status ? (status as ProductDiscountEnum) : undefined,
-        sortBy: sortBy?.toString() ?? 'id',
-        order: order?.toString() ?? 'ASC',
+        status: statuses
+          ? ((statuses as string).split(",") as ProductDiscountEnum[])
+          : undefined,
+        sortBy: sortBy?.toString() ?? "id",
+        order: order?.toString() ?? "ASC",
         page: page ? Number(page) : 1,
         limit: limit ? Number(limit) : 10,
       };
@@ -121,7 +123,7 @@ export default class ProductDiscountController {
         await productDiscountService.filterProductDiscounts(filter);
       return createNormalResponse(
         res,
-        'Get productDiscount success',
+        "Get productDiscount success",
         productDiscount
       );
     } catch (err) {
@@ -135,10 +137,10 @@ export default class ProductDiscountController {
         req.params.id
       );
       if (!productDiscount)
-        throw new NotFoundError('Product Discount not found');
+        throw new NotFoundError("Product Discount not found");
       return createNormalResponse(
         res,
-        'Get Product Discount success',
+        "Get Product Discount success",
         productDiscount
       );
     } catch (err) {
@@ -149,7 +151,7 @@ export default class ProductDiscountController {
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
       await productDiscountService.update(req.params.id, req.body);
-      return createNormalResponse(res, 'Update Product Discount success');
+      return createNormalResponse(res, "Update Product Discount success");
     } catch (err) {
       next(err);
     }
@@ -158,7 +160,7 @@ export default class ProductDiscountController {
   static async create(req: Request, res: Response, next: NextFunction) {
     try {
       const productDiscount = await productDiscountService.create(req.body);
-      return createNormalResponse(res, 'Create Product Discount success', {
+      return createNormalResponse(res, "Create Product Discount success", {
         id: productDiscount.id,
       });
     } catch (err) {

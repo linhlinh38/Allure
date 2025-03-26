@@ -4,3 +4,6 @@ build
 package-lock.json
 migrations
 .vscode
+tmp
+plantuml
+out

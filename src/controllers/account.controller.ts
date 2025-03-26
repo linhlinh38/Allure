@@ -56,15 +56,26 @@ async function getAccountBy(req: Request, res: Response, next: NextFunction) {
 
 async function filterAccounts(req: Request, res: Response, next: NextFunction) {
   try {
-    const { username, email, role, brand, status, sortBy, order, limit, page } =
-      req.query;
+    const {
+      username,
+      email,
+      role,
+      brand,
+      statuses,
+      sortBy,
+      order,
+      limit,
+      page,
+    } = req.query;
 
     const filter = {
       username: username?.toString(),
       email: email?.toString(),
-      role: role?.toString(),
+      role: role ? ((role as string).split(",") as string[]) : undefined,
       brand: brand?.toString(),
-      status: status ? (status as AccountStatusEnum) : undefined,
+      status: statuses
+        ? ((statuses as string).split(",") as AccountStatusEnum[])
+        : undefined,
       sortBy: sortBy?.toString() ?? "id",
       order: order?.toString() ?? "ASC",
       page: page ? Number(page) : 1,
@@ -75,7 +86,12 @@ async function filterAccounts(req: Request, res: Response, next: NextFunction) {
     const responseData = accounts.items.map((acc) =>
       plainToClass(AccountResponse, acc)
     );
-    return createNormalResponse(res, "Get accounts success", responseData);
+    return createNormalResponse(res, "Get accounts success", {
+      items: responseData,
+      total: accounts.total,
+      page: accounts.page,
+      limit: accounts.limit,
+    });
   } catch (err) {
     next(err);
   }
