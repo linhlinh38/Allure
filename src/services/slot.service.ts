@@ -3,7 +3,7 @@ import { AppDataSource } from '../dataSource';
 import {
   SlotRequest,
   UpdateWorkingSlotRequest,
-  UpdateSlotRequest,
+  ActiveSlotRequest,
 } from '../dtos/request/slot.request';
 import { Slot } from '../entities/slot.entity';
 import { BaseService } from './base.service';
@@ -11,7 +11,7 @@ import { accountRepository } from '../repositories/account.repository';
 import { BadRequestError } from '../errors/error';
 import { RoleEnum } from '../utils/enum';
 import { Account } from '../entities/account.entity';
-import { slotRepository } from '../repositories/slot.repository';
+import Logging from '../utils/Logging';
 
 const repository = AppDataSource.getRepository(Slot);
 class SlotService extends BaseService<Slot> {
@@ -95,27 +95,54 @@ class SlotService extends BaseService<Slot> {
     });
   }
 
-  async updateSlot(id: string, updateSlotRequest: UpdateSlotRequest) {
-    const slot = await slotRepository.findOne({
-      where: { id },
-    });
+  async activeSlots(activeSlotsRequest: ActiveSlotRequest) {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      // Inactive all slots
+      await queryRunner.manager.update(Slot, {}, { isActive: false });
 
-    if (!slot) {
-      throw new BadRequestError('Slot not found');
-    }
+      // Active specified slots
+      if (activeSlotsRequest.slotIds.length > 0) {
+        await queryRunner.manager.update(
+          Slot,
+          { id: In(activeSlotsRequest.slotIds) },
+          { isActive: true }
+        );
+      }
 
-    // Update only provided fields
-    if (updateSlotRequest.weekDay !== undefined) {
-      slot.weekDay = updateSlotRequest.weekDay;
-    }
-    if (updateSlotRequest.startTime) {
-      slot.startTime = updateSlotRequest.startTime;
-    }
-    if (updateSlotRequest.endTime) {
-      slot.endTime = updateSlotRequest.endTime;
-    }
+      // Get all operator and consultant accounts
+      const accounts = await queryRunner.manager.find(Account, {
+        where: {
+          role: { role: In([RoleEnum.OPERATOR, RoleEnum.CONSULTANT]) },
+        },
+        relations: {
+          workingSlots: true,
+        },
+      });
 
-    return await slotRepository.save(slot);
+      // Update working slots for each account to only include active slots
+      accounts.forEach((account) => {
+        account.workingSlots = account.workingSlots.filter(
+          (slot) => slot.isActive
+        );
+      });
+
+      await queryRunner.manager.save(accounts);
+
+      await queryRunner.commitTransaction();
+      Logging.info(
+        'Successfully updated slots active status and account working slots'
+      );
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      Logging.error('Error updating slots active status:');
+      Logging.error(error);
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   constructor() {

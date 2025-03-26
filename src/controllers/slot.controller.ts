@@ -3,12 +3,11 @@ import { createNormalResponse } from '../utils/response';
 import { slotService } from '../services/slot.service';
 import { plainToInstance } from 'class-transformer';
 import {
+  ActiveSlotRequest,
   SlotRequest,
   UpdateWorkingSlotRequest,
-  UpdateSlotRequest,
 } from '../dtos/request/slot.request';
 import { AuthRequest } from '../middleware/authentication';
-import { BadRequestError } from '../errors/error';
 
 export default class SlotController {
   static async getWorkingSlotsOfConsultant(
@@ -74,22 +73,14 @@ export default class SlotController {
     }
   }
 
-  static async updateSlot(req: Request, res: Response, next: NextFunction) {
+  static async activeSlots(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
-      if (!id) {
-        throw new BadRequestError('Slot id is required');
-      }
-
-      const updateSlotRequest = plainToInstance(UpdateSlotRequest, req.body, {
+      const activeSlotsRequest = plainToInstance(ActiveSlotRequest, req.body, {
         excludeExtraneousValues: true,
       });
 
-      return createNormalResponse(
-        res,
-        'Update slot success',
-        await slotService.updateSlot(id, updateSlotRequest)
-      );
+      await slotService.activeSlots(activeSlotsRequest);
+      return createNormalResponse(res, 'Update slots active status success');
     } catch (err) {
       next(err);
     }
