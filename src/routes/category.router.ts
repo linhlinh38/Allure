@@ -8,16 +8,15 @@ import {
 import CategoryController from "../controllers/category.controller";
 const categoryRouter = express.Router();
 
+categoryRouter.get("/get-by-id/:id", CategoryController.getById);
+categoryRouter.get("/", CategoryController.getAll);
+categoryRouter.get("/filter-category", CategoryController.filterCategories);
 categoryRouter.use(authentication);
 categoryRouter.post(
   "/",
   validate(CategoryCreateSchema),
   CategoryController.create
 );
-
-categoryRouter.get("/get-by-id/:id", CategoryController.getById);
-categoryRouter.get("/", CategoryController.getAll);
-categoryRouter.get("/filter-category", CategoryController.filterCategories);
 categoryRouter.put(
   "/:id",
   validate(CategoryUpdateSchema),
