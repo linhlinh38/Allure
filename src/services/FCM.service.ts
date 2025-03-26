@@ -1,6 +1,6 @@
-import { messaging } from '../configs/firebaseConfig';
-import { BadRequestError } from '../errors/error';
-import { fcmTokenRepository } from '../repositories/fcmToken.repository';
+import { messaging } from "../configs/firebaseConfig";
+import { BadRequestError } from "../errors/error";
+import { fcmTokenRepository } from "../repositories/fcmToken.repository";
 
 export class FCMService {
   static async sendNotification(
@@ -82,7 +82,7 @@ export class FCMService {
         },
       },
     });
-    if (!token) throw new BadRequestError('FCM Token not found');
+    if (!token) throw new BadRequestError("FCM Token not found");
     return token.token;
   }
 
