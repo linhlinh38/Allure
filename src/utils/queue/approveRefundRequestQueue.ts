@@ -11,6 +11,8 @@ import { retrieveMasterConfig } from "../retrieveMasterConfig";
 import Logging from "../Logging";
 import { connection } from "./connection";
 import { orderRequestRepository } from "../../repositories/orderRequest.repository";
+import { FCMService } from "../../services/FCM.service";
+import { fcmTokenRepository } from "../../repositories/fcmToken.repository";
 
 export const approveRefundRequestQueue = new Queue(
   "approveRefundRequestQueue",
@@ -40,7 +42,9 @@ const approveRefundRequestQueueWorker = new Worker(
       const refundRequest = await orderRequestRepository.findOne({
         where: { id, type: OrderRequestTypeEnum.REFUND },
         relations: {
-          order: true,
+          order: {
+            account: true,
+          },
         },
       });
       if (!refundRequest) return;
@@ -66,6 +70,33 @@ const approveRefundRequestQueueWorker = new Worker(
           queryRunner
         ),
       ]);
+
+      // Lấy FCM token của user
+      const fcmToken = await fcmTokenRepository.findOne({
+        where: {
+          account: {
+            id: order.account.id,
+          },
+        },
+      });
+
+      // Gửi thông báo cho người dùng
+      if (fcmToken?.token) {
+        try {
+          await FCMService.sendNotification(
+            fcmToken.token,
+            "Yêu cầu hoàn tiền đã được chấp nhận",
+            `Đơn hàng #${order.id} của bạn đã được chấp nhận hoàn tiền`,
+            {
+              type: "REFUND_APPROVED",
+              orderId: order.id,
+            }
+          );
+        } catch (err) {
+          Logging.error("Failed to send FCM notification:" + err);
+        }
+      }
+
       await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();

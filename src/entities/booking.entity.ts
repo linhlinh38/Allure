@@ -90,6 +90,9 @@ export class Booking extends BaseEntity {
   @OneToMany(() => StatusTracking, (statusTracking) => statusTracking.booking)
   statusTrackings: StatusTracking[];
 
+  @OneToMany(() => Transaction, (transaction) => transaction.booking)
+  transaction: Transaction[];
+
   @OneToOne(() => Report, (report) => report.booking)
   report: Report;
 

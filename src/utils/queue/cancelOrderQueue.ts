@@ -6,6 +6,8 @@ import { ShippingStatusEnum } from "../enum";
 import { retrieveMasterConfig } from "../retrieveMasterConfig";
 import Logging from "../Logging";
 import { connection } from "./connection";
+import { FCMService } from "../../services/FCM.service";
+import { fcmTokenRepository } from "../../repositories/fcmToken.repository";
 
 export const cancelOrderQueue = new Queue("cancelOrderQueue", {
   connection,
@@ -58,6 +60,32 @@ const cancelOrderQueueWorker = new Worker(
         !isPaid
       ) {
         await orderService.cancelParentOrder(parentOrder, queryRunner);
+
+        // Lấy FCM token của user
+        const fcmToken = await fcmTokenRepository.findOne({
+          where: {
+            account: {
+              id: parentOrder.account.id,
+            },
+          },
+        });
+
+        // Gửi thông báo cho người dùng
+        if (fcmToken?.token) {
+          try {
+            await FCMService.sendNotification(
+              fcmToken.token,
+              "Đơn hàng đã bị hủy",
+              `Đơn hàng #${parentOrder.id} đã bị hủy do không thanh toán kịp thời`,
+              {
+                type: "ORDER_CANCELLED",
+                orderId: parentOrder.id,
+              }
+            );
+          } catch (err) {
+            Logging.error("Failed to send FCM notification:" + err);
+          }
+        }
       }
       await queryRunner.commitTransaction();
     } catch (error) {

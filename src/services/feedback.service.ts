@@ -231,13 +231,13 @@ class FeedbackService extends BaseService<Feedback> {
       productId
     )
       .select([
-        'AVG(feedback.rating) AS average_rating',
-        'COUNT(feedback.rating) AS total_count',
-        'SUM(CASE WHEN feedback.rating = 1 THEN 1 ELSE 0 END) AS rating1',
-        'SUM(CASE WHEN feedback.rating = 2 THEN 1 ELSE 0 END) AS rating2',
-        'SUM(CASE WHEN feedback.rating = 3 THEN 1 ELSE 0 END) AS rating3',
-        'SUM(CASE WHEN feedback.rating = 4 THEN 1 ELSE 0 END) AS rating4',
-        'SUM(CASE WHEN feedback.rating = 5 THEN 1 ELSE 0 END) AS rating5',
+        'AVG(DISTINCT feedback.rating) AS average_rating',
+        'COUNT(DISTINCT feedback.id) AS total_count',
+        'COUNT(DISTINCT CASE WHEN feedback.rating = 1 THEN feedback.id END) AS rating1',
+        'COUNT(DISTINCT CASE WHEN feedback.rating = 2 THEN feedback.id END) AS rating2',
+        'COUNT(DISTINCT CASE WHEN feedback.rating = 3 THEN feedback.id END) AS rating3',
+        'COUNT(DISTINCT CASE WHEN feedback.rating = 4 THEN feedback.id END) AS rating4',
+        'COUNT(DISTINCT CASE WHEN feedback.rating = 5 THEN feedback.id END) AS rating5',
       ])
       .getRawOne();
 
