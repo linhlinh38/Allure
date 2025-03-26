@@ -20,17 +20,9 @@ export const UpdateWokingSlotSchema = z.object({
   }),
 });
 
-export const UpdateSlotSchema = z.object({
+export const ActiveSlotSchema = z.object({
   body: z.object({
-    weekDay: z.nativeEnum(WeekDay).optional(),
-    startTime: z
-      .string()
-      .regex(/^\d{2}:\d{2}$/, 'Invalid time format (HH:MM)')
-      .optional(),
-    endTime: z
-      .string()
-      .regex(/^\d{2}:\d{2}$/, 'Invalid time format (HH:MM)')
-      .optional(),
+    slotIds: z.array(z.string()),
   }),
 });
 
@@ -50,13 +42,7 @@ export class SlotRequest {
   slots: SlotItem[];
 }
 
-export class UpdateSlotRequest {
+export class ActiveSlotRequest {
   @Expose()
-  weekDay?: WeekDay;
-
-  @Expose()
-  startTime?: string;
-
-  @Expose()
-  endTime?: string;
+  slotIds: string[];
 }
