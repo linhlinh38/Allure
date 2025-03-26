@@ -1,3 +1,4 @@
+import { ideahub } from "googleapis/build/src/apis/ideahub";
 import { AppDataSource } from "../dataSource";
 import { CartItem } from "../entities/cartItem.entity";
 import { PreOrderProduct } from "../entities/preOrderProduct.entity";
@@ -15,10 +16,10 @@ class CartItemService extends BaseService<CartItem> {
     super(repository);
   }
 
-  async beforeCreate(body: any) {
-    if (body.productClassification) {
+  async beforeCreate(data: any): Promise<void> {
+    if (data.productClassification) {
       const checkClassification = await productClassificationService.findById(
-        body.productClassification
+        data.productClassification
       );
       if (!checkClassification)
         throw new BadRequestError("Classification not found");
@@ -30,28 +31,42 @@ class CartItemService extends BaseService<CartItem> {
         throw new BadRequestError("Can not add invalid Product");
       }
 
-      if (checkClassification.quantity < body.quantity) {
+      if (checkClassification.quantity < data.quantity) {
         throw new BadRequestError("Quantity is not enough");
       }
     }
-    if (body.groupBuying) {
+    if (data.groupBuying) {
       const checkGroupBuying = await groupBuyingService.getById(
-        body.groupBuying
+        data.groupBuying
       );
       if (!checkGroupBuying || checkGroupBuying.status === StatusEnum.INACTIVE)
         throw new BadRequestError("Group Buying invalid");
     }
   }
 
-  async beforeUpdate(id: string, body: any) {
-    const checkCart = await cartItemService.findById(id);
+  async beforeUpdate(id: string, data: any): Promise<void> {
+    const findCart = await this.repository.find({
+      where: { id },
+      relations: ["productClassification"],
+    });
+    const checkCart = findCart[0];
     if (!checkCart) throw new BadRequestError("Cart Item not found");
-    if (body.productClassification) {
+    if (checkCart.productClassification.id) {
       const checkClassification = await productClassificationService.findById(
-        body.productClassification
+        checkCart.productClassification.id
       );
       if (!checkClassification)
         throw new BadRequestError("Classification not found");
+      if (
+        checkClassification.quantity <= 0 ||
+        checkClassification.status !== StatusEnum.ACTIVE
+      ) {
+        throw new BadRequestError("Can not add invalid Product");
+      }
+
+      if (checkClassification.quantity < data.quantity) {
+        throw new BadRequestError("Quantity is not enough");
+      }
     }
   }
 
@@ -215,7 +230,7 @@ class CartItemService extends BaseService<CartItem> {
         groupBuyingId: body.groupBuying,
       });
     } else {
-      queryBuilder.andWhere('cartItem.group_buying_id is NULL');
+      queryBuilder.andWhere("cartItem.group_buying_id is NULL");
     }
     const check = await queryBuilder.getMany();
 

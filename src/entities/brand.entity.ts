@@ -5,36 +5,36 @@ import {
   ManyToMany,
   ManyToOne,
   OneToMany,
-} from 'typeorm';
-import { BaseEntity } from './base.entity';
-import { BrandStatusEnum } from '../utils/enum';
-import { Account } from './account.entity';
-import { Follow } from './follow.entity';
-import { Expose } from 'class-transformer';
-import { Voucher } from './voucher.entity';
-import { StatusTracking } from './statusTracking.entity';
-import { Product } from './product.entity';
-import { Transaction } from './transaction.entity';
-import { Order } from './order.entity';
-import { GroupProduct } from './groupProduct.entity';
-import { File } from './file.entity';
-import { Booking } from './booking.entity';
+} from "typeorm";
+import { BaseEntity } from "./base.entity";
+import { BrandStatusEnum } from "../utils/enum";
+import { Account } from "./account.entity";
+import { Follow } from "./follow.entity";
+import { Expose } from "class-transformer";
+import { Voucher } from "./voucher.entity";
+import { StatusTracking } from "./statusTracking.entity";
+import { Product } from "./product.entity";
+import { Transaction } from "./transaction.entity";
+import { Order } from "./order.entity";
+import { GroupProduct } from "./groupProduct.entity";
+import { File } from "./file.entity";
+import { Booking } from "./booking.entity";
 
-@Entity('brands')
+@Entity("brands")
 export class Brand extends BaseEntity {
   @Expose()
-  @Column({ type: 'varchar', length: 255, unique: true})
+  @Column({ type: "varchar", length: 255, unique: true, nullable: true })
   name: string;
 
   @Expose()
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: "varchar", length: 255 })
   logo: string;
 
   @OneToMany(() => File, (document) => document.brand, { cascade: true })
   documents: File[];
 
   @Expose()
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: "varchar", length: 255 })
   description: string;
 
   @ManyToMany(() => Account, (account) => account.brands)
@@ -44,50 +44,50 @@ export class Brand extends BaseEntity {
   follows: Follow[];
 
   @Expose()
-  @Column({ type: 'varchar', length: 255, nullable: false })
+  @Column({ type: "varchar", length: 255, nullable: false })
   email: string;
 
   @Expose()
-  @Column({ type: 'varchar', length: 15, nullable: true })
+  @Column({ type: "varchar", length: 15, nullable: true })
   phone: string;
 
   @Expose()
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: "varchar", length: 255 })
   address: string;
 
   @Expose()
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ type: "varchar", length: 100 })
   businessTaxCode: string;
 
   @Expose()
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ type: "varchar", length: 100 })
   businessRegistrationCode: string;
 
   @Expose()
-  @Column({ type: 'date' })
+  @Column({ type: "date" })
   establishmentDate: Date;
 
   @Expose()
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ type: "varchar", length: 100 })
   province: string;
 
   @Expose()
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ type: "varchar", length: 100 })
   district: string;
 
   @Expose()
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ type: "varchar", length: 100 })
   ward: string;
 
   @Expose()
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: "varchar", length: 255 })
   businessRegistrationAddress: string;
 
-  @Column({ type: 'integer', name: 'current_update_profile_time', default: 0 })
+  @Column({ type: "integer", name: "current_update_profile_time", default: 0 })
   currentUpdateProfileTime: number;
 
   @Column({
-    type: 'enum',
+    type: "enum",
     enum: BrandStatusEnum,
     default: BrandStatusEnum.PENDING_REVIEW,
   })
@@ -115,6 +115,6 @@ export class Brand extends BaseEntity {
   bookings: Booking[];
 
   @ManyToOne(() => Account, { nullable: true })
-  @JoinColumn({ name: 'reviewer_id' })
+  @JoinColumn({ name: "reviewer_id" })
   reviewer: Account;
 }
