@@ -86,7 +86,7 @@ export default class PreOrderProductController {
       const {
         startTime,
         endTime,
-        productId,
+        productIds,
         brandId,
         statuses,
         sortBy,
@@ -98,7 +98,9 @@ export default class PreOrderProductController {
       const filter = {
         startTime: startTime ? new Date(startTime.toString()) : undefined,
         endTime: endTime ? new Date(endTime.toString()) : undefined,
-        productId: productId?.toString(),
+        productIds: productIds
+          ? ((productIds as string).split(",") as string[])
+          : undefined,
         brandId: brandId?.toString(),
         status: statuses
           ? ((statuses as string).split(",") as PreOrderProductEnum[])
