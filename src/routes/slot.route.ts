@@ -2,7 +2,6 @@ import express from 'express';
 import authentication from '../middleware/authentication';
 import validate from '../utils/validate';
 import {
-  BulkSlotCreateSchema,
   UpdateWokingSlotSchema,
   ActiveSlotSchema,
 } from '../dtos/request/slot.request';

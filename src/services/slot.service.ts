@@ -36,6 +36,13 @@ class SlotService extends BaseService<Slot> {
         id: In(updateWorkingSlotRequest.slotIds),
       },
     });
+
+    // Kiểm tra xem có slot nào inactive không
+    const inactiveSlots = slots.filter((slot) => !slot.isActive);
+    if (inactiveSlots.length > 0) {
+      throw new BadRequestError('Some slots are not active');
+    }
+
     const account = await accountRepository.findOne({
       where: {
         id: loginUser,
