@@ -79,7 +79,7 @@ async function refreshToken(req: Request, res: Response) {
         expiresIn: "1d",
       }
     );
-    const newRefreshToken = generateRefreshToken(accountId.toString());
+    const newRefreshToken = await generateRefreshToken(accountId);
     res.status(200).json({
       message: "Refresh token Successful",
       data: { accessToken: newAccessToken, refreshToken: newRefreshToken },
