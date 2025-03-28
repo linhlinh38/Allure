@@ -39,8 +39,11 @@ export class Account extends BaseEntity {
   @Column({ type: "varchar", length: 100, unique: true, nullable: true })
   username?: string;
 
-  @Column({ type: "varchar", length: 100, nullable: true })
+  @Column({ type: "varchar", nullable: true })
   avatar?: string;
+
+  @Column({ type: "varchar", nullable: true })
+  introduceVideo?: string;
 
   @Column({ type: "varchar", length: 255, nullable: false })
   email: string;

@@ -15,6 +15,9 @@ export class ConsultantService extends BaseEntity {
   // @Column({ type: "int", nullable: false, name: "daily_slot" })
   // dailySlot: number;
 
+  @Column({ type: "varchar", nullable: true })
+  detail: string;
+
   @ManyToOne(() => Account, (account) => account.consultantServices)
   @JoinColumn({ name: "account_id" })
   account: Account;
