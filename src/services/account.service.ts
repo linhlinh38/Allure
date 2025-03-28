@@ -4,7 +4,7 @@ import { BaseService } from "./base.service";
 import { AppDataSource } from "../dataSource";
 import { BadRequestError, EmailAlreadyExistError } from "../errors/error";
 import { encryptedPassword } from "../utils/jwt";
-import { AccountStatusEnum, RoleEnum } from "../utils/enum";
+import { AccountStatusEnum, FileEnum, RoleEnum } from "../utils/enum";
 import { sendRegisterAccountEmail } from "./mail.service";
 import { Address } from "../entities/address.entity";
 import { File } from "../entities/file.entity";
@@ -276,27 +276,31 @@ class AccountService extends BaseService<Account> {
         //await sendResetPasswordEmail(account);
         break;
       case RoleEnum.CONSULTANT:
-        if (data.certificate) {
-          const certConsultant: Partial<File> = {
-            account: account,
-            name: data.certificate.name,
-            fileUrl: data.certificate.fileUrl,
-            type: data.certificate.type,
-          };
-          await queryRunner.manager.save(File, certConsultant);
+        if (data.certificates && data.certificates.length !== 0) {
+          for (const cert of data.certificates) {
+            const certConsultant: Partial<File> = {
+              account: account,
+              name: cert.name ?? null,
+              fileUrl: cert.fileUrl,
+              type: FileEnum.CERTIFICATE,
+            };
+            await queryRunner.manager.save(File, certConsultant);
+          }
         }
 
         // await sendRegisterAccountEmail(account, data.url);
         break;
       case RoleEnum.KOL:
-        if (data.certificate) {
-          const certKOL: Partial<File> = {
-            account: account,
-            name: data.certificate.name,
-            fileUrl: data.certificate.fileUrl,
-            type: data.certificatel.type,
-          };
-          await queryRunner.manager.save(File, certKOL);
+        if (data.certificates && data.certificates.length !== 0) {
+          for (const cert of data.certificates) {
+            const certKOL: Partial<File> = {
+              account: account,
+              name: cert.name ?? null,
+              fileUrl: cert.fileUrl,
+              type: FileEnum.CERTIFICATE,
+            };
+            await queryRunner.manager.save(File, certKOL);
+          }
         }
         console.log("create kol");
         //await sendResetPasswordEmail(account);
