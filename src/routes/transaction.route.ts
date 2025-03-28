@@ -5,12 +5,14 @@ import TransactionController from '../controllers/transaction.controller';
 import {
   FilterTransactionSchema,
   GetStatisticsSchema,
+  PaySchema,
 } from '../dtos/request/transaction.request';
 const transactionRouter = express.Router();
 
 transactionRouter.use(authentication);
 
 transactionRouter.post('/deposit', TransactionController.deposit);
+transactionRouter.post('/pay', validate(PaySchema), TransactionController.pay);
 
 transactionRouter.post(
   '/filter',

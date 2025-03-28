@@ -1,6 +1,7 @@
 import { Expose } from 'class-transformer';
 import { z } from 'zod';
 import {
+  PayTypeEnum,
   StatisticsTimeEnum,
   TransactionTypeEnum,
 } from '../../utils/enum';
@@ -24,6 +25,25 @@ export const GetStatisticsSchema = z.object({
       .optional(),
   }),
 });
+
+export const PaySchema = z.object({
+  body: z.object({
+    orderId: z.string().optional(),
+    id: z.string().uuid(),
+    type: z.nativeEnum(PayTypeEnum),
+  }),
+});
+
+export class PayRequest {
+  @Expose()
+  orderId: string;
+
+  @Expose()
+  id: string;
+
+  @Expose()
+  type: PayTypeEnum;
+}
 
 export const FilterTransactionSchema = z.object({
   body: z.object({

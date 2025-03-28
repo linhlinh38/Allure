@@ -2,7 +2,9 @@ import { QueryRunner } from 'typeorm';
 import { AppDataSource } from '../dataSource';
 import { Transaction } from '../entities/transaction.entity';
 import {
+  BookingStatusEnum,
   PaymentMethodEnum,
+  PayTypeEnum,
   ShippingStatusEnum,
   StatisticsTimeEnum,
   TransactionTypeEnum,
@@ -13,6 +15,7 @@ import { GroupBuying } from '../entities/groupBuying.entity';
 import {
   FilterTransactionRequest,
   GetStatisticsRequest,
+  PayRequest,
 } from '../dtos/request/transaction.request';
 import { orderRepository } from '../repositories/order.repository';
 import { brandRepository } from '../repositories/brand.repository';
@@ -23,32 +26,102 @@ import { orderService } from './order.service';
 import { walletRepository } from '../repositories/wallet.reposirory';
 import { payos } from '../utils/payos';
 import { Account } from '../entities/account.entity';
+import { bookingRepository } from '../repositories/booking.repository';
+import { Booking } from '../entities/booking.entity';
 
 const repository = AppDataSource.getRepository(Transaction);
 class TransactionService extends BaseService<Transaction> {
-  async deposit(orderId: string, loginUser: string) {
+  async pay(payRequest: PayRequest) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
-      const data = await payos.getPaymentLinkInformation(orderId);
-      if (data.status == 'PAID') {
-        const wallet = await walletRepository.findOne({
-          where: {
-            owner: { id: loginUser },
+      if (payRequest.type == PayTypeEnum.ORDER) {
+        const order = await orderRepository.findOne({
+          where: { id: payRequest.orderId },
+          relations: {
+            account: true,
           },
         });
-        if (!wallet) throw new BadRequestError(`Wallet not found`);
-        wallet.balance += data.amount;
-        await queryRunner.manager.save(wallet);
-        const transaction =
-          await transactionService.createTransactionFromDeposit(
-            data.amount,
-            loginUser
+        if (!order) throw new BadRequestError(`Order not found`);
+        if (order.status != ShippingStatusEnum.TO_PAY) {
+          throw new BadRequestError(`This order has been paid`);
+        }
+        if (order.paymentMethod == PaymentMethodEnum.WALLET) {
+          const wallet = await walletRepository.findOne({
+            where: {
+              owner: { id: order.account.id },
+            },
+          });
+          if (!wallet) throw new BadRequestError(`Wallet not found`);
+          if (wallet.balance < order.totalPrice) {
+            throw new BadRequestError(`Balance wallet not enough`);
+          }
+          wallet.balance -= order.totalPrice;
+          await queryRunner.manager.save(wallet);
+        } else if (order.paymentMethod == PaymentMethodEnum.BANK_TRANSFER) {
+          await this.getPaymentData(payRequest.orderId);
+        } else {
+          throw new BadRequestError(
+            `Only pay for with wallet or bank transfer`
           );
+        }
+        const transaction = await this.createTransactionFromChildOrder(
+          order,
+          TransactionTypeEnum.ORDER_PURCHASE
+        );
         await queryRunner.manager.save(transaction);
-      } else {
-        throw new BadRequestError(`This transaction is not paid`);
+
+        await Promise.all([
+          //update order status and save
+          (async () => {
+            order.status = ShippingStatusEnum.WAIT_FOR_CONFIRMATION;
+            await queryRunner.manager.save(Order, order);
+          })(),
+          //create status tracking
+          orderService.createStatusTracking(
+            order,
+            null,
+            ShippingStatusEnum.WAIT_FOR_CONFIRMATION,
+            null,
+            queryRunner
+          ),
+        ]);
+      } else if (payRequest.type == PayTypeEnum.BOOKING) {
+        const booking = await bookingRepository.findOne({
+          where: { id: payRequest.id },
+        });
+        if (!booking) throw new BadRequestError(`Booking not found`);
+        if (booking.status != BookingStatusEnum.TO_PAY) {
+          throw new BadRequestError(`This booking has been paid`);
+        }
+        if (booking.paymentMethod == PaymentMethodEnum.WALLET) {
+          const wallet = await walletRepository.findOne({
+            where: {
+              owner: { id: booking.account.id },
+            },
+          });
+          if (!wallet) throw new BadRequestError(`Wallet not found`);
+          if (wallet.balance < booking.totalPrice) {
+            throw new BadRequestError(`Balance wallet not enough`);
+          }
+          wallet.balance -= booking.totalPrice;
+          await queryRunner.manager.save(wallet);
+        } else if (booking.paymentMethod == PaymentMethodEnum.BANK_TRANSFER) {
+          await this.getPaymentData(payRequest.orderId);
+        } else {
+          throw new BadRequestError(
+            `Only pay for with wallet or bank transfer`
+          );
+        }
+        const transaction = await this.createTransactionFromBooking(
+          booking,
+          TransactionTypeEnum.BOOKING_PURCHASE
+        );
+        await queryRunner.manager.save(transaction);
+
+        booking.status = BookingStatusEnum.WAIT_FOR_CONFIRMATION;
+        await queryRunner.manager.save(Booking, booking);
       }
       await queryRunner.commitTransaction();
     } catch (error) {
@@ -56,6 +129,45 @@ class TransactionService extends BaseService<Transaction> {
       throw error;
     } finally {
       await queryRunner.release();
+    }
+  }
+  async deposit(orderId: string, loginUser: string) {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const data = await this.getPaymentData(orderId);
+      const wallet = await walletRepository.findOne({
+        where: {
+          owner: { id: loginUser },
+        },
+      });
+      if (!wallet) throw new BadRequestError(`Wallet not found`);
+      wallet.balance += data.amount;
+      await queryRunner.manager.save(wallet);
+      const transaction = await transactionService.createTransactionFromDeposit(
+        data.amount,
+        loginUser
+      );
+      await queryRunner.manager.save(transaction);
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async getPaymentData(orderId: string) {
+    try {
+      const data = await payos.getPaymentLinkInformation(orderId);
+      if (data.status != 'PAID') {
+        throw new BadRequestError(`This transaction is not paid`);
+      }
+      return data;
+    } catch (error) {
+      throw new BadRequestError(`Invalid transaction code`);
     }
   }
 
@@ -88,6 +200,7 @@ class TransactionService extends BaseService<Transaction> {
     filterTransactionRequest: FilterTransactionRequest
   ) {
     const { types, startDate, endDate } = filterTransactionRequest;
+
     const query = transactionRepository
       .createQueryBuilder('transaction')
       .leftJoinAndSelect('transaction.buyer', 'buyer')
@@ -117,7 +230,8 @@ class TransactionService extends BaseService<Transaction> {
       .select('COUNT(*)', 'total')
       .innerJoin('transaction.buyer', 'buyer')
       .where('buyer.id = :loginUser', { loginUser });
-    if (types) query.andWhere('transaction.type IN (:...types)', { types });
+    if (types && types.length > 0)
+      query.andWhere('transaction.type IN (:...types)', { types });
     if (startDate && endDate)
       query.andWhere('transaction.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
@@ -305,7 +419,7 @@ class TransactionService extends BaseService<Transaction> {
         case TransactionTypeEnum.ORDER_PURCHASE:
           transaction.type = TransactionTypeEnum.ORDER_PURCHASE;
           transaction.paymentMethod = childOrder.paymentMethod;
-          transaction.balanceAfterTransaction -= childOrder.totalPrice;
+          transaction.balanceAfterTransaction = wallet.balance;
           if (transaction.balanceAfterTransaction < 0) {
             throw new BadRequestError(`Balance wallet not enough`);
           }
@@ -313,12 +427,57 @@ class TransactionService extends BaseService<Transaction> {
         case TransactionTypeEnum.ORDER_REFUND:
           transaction.type = TransactionTypeEnum.ORDER_REFUND;
           transaction.paymentMethod = PaymentMethodEnum.WALLET;
-          transaction.balanceAfterTransaction += childOrder.totalPrice;
+          transaction.balanceAfterTransaction = wallet.balance;
           break;
         case TransactionTypeEnum.ORDER_CANCEL:
           transaction.type = TransactionTypeEnum.ORDER_CANCEL;
           transaction.paymentMethod = PaymentMethodEnum.WALLET;
-          transaction.balanceAfterTransaction += childOrder.totalPrice;
+          transaction.balanceAfterTransaction = wallet.balance;
+          break;
+        default:
+          throw new BadRequestError(`Invalid transaction type`);
+      }
+    }
+    return transaction;
+  }
+
+  async createTransactionFromBooking(
+    booking: Booking,
+    type: TransactionTypeEnum
+  ) {
+    const transaction = new Transaction();
+    transaction.booking = booking;
+    transaction.buyer = booking.account;
+    transaction.amount = booking.totalPrice;
+    transaction.brand = booking.brand;
+
+    const wallet = await walletRepository.findOne({
+      where: {
+        owner: { id: booking.account.id },
+      },
+    });
+    if (!wallet) throw new BadRequestError(`Wallet not found`);
+    transaction.balanceAfterTransaction = wallet.balance;
+
+    if (type) {
+      switch (type) {
+        case TransactionTypeEnum.BOOKING_PURCHASE:
+          transaction.type = TransactionTypeEnum.BOOKING_PURCHASE;
+          transaction.paymentMethod = booking.paymentMethod;
+          transaction.balanceAfterTransaction = wallet.balance;
+          if (transaction.balanceAfterTransaction < 0) {
+            throw new BadRequestError(`Balance wallet not enough`);
+          }
+          break;
+        case TransactionTypeEnum.BOOKING_REFUND:
+          transaction.type = TransactionTypeEnum.BOOKING_REFUND;
+          transaction.paymentMethod = PaymentMethodEnum.WALLET;
+          transaction.balanceAfterTransaction = wallet.balance;
+          break;
+        case TransactionTypeEnum.BOOKING_CANCEL:
+          transaction.type = TransactionTypeEnum.BOOKING_CANCEL;
+          transaction.paymentMethod = PaymentMethodEnum.WALLET;
+          transaction.balanceAfterTransaction = wallet.balance;
           break;
         default:
           throw new BadRequestError(`Invalid transaction type`);
