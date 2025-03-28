@@ -263,3 +263,8 @@ export enum ActionReceivedEnum {
   RECEIVED = "RECEIVED",
   NOT_RECEIVED = "NOT_RECEIVED",
 }
+
+export enum PayTypeEnum {
+  ORDER = "ORDER",
+  BOOKING = "BOOKING",
+}
