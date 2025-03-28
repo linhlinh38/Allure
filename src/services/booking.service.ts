@@ -12,6 +12,7 @@ import {
   BookingTypeEnum,
   PaymentMethodEnum,
   RoleEnum,
+  ServiceTypeEnum,
   TransactionTypeEnum,
 } from "../utils/enum";
 import { BaseService } from "./base.service";
@@ -296,24 +297,27 @@ class BookingService extends BaseService<Booking> {
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
-      const bookings = await repository.find({
-        where: { account: { id: loginUser } },
-        relations: ["slot"],
-        order: { createdAt: "DESC" },
-        take: 1,
-      });
-      const booking = bookings[0];
-      if (
-        booking &&
-        booking.type === BookingTypeEnum.INTERVIEW &&
-        booking.status == BookingStatusEnum.WAIT_FOR_CONFIRMATION
-      )
-        throw new BadRequestError(
-          "You have already booked a slot. Please wait for process"
-        );
-
-      const slot = await slotRepository.findOneBy({ id: bookingRequest.slot });
-      if (!slot) throw new BadRequestError("Slot not found");
+      // const bookings = await repository.find({
+      //   where: { account: { id: loginUser } },
+      //   relations: ["slot"],
+      //   order: { createdAt: "DESC" },
+      //   take: 1,
+      // });
+      // const booking = bookings[0];
+      // if (
+      //   booking &&
+      //   booking.type === BookingTypeEnum.INTERVIEW &&
+      //   booking.status == BookingStatusEnum.WAIT_FOR_CONFIRMATION
+      // )
+      //   throw new BadRequestError(
+      //     "You have already booked a slot. Please wait for process"
+      //   );
+      if (bookingRequest.slot) {
+        const slot = await slotRepository.findOneBy({
+          id: bookingRequest.slot,
+        });
+        if (!slot) throw new BadRequestError("Slot not found");
+      }
 
       if (bookingRequest.type == BookingTypeEnum.INTERVIEW) {
         if (!bookingRequest.brandId)
@@ -354,9 +358,18 @@ class BookingService extends BaseService<Booking> {
           throw new BadRequestError("ConsultantServiceId required");
         const consultantService = await consultantServiceRepository.findOne({
           where: { id: bookingRequest.consultantService },
+          relations: {
+            systemService: true,
+          },
         });
         if (!consultantService)
           throw new BadRequestError("ConsultantService not found");
+        if (
+          consultantService.systemService.type === ServiceTypeEnum.PREMIUM &&
+          !bookingRequest.slot
+        ) {
+          throw new BadRequestError("Slot is required");
+        }
         await this.isSlotBooked(bookingRequest);
         let createdBooking = new Booking();
         Object.assign(createdBooking, bookingRequest);

@@ -1,10 +1,10 @@
-import { z } from 'zod';
+import { z } from "zod";
 import {
   BookingStatusEnum,
   BookingTypeEnum,
   PaymentMethodEnum,
-} from '../../utils/enum';
-import { Expose } from 'class-transformer';
+} from "../../utils/enum";
+import { Expose } from "class-transformer";
 
 export const BookingCreateSchema = z.object({
   body: z.object({
@@ -12,14 +12,16 @@ export const BookingCreateSchema = z.object({
       .string()
       .refine(
         (value) => !isNaN(Date.parse(value)),
-        'Start time must be a valid date string'
-      ),
+        "Start time must be a valid date string"
+      )
+      .optional(),
     endTime: z
       .string()
       .refine(
         (value) => !isNaN(Date.parse(value)),
-        'End time must be a valid date string'
-      ),
+        "End time must be a valid date string"
+      )
+      .optional(),
     totalPrice: z.number().nonnegative().optional(),
     paymentMethod: z.nativeEnum(PaymentMethodEnum).optional(),
     voucher: z.string().optional(),
@@ -27,7 +29,7 @@ export const BookingCreateSchema = z.object({
     consultantService: z.string().optional(),
     notes: z.string().optional(),
     type: z.nativeEnum(BookingTypeEnum),
-    slot: z.string(),
+    slot: z.string().optional(),
     brandId: z.string().uuid().optional(),
   }),
 });
@@ -44,13 +46,13 @@ export const GetSomeoneSlotsSchema = z.object({
       .string()
       .refine(
         (value) => !isNaN(Date.parse(value)),
-        'Start time must be a valid date string'
+        "Start time must be a valid date string"
       ),
     endDate: z
       .string()
       .refine(
         (value) => !isNaN(Date.parse(value)),
-        'End time must be a valid date string'
+        "End time must be a valid date string"
       ),
   }),
 });

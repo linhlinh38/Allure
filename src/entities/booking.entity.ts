@@ -25,10 +25,18 @@ export class Booking extends BaseEntity {
   @Column({ type: "double precision", default: 0 })
   totalPrice: number;
 
-  @Column({ type: "timestamp with time zone", name: "start_time" })
+  @Column({
+    type: "timestamp with time zone",
+    name: "start_time",
+    nullable: true,
+  })
   startTime: Date;
 
-  @Column({ type: "timestamp with time zone", name: "end_time" })
+  @Column({
+    type: "timestamp with time zone",
+    name: "end_time",
+    nullable: true,
+  })
   endTime: Date;
 
   @Column({

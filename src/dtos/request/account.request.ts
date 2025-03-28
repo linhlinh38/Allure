@@ -49,7 +49,7 @@ export const AccountCreateSchema = z.object({
       )
       .optional(),
     address: AddressCreateSchema.shape.body.optional(),
-    certificate: FileCreateSchema.optional(),
+    certificates: z.array(FileCreateSchema.shape.body).optional(),
   }),
 });
 
