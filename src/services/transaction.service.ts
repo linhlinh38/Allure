@@ -60,7 +60,7 @@ class TransactionService extends BaseService<Transaction> {
           wallet.balance -= order.totalPrice;
           await queryRunner.manager.save(wallet);
         } else if (order.paymentMethod == PaymentMethodEnum.BANK_TRANSFER) {
-          const data = await this.getPaymentData(payRequest.orderId);
+          await this.getPaymentData(payRequest.orderId);
         } else {
           throw new BadRequestError(
             `Only pay for with wallet or bank transfer`
@@ -71,6 +71,22 @@ class TransactionService extends BaseService<Transaction> {
           TransactionTypeEnum.ORDER_PURCHASE
         );
         await queryRunner.manager.save(transaction);
+
+        await Promise.all([
+          //update order status and save
+          (async () => {
+            order.status = ShippingStatusEnum.WAIT_FOR_CONFIRMATION;
+            await queryRunner.manager.save(Order, order);
+          })(),
+          //create status tracking
+          orderService.createStatusTracking(
+            order,
+            null,
+            ShippingStatusEnum.WAIT_FOR_CONFIRMATION,
+            null,
+            queryRunner
+          ),
+        ]);
       } else if (payRequest.type == PayTypeEnum.BOOKING) {
         const booking = await bookingRepository.findOne({
           where: { id: payRequest.id },
@@ -92,7 +108,7 @@ class TransactionService extends BaseService<Transaction> {
           wallet.balance -= booking.totalPrice;
           await queryRunner.manager.save(wallet);
         } else if (booking.paymentMethod == PaymentMethodEnum.BANK_TRANSFER) {
-          const data = await this.getPaymentData(payRequest.orderId);
+          await this.getPaymentData(payRequest.orderId);
         } else {
           throw new BadRequestError(
             `Only pay for with wallet or bank transfer`
@@ -103,6 +119,9 @@ class TransactionService extends BaseService<Transaction> {
           TransactionTypeEnum.BOOKING_PURCHASE
         );
         await queryRunner.manager.save(transaction);
+
+        booking.status = BookingStatusEnum.WAIT_FOR_CONFIRMATION;
+        await queryRunner.manager.save(Booking, booking);
       }
       await queryRunner.commitTransaction();
     } catch (error) {
