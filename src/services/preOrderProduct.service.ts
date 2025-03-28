@@ -8,12 +8,13 @@ import { PreOrderProductEnum, ProductEnum, StatusEnum } from "../utils/enum";
 import { BaseService } from "./base.service";
 import { productService } from "./product.service";
 import { productClassificationService } from "./productClassification.service";
+import { format } from "date-fns";
 
 const repository = AppDataSource.getRepository(PreOrderProduct);
 interface FilterOptions {
   startTime?: Date;
   endTime?: Date;
-  productId?: string;
+  productIds?: string[];
   brandId?: string;
   status?: PreOrderProductEnum[];
   sortBy?: string;
@@ -158,7 +159,7 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
     const {
       startTime,
       endTime,
-      productId,
+      productIds,
       brandId,
       status,
       sortBy,
@@ -198,8 +199,10 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
       );
     }
 
-    if (productId) {
-      queryBuilder.andWhere("product.id = :productId", { productId });
+    if (productIds && productIds.length > 0) {
+      queryBuilder.andWhere("preOrderProduct.product.id IN (:...productIds)", {
+        productIds,
+      });
     }
 
     if (brandId) {
@@ -228,6 +231,16 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
       page,
       limit,
     };
+  }
+
+  async formatDatetime(datetimeString: string): Promise<string> {
+    const date = new Date(datetimeString);
+
+    if (isNaN(date.getTime())) {
+      throw new Error("Invalid datetime string");
+    }
+
+    return format(date, "yyyy-MM-dd'T'HH:mm:ss");
   }
 
   async beforeCreate(data: any) {
@@ -271,6 +284,14 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
             `sku of classification ${classification.title} already exists`
           );
       }
+    }
+    if (data.startTime) {
+      const formattedStartTime = await this.formatDatetime(data.startTime);
+      data.startTime = formattedStartTime;
+    }
+    if (data.endTime) {
+      const formattedEndTime = await this.formatDatetime(data.endTime);
+      data.endTime = formattedEndTime;
     }
   }
 
@@ -316,6 +337,14 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
             );
         }
       }
+    }
+    if (body.startTime) {
+      const formattedStartTime = await this.formatDatetime(body.startTime);
+      body.startTime = formattedStartTime;
+    }
+    if (body.endTime) {
+      const formattedEndTime = await this.formatDatetime(body.endTime);
+      body.endTime = formattedEndTime;
     }
   }
 

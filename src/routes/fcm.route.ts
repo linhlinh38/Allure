@@ -4,12 +4,10 @@ import { FCMController } from '../controllers/FCM.controller';
 const FCMRouter = express.Router();
 
 FCMRouter.use(authentication);
-FCMRouter.get(
-  '/get-token',
-  FCMController.getToken
-);
-
+FCMRouter.get('/get-token', FCMController.getToken);
 
 FCMRouter.post('/create-token', FCMController.createToken);
+
+FCMRouter.post('/test-notification', FCMController.testNotification);
 
 export default FCMRouter;
