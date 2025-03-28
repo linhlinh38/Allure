@@ -70,7 +70,7 @@ class TransactionService extends BaseService<Transaction> {
       loginUser,
       filterTransactionRequest
     );
-
+    
     const totalPages = Math.ceil(total / paging.limit);
     const query = this.getTransactionsQuery(loginUser, filterTransactionRequest)
       .take(limit)
@@ -88,6 +88,7 @@ class TransactionService extends BaseService<Transaction> {
     filterTransactionRequest: FilterTransactionRequest
   ) {
     const { types, startDate, endDate } = filterTransactionRequest;
+    
     const query = transactionRepository
       .createQueryBuilder('transaction')
       .leftJoinAndSelect('transaction.buyer', 'buyer')
@@ -117,7 +118,7 @@ class TransactionService extends BaseService<Transaction> {
       .select('COUNT(*)', 'total')
       .innerJoin('transaction.buyer', 'buyer')
       .where('buyer.id = :loginUser', { loginUser });
-    if (types) query.andWhere('transaction.type IN (:...types)', { types });
+    if (types && types.length > 0) query.andWhere('transaction.type IN (:...types)', { types });
     if (startDate && endDate)
       query.andWhere('transaction.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
