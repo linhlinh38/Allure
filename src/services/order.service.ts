@@ -855,6 +855,9 @@ class OrderService extends BaseService<Order> {
       const status = updateOrderStatusRequest.status;
       const order = await orderRepository.findOne({
         where: { id: orderId },
+        relations: {
+          account: true,
+        }
       });
       if (!order) {
         throw new BadRequestError(`Order not found`);
@@ -886,14 +889,14 @@ class OrderService extends BaseService<Order> {
       } else if (nextShippingStatusMap[order.status] != status)
         throw new BadRequestError('Can not update this status');
       //update transaction if order status is WAIT_FOR_CONFIRMATION and payment method is not Cash
-      if (
-        status == ShippingStatusEnum.WAIT_FOR_CONFIRMATION &&
-        order.paymentMethod != PaymentMethodEnum.CASH
-      ) {
-        const transaction =
-          await transactionService.createTransactionFromChildOrder(order, TransactionTypeEnum.ORDER_PURCHASE);
-        await queryRunner.manager.save(Transaction, transaction);
-      }
+      // if (
+      //   status == ShippingStatusEnum.WAIT_FOR_CONFIRMATION &&
+      //   order.paymentMethod != PaymentMethodEnum.CASH
+      // ) {
+      //   const transaction =
+      //     await transactionService.createTransactionFromChildOrder(order, TransactionTypeEnum.ORDER_PURCHASE);
+      //   await queryRunner.manager.save(Transaction, transaction);
+      // }
       await Promise.all([
         //update order status and save
         (async () => {
@@ -912,14 +915,29 @@ class OrderService extends BaseService<Order> {
       ]);
       if (status == ShippingStatusEnum.BRAND_RECEIVED) {
         await addUpdateRefundedStatusOrderToQueue(orderId);
-      }
-      if (status == ShippingStatusEnum.RETURNING) {
+      } else if (status == ShippingStatusEnum.RETURNING) {
         const masterConfig = await retrieveMasterConfig();
         order.expiredReceivedTime = new Date(
           Date.now() + Number(masterConfig.expiredReceivedTime)
         );
         await queryRunner.manager.save(Order, order);
         await addUpdateBrandReceiveStatusOrderToQueue(order);
+      } else if (status == ShippingStatusEnum.REFUNDED) {
+        const wallet = await walletRepository.findOne({
+          where: {
+            owner: { id: order.account.id },
+          },
+        });
+        if (!wallet) throw new BadRequestError(`Wallet not found`);
+        wallet.balance += order.totalPrice;
+        await queryRunner.manager.save(wallet);
+        
+        const transaction =
+          await transactionService.createTransactionFromChildOrder(
+            order,
+            TransactionTypeEnum.ORDER_REFUND
+          );
+        await queryRunner.manager.save(Transaction, transaction);
       }
       await queryRunner.commitTransaction();
     } catch (error) {
