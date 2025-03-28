@@ -33,7 +33,7 @@ export async function login(email: string, password: string) {
   const token = jwt.sign(payload, config.SECRET_KEY_FOR_ACCESS_TOKEN, {
     expiresIn: "1d",
   });
-  const refreshToken = generateRefreshToken(account.id.toString());
+  const refreshToken = await generateRefreshToken(account.id.toString());
 
   return { token, refreshToken };
 }
