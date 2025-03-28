@@ -189,6 +189,7 @@ class BookingService extends BaseService<Booking> {
     endDate = new Date(endDate);
     startDate.setHours(0, 0, 0, 0);
     endDate.setHours(23, 59, 59, 999);
+
     const account = await accountRepository.findOne({
       where: {
         id: loginUser,
@@ -198,11 +199,26 @@ class BookingService extends BaseService<Booking> {
         workingSlots: true,
       },
     });
+
     if (![RoleEnum.CONSULTANT, RoleEnum.OPERATOR].includes(account.role.role)) {
       throw new BadRequestError('Only apply for consultant or operator');
     }
 
-    const slots = account.workingSlots;
+    // Lấy danh sách các ngày trong tuần từ startDate đến endDate
+    const weekDays = [];
+    const currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      // Lấy ngày trong tuần (2-8, trong đó 2 là thứ 2, 8 là chủ nhật)
+      const weekDay = currentDate.getDay() === 0 ? 8 : currentDate.getDay() + 1;
+      weekDays.push(weekDay);
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Lọc working slots theo weekDay
+    const filteredSlots = account.workingSlots.filter((slot) =>
+      weekDays.includes(slot.weekDay)
+    );
+
     const bookings = await bookingRepository.find({
       where: {
         startTime: Between(startDate, endDate),
@@ -219,7 +235,8 @@ class BookingService extends BaseService<Booking> {
         slot: true,
       },
     });
-    return slots.map((slot) => {
+
+    return filteredSlots.map((slot) => {
       const isAvailable = !bookings.find(
         (booking) => booking.slot.id == slot.id
       );
