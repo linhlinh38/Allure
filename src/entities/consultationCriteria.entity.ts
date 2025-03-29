@@ -3,6 +3,7 @@ import { StatusEnum } from "../utils/enum";
 import { BaseEntity } from "./base.entity";
 import { SystemService } from "./systemService.entity";
 import { ConsultationCriteriaSection } from "./consultationCriteriaSection.entity";
+import { ConsultationResult } from "./consultationResult.entity";
 
 @Entity("consultation_criterias")
 export class ConsultationCriteria extends BaseEntity {
@@ -17,6 +18,15 @@ export class ConsultationCriteria extends BaseEntity {
     (section) => section.consultationCriteria
   )
   consultationCriteriaSections?: ConsultationCriteriaSection[];
+
+  @OneToMany(
+    () => ConsultationResult,
+    (result) => result.consultationCriteria,
+    {
+      nullable: true,
+    }
+  )
+  consultationResults?: ConsultationResult[];
 
   @Column({
     type: "enum",

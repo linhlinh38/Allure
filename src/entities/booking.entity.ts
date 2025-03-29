@@ -19,6 +19,8 @@ import { Slot } from "./slot.entity";
 import { Report } from "./report.entity";
 import { Brand } from "./brand.entity";
 import { Transaction } from "./transaction.entity";
+import { BookingFormAnswer } from "./bookingFormAnswer.entity";
+import { ConsultationResult } from "./consultationResult.entity";
 
 @Entity("bookings")
 export class Booking extends BaseEntity {
@@ -67,6 +69,16 @@ export class Booking extends BaseEntity {
     enum: BookingStatusEnum,
   })
   status: BookingStatusEnum;
+
+  @OneToOne(() => BookingFormAnswer, (answer) => answer.booking, {
+    nullable: true,
+  })
+  bookingFormAnswer: BookingFormAnswer;
+
+  @OneToOne(() => ConsultationResult, (result) => result.booking, {
+    nullable: true,
+  })
+  consultationResult: ConsultationResult;
 
   @ManyToOne(() => Slot, (slot) => slot.bookings, {
     nullable: true,
