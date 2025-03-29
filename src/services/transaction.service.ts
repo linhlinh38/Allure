@@ -394,7 +394,7 @@ class TransactionService extends BaseService<Transaction> {
       },
     });
     if (!wallet) throw new BadRequestError(`Wallet not found`);
-    transaction.balanceAfterTransaction = wallet.balance + amount;
+    transaction.balanceAfterTransaction = wallet.balance;
     return transaction;
   }
 
@@ -469,11 +469,6 @@ class TransactionService extends BaseService<Transaction> {
           break;
         case TransactionTypeEnum.BOOKING_REFUND:
           transaction.type = TransactionTypeEnum.BOOKING_REFUND;
-          transaction.paymentMethod = PaymentMethodEnum.WALLET;
-          transaction.balanceAfterTransaction = wallet.balance;
-          break;
-        case TransactionTypeEnum.BOOKING_CANCEL:
-          transaction.type = TransactionTypeEnum.BOOKING_CANCEL;
           transaction.paymentMethod = PaymentMethodEnum.WALLET;
           transaction.balanceAfterTransaction = wallet.balance;
           break;
