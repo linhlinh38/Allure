@@ -24,11 +24,12 @@ import { File } from '../entities/file.entity';
 import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
 import { bookingRepository } from '../repositories/booking.repository';
 import { sendConfirmActiveBrandEmail } from './mail.service';
+import { FilterBrandRequest } from '../dtos/request/brand.request';
+import { Paging } from '../dtos/other/paging.dto';
 
 const repository = AppDataSource.getRepository(Brand);
 class BrandService extends BaseService<Brand> {
-  async getAll()
-  {
+  async getAll() {
     return await repository.find({
       relations: {
         documents: true,
@@ -36,8 +37,7 @@ class BrandService extends BaseService<Brand> {
       },
     });
   }
-  async assignInterview(brandId: string, reviewerId: any)
-  {
+  async assignInterview(brandId: string, reviewerId: string) {
     const brand = await repository.findOne({
       where: { id: brandId },
     });
@@ -54,7 +54,7 @@ class BrandService extends BaseService<Brand> {
       where: { id },
       relations: {
         documents: true,
-        reviewer: true
+        reviewer: true,
       },
     });
     if (!brand) throw new BadRequestError('Brand not found');
@@ -289,6 +289,48 @@ class BrandService extends BaseService<Brand> {
       },
     });
     return follows.flatMap((follow) => [follow.brand]);
+  }
+
+  async filter(filterRequest: FilterBrandRequest, paging: Paging) {
+    const { name, reviewerId, status } = filterRequest;
+    const { page, limit } = paging;
+    const offset = (page - 1) * limit;
+
+    const queryBuilder = brandRepository
+      .createQueryBuilder('brand')
+      .leftJoinAndSelect('brand.documents', 'documents')
+      .leftJoinAndSelect('brand.reviewer', 'reviewer');
+
+    // Apply filters
+    if (name) {
+      queryBuilder.andWhere('LOWER(brand.name) LIKE LOWER(:name)', {
+        name: `%${name}%`,
+      });
+    }
+
+    if (reviewerId) {
+      queryBuilder.andWhere('reviewer.id = :reviewerId', { reviewerId });
+    }
+
+    if (status) {
+      queryBuilder.andWhere('brand.status = :status', { status });
+    }
+
+    // Get total count
+    const totalBrands = await queryBuilder.getCount();
+
+    // Get paginated results
+    const brands = await queryBuilder
+      .orderBy('brand.createdAt', 'DESC')
+      .skip(offset)
+      .take(limit)
+      .getMany();
+
+    return {
+      total: totalBrands,
+      totalPages: Math.ceil(totalBrands / limit),
+      items: brands,
+    };
   }
 }
 
