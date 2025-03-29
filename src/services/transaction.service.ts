@@ -38,7 +38,7 @@ class TransactionService extends BaseService<Transaction> {
     try {
       if (payRequest.type == PayTypeEnum.ORDER) {
         const order = await orderRepository.findOne({
-          where: { id: payRequest.orderId },
+          where: { id: payRequest.id },
           relations: {
             account: true,
           },
