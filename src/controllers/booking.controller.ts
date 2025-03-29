@@ -170,4 +170,21 @@ export default class BookingController {
       next(err);
     }
   }
+
+  static async updateBookingStatus(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      await bookingService.updateBookingServiceStatus(
+        req.params.id,
+        req.body,
+        req.loginUser
+      );
+      return createNormalResponse(res, "Update booking done");
+    } catch (err) {
+      next(err);
+    }
+  }
 }

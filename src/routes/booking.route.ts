@@ -49,4 +49,10 @@ bookingRoute.put(
   //validate(BookingUpdateStatusSchema),
   BookingController.cancelledBooking
 );
+
+bookingRoute.put(
+  "/update-booking-status/:id",
+  //validate(BookingUpdateStatusSchema),
+  BookingController.updateBookingStatus
+);
 export default bookingRoute;
