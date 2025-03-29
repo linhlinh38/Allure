@@ -45,7 +45,7 @@ class TransactionService extends BaseService<Transaction> {
         });
         if (!order) throw new BadRequestError(`Order not found`);
         if (order.status != ShippingStatusEnum.TO_PAY) {
-          throw new BadRequestError(`This order has been paid`);
+          throw new BadRequestError(`This order can not be paid`);
         }
         if (order.paymentMethod == PaymentMethodEnum.WALLET) {
           const wallet = await walletRepository.findOne({
@@ -93,7 +93,7 @@ class TransactionService extends BaseService<Transaction> {
         });
         if (!booking) throw new BadRequestError(`Booking not found`);
         if (booking.status != BookingStatusEnum.TO_PAY) {
-          throw new BadRequestError(`This booking has been paid`);
+          throw new BadRequestError(`This booking can not be paid`);
         }
         if (booking.paymentMethod == PaymentMethodEnum.WALLET) {
           const wallet = await walletRepository.findOne({
@@ -131,6 +131,7 @@ class TransactionService extends BaseService<Transaction> {
       await queryRunner.release();
     }
   }
+
   async deposit(orderId: string, loginUser: string) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
@@ -420,9 +421,6 @@ class TransactionService extends BaseService<Transaction> {
           transaction.type = TransactionTypeEnum.ORDER_PURCHASE;
           transaction.paymentMethod = childOrder.paymentMethod;
           transaction.balanceAfterTransaction = wallet.balance;
-          if (transaction.balanceAfterTransaction < 0) {
-            throw new BadRequestError(`Balance wallet not enough`);
-          }
           break;
         case TransactionTypeEnum.ORDER_REFUND:
           transaction.type = TransactionTypeEnum.ORDER_REFUND;

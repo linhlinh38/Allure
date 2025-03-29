@@ -79,8 +79,11 @@ export default class SlotController {
         excludeExtraneousValues: true,
       });
 
-      await slotService.activeSlots(activeSlotsRequest);
-      return createNormalResponse(res, 'Update slots active status success');
+      return createNormalResponse(
+        res,
+        'Active slots success',
+        await slotService.activeSlots(activeSlotsRequest)
+      );
     } catch (err) {
       next(err);
     }
