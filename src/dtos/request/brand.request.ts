@@ -101,3 +101,20 @@ export class BrandRequest {
   @Expose()
   businessRegistrationAddress: string;
 }
+
+export const FilterBrandSchema = z.object({
+  body: z.object({
+    name: z.string().optional(),
+    reviewerId: z.string().optional(),
+    status: z.nativeEnum(BrandStatusEnum).optional(),
+  }),
+});
+
+export class FilterBrandRequest {
+  @Expose()
+  name: string;
+  @Expose()
+  reviewerId: string;
+  @Expose()
+  status: BrandStatusEnum;
+}

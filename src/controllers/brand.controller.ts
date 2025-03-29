@@ -1,6 +1,5 @@
-import { NextFunction, Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { brandService } from '../services/brand.service';
-import { plainToInstance } from 'class-transformer';
 import { BrandResponse } from '../dtos/response/brand.response';
 import { Brand } from '../entities/brand.entity';
 import { createNormalResponse } from '../utils/response';
@@ -9,7 +8,10 @@ import { SearchDTO as SearchDTO } from '../dtos/other/search.dto';
 import {
   BrandRequest,
   BrandUpdateStatusRequest,
+  FilterBrandRequest,
 } from '../dtos/request/brand.request';
+import { Paging } from '../dtos/other/paging.dto';
+import { plainToInstance } from 'class-transformer';
 
 export default class BrandController {
   static async assignInterview(
@@ -46,11 +48,11 @@ export default class BrandController {
 
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
-      const brands = await brandService.findAll();
-      const responseData = plainToInstance(BrandResponse, brands);
-      return res
-        .status(200)
-        .send({ message: 'Get all brands success', data: responseData });
+      return createNormalResponse(
+        res,
+        'Get all brands success',
+        await brandService.getAll()
+      );
     } catch (err) {
       next(err);
     }
@@ -154,6 +156,25 @@ export default class BrandController {
       );
     } catch (err) {
       next(err);
+    }
+  }
+
+  static async filter(req: Request, res: Response, next: NextFunction) {
+    try {
+      const filterRequest = plainToInstance(FilterBrandRequest, req.body, {
+        excludeExtraneousValues: true,
+      });
+      const paging = {
+        page: Number(req.query.page) ? Number(req.query.page) : 1,
+        limit: Number(req.query.limit) ? Number(req.query.limit) : 10,
+      } as Paging;
+      return createNormalResponse(
+        res,
+        'Filter brands successfully',
+        await brandService.filter(filterRequest, paging)
+      );
+    } catch (error) {
+      next(error);
     }
   }
 }
