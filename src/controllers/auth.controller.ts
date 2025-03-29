@@ -3,6 +3,7 @@ import * as authService from "../services/auth.service";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { config } from "../configs/envConfig";
 import { accountService } from "../services/account.service";
+import { generateRefreshToken } from "../utils/jwt";
 
 async function login(req: Request, res: Response, next: NextFunction) {
   const { email, password } = req.body;
@@ -78,9 +79,10 @@ async function refreshToken(req: Request, res: Response) {
         expiresIn: "1d",
       }
     );
+    const newRefreshToken = await generateRefreshToken(accountId);
     res.status(200).json({
       message: "Refresh token Successful",
-      data: { accessToken: newAccessToken },
+      data: { accessToken: newAccessToken, refreshToken: newRefreshToken },
     });
   } catch (error) {
     console.error(error);

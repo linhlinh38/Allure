@@ -1,9 +1,9 @@
-import { NextFunction, Request, Response } from 'express';
-import { bookingService } from '../services/booking.service';
-import { createNormalResponse } from '../utils/response';
-import { AuthRequest } from '../middleware/authentication';
-import { plainToInstance } from 'class-transformer';
-import { BookingRequest } from '../dtos/request/booking.request';
+import { NextFunction, Request, Response } from "express";
+import { bookingService } from "../services/booking.service";
+import { createNormalResponse } from "../utils/response";
+import { AuthRequest } from "../middleware/authentication";
+import { plainToInstance } from "class-transformer";
+import { BookingRequest } from "../dtos/request/booking.request";
 export default class BookingController {
   static async getBookingOfBrand(
     req: AuthRequest,
@@ -13,7 +13,7 @@ export default class BookingController {
     try {
       return createNormalResponse(
         res,
-        'Get booking of brand success',
+        "Get booking of brand success",
         await bookingService.getBookingOfBrand(req.params.brandId)
       );
     } catch (err) {
@@ -27,7 +27,7 @@ export default class BookingController {
         req.body.resultNote,
         req.loginUser
       );
-      return createNormalResponse(res, 'Note result success');
+      return createNormalResponse(res, "Note result success");
     } catch (err) {
       next(err);
     }
@@ -57,7 +57,7 @@ export default class BookingController {
     try {
       return createNormalResponse(
         res,
-        'Get my bookings successfully',
+        "Get my bookings successfully",
         await bookingService.getMyBookings(req.loginUser)
       );
     } catch (err) {
@@ -71,7 +71,7 @@ export default class BookingController {
   ) {
     try {
       await bookingService.updateStatus(req.params.id, req.body.status);
-      return createNormalResponse(res, 'Update status booking success');
+      return createNormalResponse(res, "Update status booking success");
     } catch (err) {
       next(err);
     }
@@ -88,7 +88,7 @@ export default class BookingController {
         req.body.endDate,
         req.params.accountId
       );
-      return createNormalResponse(res, 'Get slots success', slots);
+      return createNormalResponse(res, "Get slots success", slots);
     } catch (err) {
       next(err);
     }
@@ -104,7 +104,7 @@ export default class BookingController {
       );
       return createNormalResponse(
         res,
-        'Get status booking interview success',
+        "Get status booking interview success",
         status
       );
     } catch (err) {
@@ -115,7 +115,7 @@ export default class BookingController {
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
       const bookings = await bookingService.findAll();
-      return createNormalResponse(res, 'Get all booking success', bookings);
+      return createNormalResponse(res, "Get all booking success", bookings);
     } catch (err) {
       next(err);
     }
@@ -125,7 +125,7 @@ export default class BookingController {
     try {
       return createNormalResponse(
         res,
-        'Get booking success',
+        "Get booking success",
         await bookingService.getById(req.params.id)
       );
     } catch (err) {
@@ -136,7 +136,7 @@ export default class BookingController {
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
       await bookingService.update(req.params.id, req.body);
-      return createNormalResponse(res, 'Update booking success');
+      return createNormalResponse(res, "Update booking success");
     } catch (err) {
       next(err);
     }
@@ -148,7 +148,41 @@ export default class BookingController {
         excludeExtraneousValues: true,
       });
       await bookingService.createBooking(bookingRequest, req.loginUser);
-      return createNormalResponse(res, 'Create booking success');
+      return createNormalResponse(res, "Create booking success");
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async cancelledBooking(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      await bookingService.cancelBooking(
+        req.params.id,
+        req.loginUser,
+        req.body.reason
+      );
+      return createNormalResponse(res, "Cancelled booking done");
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async updateBookingStatus(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      await bookingService.updateBookingServiceStatus(
+        req.params.id,
+        req.body,
+        req.loginUser
+      );
+      return createNormalResponse(res, "Update booking done");
     } catch (err) {
       next(err);
     }

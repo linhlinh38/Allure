@@ -20,16 +20,26 @@ import { Report } from "./report.entity";
 import { Brand } from "./brand.entity";
 import { Transaction } from "./transaction.entity";
 import { Feedback } from "./feedback.entity";
+import { BookingFormAnswer } from "./bookingFormAnswer.entity";
+import { ConsultationResult } from "./consultationResult.entity";
 
 @Entity('bookings')
 export class Booking extends BaseEntity {
   @Column({ type: 'double precision', default: 0 })
   totalPrice: number;
 
-  @Column({ type: 'timestamp with time zone', name: 'start_time' })
+  @Column({
+    type: "timestamp with time zone",
+    name: "start_time",
+    nullable: true,
+  })
   startTime: Date;
 
-  @Column({ type: 'timestamp with time zone', name: 'end_time' })
+  @Column({
+    type: "timestamp with time zone",
+    name: "end_time",
+    nullable: true,
+  })
   endTime: Date;
 
   @Column({
@@ -60,6 +70,16 @@ export class Booking extends BaseEntity {
     enum: BookingStatusEnum,
   })
   status: BookingStatusEnum;
+
+  @OneToOne(() => BookingFormAnswer, (answer) => answer.booking, {
+    nullable: true,
+  })
+  bookingFormAnswer: BookingFormAnswer;
+
+  @OneToOne(() => ConsultationResult, (result) => result.booking, {
+    nullable: true,
+  })
+  consultationResult: ConsultationResult;
 
   @ManyToOne(() => Slot, (slot) => slot.bookings, {
     nullable: true,

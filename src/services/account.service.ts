@@ -4,7 +4,7 @@ import { BaseService } from "./base.service";
 import { AppDataSource } from "../dataSource";
 import { BadRequestError, EmailAlreadyExistError } from "../errors/error";
 import { encryptedPassword } from "../utils/jwt";
-import { AccountStatusEnum, RoleEnum } from "../utils/enum";
+import { AccountStatusEnum, FileEnum, RoleEnum } from "../utils/enum";
 import { sendRegisterAccountEmail } from "./mail.service";
 import { Address } from "../entities/address.entity";
 import { File } from "../entities/file.entity";
@@ -12,6 +12,9 @@ import { roleService } from "./role.service";
 import { Brand } from "../entities/brand.entity";
 import { StatusTracking } from "../entities/statusTracking.entity";
 import { AccountUpdateStatusType } from "../dtos/request/account.request";
+import { ConsultationResult } from "../entities/consultationResult.entity";
+import { consultationResultRepository } from "../repositories/consultationResult.repository";
+import { productClassificationRepository } from "../repositories/productClassification.repository";
 const repository = AppDataSource.getRepository(Account);
 
 interface FilterOptions {
@@ -174,6 +177,14 @@ class AccountService extends BaseService<Account> {
         throw new EmailAlreadyExistError("Email already exists!");
       }
 
+      const checkUsername = await accountService.findBy(
+        accountData.username,
+        "username"
+      );
+      if (checkUsername.length !== 0) {
+        throw new BadRequestError("Username already exists!");
+      }
+
       if (accountData.password) {
         accountData.password = await encryptedPassword(accountData.password);
       }
@@ -276,27 +287,31 @@ class AccountService extends BaseService<Account> {
         //await sendResetPasswordEmail(account);
         break;
       case RoleEnum.CONSULTANT:
-        if (data.certificate) {
-          const certConsultant: Partial<File> = {
-            account: account,
-            name: data.certificate.name,
-            fileUrl: data.certificate.fileUrl,
-            type: data.certificate.type,
-          };
-          await queryRunner.manager.save(File, certConsultant);
+        if (data.certificates && data.certificates.length !== 0) {
+          for (const cert of data.certificates) {
+            const certConsultant: Partial<File> = {
+              account: account,
+              name: cert.name ?? null,
+              fileUrl: cert.fileUrl,
+              type: FileEnum.CERTIFICATE,
+            };
+            await queryRunner.manager.save(File, certConsultant);
+          }
         }
 
         // await sendRegisterAccountEmail(account, data.url);
         break;
       case RoleEnum.KOL:
-        if (data.certificate) {
-          const certKOL: Partial<File> = {
-            account: account,
-            name: data.certificate.name,
-            fileUrl: data.certificate.fileUrl,
-            type: data.certificatel.type,
-          };
-          await queryRunner.manager.save(File, certKOL);
+        if (data.certificates && data.certificates.length !== 0) {
+          for (const cert of data.certificates) {
+            const certKOL: Partial<File> = {
+              account: account,
+              name: cert.name ?? null,
+              fileUrl: cert.fileUrl,
+              type: FileEnum.CERTIFICATE,
+            };
+            await queryRunner.manager.save(File, certKOL);
+          }
         }
         console.log("create kol");
         //await sendResetPasswordEmail(account);
@@ -352,6 +367,63 @@ class AccountService extends BaseService<Account> {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  async calculateBrandRecommendationPercentage(consultantId: string) {
+    const consultant = await repository.findOne({
+      where: { id: consultantId },
+      relations: ["role", "brands", "addresses", "files"],
+    });
+
+    if (!consultant) {
+      throw new Error("Consultant not found");
+    }
+    const consultationResults = await consultationResultRepository.find({
+      where: {
+        booking: { consultantService: { account: { id: consultantId } } },
+      },
+      select: ["suggestedProductClassifications"],
+    });
+
+    const productClassificationIds = consultationResults
+      .flatMap((result) => result.suggestedProductClassifications)
+      .map((item) => item.productClassificationId);
+
+    const productClassifications = await productClassificationRepository.find({
+      where: { id: In(productClassificationIds) },
+      relations: ["product", "product.brand"],
+    });
+
+    const brandCounts: Record<string, number> = {};
+    const totalSuggestions = productClassifications.length;
+
+    productClassifications.forEach((classification) => {
+      const brandId = classification.product.brand.id;
+      brandCounts[brandId] = (brandCounts[brandId] || 0) + 1;
+    });
+
+    const brandPercentages = Object.entries(brandCounts).map(
+      ([brandId, count]) => ({
+        brandId,
+        percentage: (count / totalSuggestions) * 100,
+      })
+    );
+
+    return {
+      consultant: {
+        name: consultant.username,
+        email: consultant.email,
+        introduceVideo: consultant.introduceVideo,
+        role: consultant.role?.role,
+        brands: consultant.brands.map((brand) => ({
+          id: brand.id,
+          name: brand.name,
+        })),
+        addresses: consultant.addresses,
+        files: consultant.files,
+      },
+      brandRecommendations: brandPercentages,
+    };
   }
 }
 

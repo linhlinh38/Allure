@@ -58,6 +58,10 @@ accountRouter.post(
   validate(AccountUpdateStatusSchema),
   accountController.updateAccountStatus
 );
+accountRouter.post(
+  "/get-consultant-recommendation-percentage",
+  accountController.calculateBrandRecommendationPercentage
+);
 accountRouter.post("/brand-staff", accountController.getStaffByBrandAndStatus);
 accountRouter.get("/", accountController.getAllAccount);
 accountRouter.get("/me", accountController.getMyProfile);

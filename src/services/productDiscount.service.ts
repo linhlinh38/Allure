@@ -1,3 +1,4 @@
+import { format } from "date-fns";
 import { AppDataSource } from "../dataSource";
 import { ProductClassification } from "../entities/productClassification.entity";
 import { ProductDiscount } from "../entities/productDiscount.entity";
@@ -14,7 +15,7 @@ const repository = AppDataSource.getRepository(ProductDiscount);
 interface FilterOptions {
   startTime?: Date;
   endTime?: Date;
-  productId?: string;
+  productIds?: string[];
   brandId?: string;
   status?: ProductDiscountEnum[];
   sortBy?: string;
@@ -208,7 +209,7 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
     const {
       startTime,
       endTime,
-      productId,
+      productIds,
       brandId,
       status,
       sortBy,
@@ -248,8 +249,10 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
       );
     }
 
-    if (productId) {
-      queryBuilder.andWhere("product.id = :productId", { productId });
+    if (productIds && productIds.length > 0) {
+      queryBuilder.andWhere("productDiscount.product.id IN (:...productIds)", {
+        productIds,
+      });
     }
 
     if (brandId) {
@@ -271,13 +274,49 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
       .take(limit);
 
     const [productDiscounts, total] = await queryBuilder.getManyAndCount();
+    const productDiscountsWithSoldAmount = await Promise.all(
+      productDiscounts.map(async (discount) => {
+        const soldAmount = await this.calculateSoldAmount(discount.id);
+
+        return {
+          ...discount,
+          soldAmount: soldAmount,
+        };
+      })
+    );
 
     return {
-      items: productDiscounts,
+      items: productDiscountsWithSoldAmount,
       total,
       page,
       limit,
     };
+  }
+
+  async calculateSoldAmount(productDiscountId: string): Promise<number> {
+    const result = await orderDetailRepository
+      .createQueryBuilder("orderDetail")
+      .innerJoin("orderDetail.productClassification", "productClassification")
+      .innerJoin("productClassification.productDiscount", "productDiscount")
+      .innerJoin("orderDetail.order", "order")
+      .select("COALESCE(SUM(orderDetail.quantity), 0)", "totalSold")
+      .where("productDiscount.id = :productDiscountId", { productDiscountId })
+      .andWhere("order.status NOT IN (:...excludedStatuses)", {
+        excludedStatuses: ["TO_PAY", "CANCELLED"],
+      })
+      .getRawOne();
+
+    return result?.totalSold || 0;
+  }
+
+  async formatDatetime(datetimeString: string): Promise<string> {
+    const date = new Date(datetimeString);
+
+    if (isNaN(date.getTime())) {
+      throw new Error("Invalid datetime string");
+    }
+
+    return format(date, "yyyy-MM-dd'T'HH:mm:ss");
   }
 
   async beforeCreate(body: any) {
@@ -319,6 +358,15 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
             `sku of classification ${classification.title} already exists`
           );
       }
+    }
+
+    if (body.startTime) {
+      const startTime = await this.formatDatetime(body.startTime);
+      body.startTime = startTime;
+    }
+    if (body.endTime) {
+      const endTime = await this.formatDatetime(body.endTime);
+      body.endTime = endTime;
     }
   }
   async beforeUpdate(id: string, body: any) {
@@ -364,6 +412,14 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
             );
         }
       }
+    }
+    if (body.startTime) {
+      const startTime = await this.formatDatetime(body.startTime);
+      body.startTime = startTime;
+    }
+    if (body.endTime) {
+      const endTime = await this.formatDatetime(body.endTime);
+      body.endTime = endTime;
     }
   }
 
