@@ -208,7 +208,6 @@ export enum TransactionTypeEnum {
   ORDER_REFUND = " ORDER_REFUND", // Hoàn tiền sản phẩm (đã nhận hàng)
   BOOKING_REFUND = "BOOKING_REFUND", // Hoàn tiền booking (đã sử dụng)
   ORDER_CANCEL = "ORDER_CANCEL", // Hủy đơn sản phẩm (chưa nhận hàng)
-  BOOKING_CANCEL = "BOOKING_CANCEL",
 }
 
 export enum TransactionStatusEnum {
