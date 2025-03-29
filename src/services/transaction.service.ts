@@ -72,21 +72,17 @@ class TransactionService extends BaseService<Transaction> {
         );
         await queryRunner.manager.save(transaction);
 
-        await Promise.all([
-          //update order status and save
-          (async () => {
-            order.status = ShippingStatusEnum.WAIT_FOR_CONFIRMATION;
-            await queryRunner.manager.save(Order, order);
-          })(),
-          //create status tracking
-          orderService.createStatusTracking(
-            order,
-            null,
-            ShippingStatusEnum.WAIT_FOR_CONFIRMATION,
-            null,
-            queryRunner
-          ),
-        ]);
+        //update order status and save
+        order.status = ShippingStatusEnum.WAIT_FOR_CONFIRMATION;
+        await queryRunner.manager.save(Order, order);
+        //create status tracking
+        await orderService.createStatusTracking(
+          order,
+          null,
+          ShippingStatusEnum.WAIT_FOR_CONFIRMATION,
+          null,
+          queryRunner
+        );
       } else if (payRequest.type == PayTypeEnum.BOOKING) {
         const booking = await bookingRepository.findOne({
           where: { id: payRequest.id },
