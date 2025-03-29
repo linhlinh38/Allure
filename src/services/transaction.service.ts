@@ -472,6 +472,11 @@ class TransactionService extends BaseService<Transaction> {
           transaction.paymentMethod = PaymentMethodEnum.WALLET;
           transaction.balanceAfterTransaction = wallet.balance;
           break;
+        case TransactionTypeEnum.BOOKING_CANCEL:
+          transaction.type = TransactionTypeEnum.BOOKING_CANCEL;
+          transaction.paymentMethod = PaymentMethodEnum.WALLET;
+          transaction.balanceAfterTransaction = wallet.balance;
+          break;
         default:
           throw new BadRequestError(`Invalid transaction type`);
       }
