@@ -56,7 +56,7 @@ export class Brand extends BaseEntity {
   address: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 100 })
+  @Column({ type: "varchar", length: 100, nullable: false })
   businessTaxCode: string;
 
   @Expose()
