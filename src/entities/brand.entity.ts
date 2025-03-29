@@ -52,11 +52,11 @@ export class Brand extends BaseEntity {
   phone: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 255, nullable: false })
+  @Column({ type: "varchar", length: 255 })
   address: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 100, nullable: false })
+  @Column({ type: "varchar", length: 100 })
   businessTaxCode: string;
 
   @Expose()
@@ -68,11 +68,11 @@ export class Brand extends BaseEntity {
   establishmentDate: Date;
 
   @Expose()
-  @Column({ type: "varchar", length: 100 })
+  @Column({ type: "varchar", length: 100, nullable: true })
   province: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 100 })
+  @Column({ type: "varchar", length: 100, nullable: true })
   district: string;
 
   @Expose()
