@@ -1,14 +1,14 @@
-import express from 'express';
-import { AppDataSource } from './dataSource';
-import { config } from './configs/envConfig';
-import cors from 'cors';
-import Logging from './utils/Logging';
-import http from 'http';
-import './services/cron.service';
-import router from './routes/index.route';
-import { errorHandler } from './errors/errorHandler';
-import { initializeMasterConfig } from './utils/initializeMasterConfig';
-import { initializeSlots } from './utils/initializeSlots';
+import express from "express";
+import { AppDataSource } from "./dataSource";
+import { config } from "./configs/envConfig";
+import cors from "cors";
+import Logging from "./utils/Logging";
+import http from "http";
+import "./services/cron.service";
+import router from "./routes/index.route";
+import { errorHandler } from "./errors/errorHandler";
+import { initializeMasterConfig } from "./utils/initializeMasterConfig";
+import { initializeSlots } from "./utils/initializeSlots";
 
 const app = express();
 
@@ -18,15 +18,15 @@ const StartServer = () => {
 
   const options: cors.CorsOptions = {
     allowedHeaders: [
-      'Origin',
-      'X-Requested-With',
-      'Content-Type',
-      'Accept',
-      'X-Access-Token',
+      "Origin",
+      "X-Requested-With",
+      "Content-Type",
+      "Accept",
+      "X-Access-Token",
     ],
-    credentials: true,
-    methods: 'GET,HEAD,OPTIONS,PUT,PATCH,POST,DELETE',
-    origin: '*',
+    credentials: false,
+    methods: "GET,HEAD,OPTIONS,PUT,PATCH,POST,DELETE",
+    origin: "*",
     preflightContinue: false,
   };
 
@@ -38,7 +38,7 @@ const StartServer = () => {
       `METHOD: [${req.method}] - URL: [${req.url}] - IP: [${req.socket.remoteAddress}]`
     );
 
-    res.on('finish', () => {
+    res.on("finish", () => {
       Logging.info(`STATUS: [${res.statusCode}]`);
     });
 
@@ -46,12 +46,12 @@ const StartServer = () => {
   });
 
   // Healthcheck
-  app.get('/ping', (req, res, next) =>
-    res.status(200).json({ hello: 'world' })
+  app.get("/ping", (req, res, next) =>
+    res.status(200).json({ hello: "world" })
   );
 
   //Routes
-  app.use('/allure', router);
+  app.use("/allure", router);
   app.use(errorHandler);
 
   // app.use(
@@ -73,7 +73,7 @@ const StartServer = () => {
 AppDataSource.initialize()
   .then(async () => {
     StartServer();
-    Logging.info('Established connection!');
+    Logging.info("Established connection!");
     await initializeMasterConfig();
     await initializeSlots();
   })
