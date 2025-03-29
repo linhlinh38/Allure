@@ -234,16 +234,6 @@ class OrderService extends BaseService<Order> {
             null,
             queryRunner
           ),
-          //create transaction
-          (async () => {
-            const transaction =
-              await transactionService.createTransactionFromChildOrder(
-                complaintRequest.order,
-                TransactionTypeEnum.ORDER_REFUND
-              );
-            transaction.type = TransactionTypeEnum.ORDER_REFUND;
-            await queryRunner.manager.save(Transaction, transaction);
-          })(),
           //refund to wallet
           (async () => {
             const wallet = await walletRepository.findOne({
@@ -255,6 +245,15 @@ class OrderService extends BaseService<Order> {
             await queryRunner.manager.save(wallet);
           })(),
         ]);
+
+        //create transaction
+        const transaction =
+          await transactionService.createTransactionFromChildOrder(
+            complaintRequest.order,
+            TransactionTypeEnum.ORDER_REFUND
+          );
+        await queryRunner.manager.save(Transaction, transaction);
+
         //refund voucher for type gr buying
         if (order.type == OrderEnum.GROUP_BUYING) {
           const voucher = order.voucher;
@@ -857,7 +856,7 @@ class OrderService extends BaseService<Order> {
         where: { id: orderId },
         relations: {
           account: true,
-        }
+        },
       });
       if (!order) {
         throw new BadRequestError(`Order not found`);
@@ -931,7 +930,7 @@ class OrderService extends BaseService<Order> {
         if (!wallet) throw new BadRequestError(`Wallet not found`);
         wallet.balance += order.totalPrice;
         await queryRunner.manager.save(wallet);
-        
+
         const transaction =
           await transactionService.createTransactionFromChildOrder(
             order,
@@ -1755,6 +1754,19 @@ class OrderService extends BaseService<Order> {
       else {
         wallet.balance -= parentOrder.totalPrice;
         await queryRunner.manager.save(Wallet, wallet);
+
+        const transactions = [];
+        // Create transactions for child orders
+        for (const childOrder of parentOrder.children) {
+          const transaction =
+            await transactionService.createTransactionFromChildOrder(
+              childOrder,
+              TransactionTypeEnum.ORDER_PURCHASE
+            );
+          transactions.push(transaction);
+        }
+        await queryRunner.manager.save(Transaction, transactions);
+
         const statusTrackings = this.updateOrderStatusBeforeCreation(
           parentOrder,
           ShippingStatusEnum.WAIT_FOR_CONFIRMATION
