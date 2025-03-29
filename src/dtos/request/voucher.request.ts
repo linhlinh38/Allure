@@ -218,3 +218,51 @@ export class VoucherRequest {
   @Expose()
   brandId: string;
 }
+
+
+export class VoucherUpdateRequest {
+  @Expose()
+  name: string;
+
+  @Expose()
+  type: string;
+
+  @Expose()
+  discountType: string;
+
+  @Expose()
+  discountValue: number;
+
+  @Expose()
+  maxDiscount: number;
+
+  @Expose()
+  minOrderValue: number;
+
+  @Expose()
+  description: string;
+
+  @Expose()
+  status: string;
+
+  @Expose()
+  amount: number;
+
+  @Expose()
+  startTime: Date;
+
+  @Expose()
+  endTime: Date;
+
+  @Expose()
+  applyType: VoucherApplyTypeEnum;
+
+  @Expose()
+  visibility: VoucherVisibilityEnum;
+
+  @Expose()
+  applyProductIds: string[];
+
+  @Expose()
+  brandId: string;
+}
