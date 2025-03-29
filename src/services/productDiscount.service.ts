@@ -274,13 +274,39 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
       .take(limit);
 
     const [productDiscounts, total] = await queryBuilder.getManyAndCount();
+    const productDiscountsWithSoldAmount = await Promise.all(
+      productDiscounts.map(async (discount) => {
+        const soldAmount = await this.calculateSoldAmount(discount.id);
+
+        return {
+          ...discount,
+          soldAmount: soldAmount,
+        };
+      })
+    );
 
     return {
-      items: productDiscounts,
+      items: productDiscountsWithSoldAmount,
       total,
       page,
       limit,
     };
+  }
+
+  async calculateSoldAmount(productDiscountId: string): Promise<number> {
+    const result = await orderDetailRepository
+      .createQueryBuilder("orderDetail")
+      .innerJoin("orderDetail.productClassification", "productClassification")
+      .innerJoin("productClassification.productDiscount", "productDiscount")
+      .innerJoin("orderDetail.order", "order")
+      .select("COALESCE(SUM(orderDetail.quantity), 0)", "totalSold")
+      .where("productDiscount.id = :productDiscountId", { productDiscountId })
+      .andWhere("order.status NOT IN (:...excludedStatuses)", {
+        excludedStatuses: ["TO_PAY", "CANCELLED"],
+      })
+      .getRawOne();
+
+    return result?.totalSold || 0;
   }
 
   async formatDatetime(datetimeString: string): Promise<string> {

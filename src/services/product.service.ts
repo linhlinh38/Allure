@@ -25,6 +25,7 @@ import { orderDetailRepository } from "../repositories/orderDetail.repository";
 import { RecommendProductsRequest } from "../dtos/request/product.request";
 import { productClassificationService } from "./productClassification.service";
 import { productRepository } from "../repositories/product.repository";
+import { productClassificationRepository } from "../repositories/productClassification.repository";
 
 const repository = productRepository;
 
@@ -583,6 +584,24 @@ class ProductService extends BaseService<Product> {
             throw new BadRequestError(
               `sku of classification ${classification.title} already exists`
             );
+        }
+        if (classification.title) {
+          const checkClassificationTitle =
+            await productClassificationRepository.find({
+              where: {
+                title: classification.title,
+                product: { id: product.id },
+                status: Not(In([ProductEnum.INACTIVE, ProductEnum.BANNED])),
+              },
+            });
+          if (
+            checkClassificationTitle.length !== 0 &&
+            checkClassificationTitle[0].id !== classification.id
+          ) {
+            throw new BadRequestError(
+              `title of classification ${classification.title} already exists`
+            );
+          }
         }
       }
     }

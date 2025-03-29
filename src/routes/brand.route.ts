@@ -5,6 +5,7 @@ import {
   BrandCreateSchema,
   BrandUpdateSchema,
   BrandUpdateStatusSchema,
+  FilterBrandSchema,
 } from '../dtos/request/brand.request';
 import authentication from '../middleware/authentication';
 const brandRoute = express.Router();
@@ -35,4 +36,5 @@ brandRoute.post(
 brandRoute.post('/toggle-follow/:id', BrandController.toggleFollowBrand);
 brandRoute.get('/get-followed-brands', BrandController.getFollowedBrands);
 brandRoute.post('/assign-interview/:brandId', BrandController.assignInterview);
+brandRoute.post('/filter', validate(FilterBrandSchema), BrandController.filter);
 export default brandRoute;

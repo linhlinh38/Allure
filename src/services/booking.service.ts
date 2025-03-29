@@ -11,8 +11,10 @@ import {
   BookingStatusEnum,
   BookingTypeEnum,
   PaymentMethodEnum,
+  ProductEnum,
   RoleEnum,
   ServiceTypeEnum,
+  StatusEnum,
   TransactionTypeEnum,
 } from "../utils/enum";
 import { BaseService } from "./base.service";
@@ -26,6 +28,9 @@ import { StatusTracking } from "../entities/statusTracking.entity";
 import { Wallet } from "../entities/wallet.entity";
 import { Transaction } from "../entities/transaction.entity";
 import { addBookingToQueue } from "../utils/queue/cancelBookingQueue";
+import { ConsultationResult } from "../entities/consultationResult.entity";
+import { BookingFormAnswer } from "../entities/bookingFormAnswer.entity";
+import { ProductClassification } from "../entities/productClassification.entity";
 
 const repository = AppDataSource.getRepository(Booking);
 class BookingService extends BaseService<Booking> {
@@ -257,6 +262,125 @@ class BookingService extends BaseService<Booking> {
     if (!booking) throw new BadRequestError("Booking not found");
     booking.status = status;
     await booking.save();
+  }
+
+  async updateBookingServiceStatus(id: string, data: any, loginUser: string) {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Find the booking
+      const booking = await bookingRepository.findOne({
+        where: { id },
+        relations: ["account", "consultantService"],
+      });
+
+      if (!booking) {
+        throw new BadRequestError("Booking not found");
+      }
+
+      let statusTracking;
+
+      if (data.bookingFormAnswer) {
+        let serviceBookingFormAnswer = new BookingFormAnswer();
+        serviceBookingFormAnswer.booking = booking;
+        serviceBookingFormAnswer.serviceBookingForm = {
+          id: data.bookingFormAnswer.formId,
+        } as any;
+        serviceBookingFormAnswer.form = data.bookingFormAnswer.form;
+        serviceBookingFormAnswer.answers = data.bookingFormAnswer.answers;
+        serviceBookingFormAnswer = await queryRunner.manager.save(
+          BookingFormAnswer,
+          serviceBookingFormAnswer
+        );
+
+        // Update booking status to SERVICE_BOOKING_FORM_SUBMITED
+        booking.status = BookingStatusEnum.SERVICE_BOOKING_FORM_SUBMITED;
+        booking.bookingFormAnswer = serviceBookingFormAnswer;
+        await queryRunner.manager.save(Booking, booking);
+
+        // Create a status tracking record
+        statusTracking = this.updateBookingStatus(
+          booking,
+          BookingStatusEnum.SERVICE_BOOKING_FORM_SUBMITED,
+          loginUser,
+          "Service booking form submitted"
+        );
+        await queryRunner.manager.save(StatusTracking, statusTracking);
+      } else if (data.consultationResult) {
+        if (data.consultationResult.suggestedProductClassifications) {
+          for (const suggestedProductClassification of data.consultationResult
+            .suggestedProductClassifications) {
+            const checkClassification = await queryRunner.manager.findOne(
+              ProductClassification,
+              {
+                where: {
+                  id: suggestedProductClassification.productClassificationId,
+                  status: StatusEnum.ACTIVE,
+                },
+                relations: {
+                  product: true,
+                },
+              }
+            );
+            if (!checkClassification)
+              throw new BadRequestError("Product not found");
+            if (
+              !checkClassification.product ||
+              checkClassification.product.status === ProductEnum.BANNED
+            )
+              throw new BadRequestError("Please select active product");
+          }
+        }
+        let consultationResult = new ConsultationResult();
+        consultationResult.booking = booking;
+        consultationResult.consultationCriteria = {
+          id: data.consultationResult.criteriaId,
+        } as any;
+        consultationResult.criteria = data.consultationResult.criteria;
+        consultationResult.results = data.consultationResult.results;
+        consultationResult.suggestedProductClassifications =
+          data.consultationResult.suggestedProductClassifications;
+        consultationResult = await queryRunner.manager.save(
+          ConsultationResult,
+          consultationResult
+        );
+
+        // Update booking status to SENDED_RESULT_SHEET
+        booking.status = BookingStatusEnum.SENDED_RESULT_SHEET;
+        booking.consultationResult = consultationResult;
+        await queryRunner.manager.save(Booking, booking);
+
+        // Create a status tracking record
+        statusTracking = this.updateBookingStatus(
+          booking,
+          BookingStatusEnum.SENDED_RESULT_SHEET,
+          loginUser,
+          "Consultation result sent"
+        );
+        await queryRunner.manager.save(StatusTracking, statusTracking);
+      } else {
+        booking.status = data.status;
+        await queryRunner.manager.save(Booking, booking);
+
+        statusTracking = this.updateBookingStatus(
+          booking,
+          data.status,
+          loginUser,
+          "Booking status updated"
+        );
+        await queryRunner.manager.save(StatusTracking, statusTracking);
+      }
+
+      await queryRunner.commitTransaction();
+      return { message: "Booking service status updated successfully" };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async isSlotBooked(bookingRequest: BookingRequest) {

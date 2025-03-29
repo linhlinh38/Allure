@@ -4,6 +4,7 @@ import { OrderDetail } from './orderDetail.entity';
 import { Reply } from './reply.entity';
 import { MediaFile } from './mediaFile.entity';
 import { Report } from './report.entity';
+import { Booking } from './booking.entity';
 
 @Entity('feedbacks')
 export class Feedback extends BaseEntity {
@@ -13,9 +14,17 @@ export class Feedback extends BaseEntity {
   @Column({ type: 'varchar' })
   content: string;
 
-  @OneToOne(() => OrderDetail, (orderDetail) => orderDetail.feedback)
+  @OneToOne(() => OrderDetail, (orderDetail) => orderDetail.feedback, {
+    nullable: true,
+  })
   @JoinColumn({ name: 'order_detail_id' })
   orderDetail: OrderDetail;
+
+  @OneToOne(() => Booking, (booking) => booking.feedback, {
+    nullable: true,
+  })
+  @JoinColumn({ name: 'booking_id' })
+  booking: Booking;
 
   @OneToMany(() => MediaFile, (mediaFile) => mediaFile.feedback, {
     cascade: true,

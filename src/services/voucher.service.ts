@@ -31,6 +31,7 @@ import {
   GetBestPlatformVouchersRequest,
   GetBestShopVouchersRequest,
   VoucherRequest,
+  VoucherUpdateRequest,
 } from '../dtos/request/voucher.request';
 import { brandRepository } from '../repositories/brand.repository';
 import { productRepository } from '../repositories/product.repository';
@@ -1211,7 +1212,7 @@ class VoucherService extends BaseService<Voucher> {
     await this.create(voucherBody);
   }
 
-  async updateDetail(id: string, voucherRequest: VoucherRequest) {
+  async updateDetail(id: string, voucherRequest: VoucherUpdateRequest) {
     const voucher = await voucherService.findById(id);
     if (!voucher) throw new BadRequestError('Voucher not found');
     if (new Date(voucherRequest.startTime) > new Date(voucherRequest.endTime)) {
@@ -1221,24 +1222,6 @@ class VoucherService extends BaseService<Voucher> {
       throw new BadRequestError(
         'Cannot update a voucher that is already started'
       );
-    }
-    const existVoucherByName = await voucherRepository.findOne({
-      where: {
-        name: voucherRequest.name,
-        id: Not(id),
-      },
-    });
-    if (existVoucherByName) {
-      throw new BadRequestError('Name already exists');
-    }
-    const existVoucherByCode = await voucherRepository.findOne({
-      where: {
-        code: voucherRequest.code,
-        id: Not(id),
-      },
-    });
-    if (existVoucherByCode) {
-      throw new BadRequestError('Code already exists');
     }
     Object.assign(voucher, voucherRequest);
     if (voucherRequest.brandId) {
@@ -1250,17 +1233,31 @@ class VoucherService extends BaseService<Voucher> {
       if (!brand) throw new BadRequestError('Brand not found');
       voucher.brand = brand;
     }
+    if (voucherRequest.applyType == VoucherApplyTypeEnum.SPECIFIC) {
+      if (
+        !voucherRequest.applyProductIds ||
+        voucherRequest.applyProductIds.length == 0
+      ) {
+        throw new BadRequestError('Apply product ids must not be empty');
+      }
+      const applyProducts = await productRepository.find({
+        where: {
+          id: In(voucherRequest.applyProductIds),
+        },
+      });
+      voucher.applyProducts = applyProducts;
+    }
     await this.update(id, voucher);
   }
 
   async getAll() {
-    const vouchers = voucherRepository.find({
+    const vouchers = await voucherRepository.find({
       relations: {
         brand: true,
         applyProducts: true,
       },
     });
-    return plainToInstance(VoucherResponse, vouchers);
+    return vouchers;
   }
 
   async getById(id: string) {
@@ -1270,6 +1267,7 @@ class VoucherService extends BaseService<Voucher> {
       },
       relations: {
         brand: true,
+        applyProducts: true,
       },
     });
     if (!voucher) throw new BadRequestError('Voucher not found');

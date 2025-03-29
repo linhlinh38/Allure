@@ -196,7 +196,7 @@ async function verifyAccount(
       newWallet.balance = 0;
       await walletRepository.save(newWallet);
     }
-    
+
     return res.status(200).send({ message: "Update account success" });
   } catch (error) {
     next(error);
@@ -341,6 +341,23 @@ async function deleteAccount(req: Request, res: Response, next: NextFunction) {
   }
 }
 
+async function calculateBrandRecommendationPercentage(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const account = await accountService.calculateBrandRecommendationPercentage(
+      req.body.consultantId
+    );
+    return res
+      .status(200)
+      .send({ message: "Calculate success", data: account });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export const accountController = {
   getAllAccount,
   getAccountBy,
@@ -357,4 +374,5 @@ export const accountController = {
   getStaffByBrandAndStatus,
   filterAccounts,
   resendVerifyEmail,
+  calculateBrandRecommendationPercentage,
 };
