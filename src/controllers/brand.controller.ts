@@ -46,11 +46,11 @@ export default class BrandController {
 
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
-      const brands = await brandService.findAll();
-      const responseData = plainToInstance(BrandResponse, brands);
-      return res
-        .status(200)
-        .send({ message: 'Get all brands success', data: responseData });
+      return createNormalResponse(
+        res,
+        'Get all brands success',
+        await brandService.getAll()
+      );
     } catch (err) {
       next(err);
     }

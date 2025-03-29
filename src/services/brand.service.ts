@@ -27,6 +27,15 @@ import { sendConfirmActiveBrandEmail } from './mail.service';
 
 const repository = AppDataSource.getRepository(Brand);
 class BrandService extends BaseService<Brand> {
+  async getAll()
+  {
+    return await repository.find({
+      relations: {
+        documents: true,
+        reviewer: true,
+      },
+    });
+  }
   async assignInterview(brandId: string, reviewerId: any)
   {
     const brand = await repository.findOne({
