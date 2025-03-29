@@ -68,11 +68,11 @@ export class Brand extends BaseEntity {
   establishmentDate: Date;
 
   @Expose()
-  @Column({ type: "varchar", length: 100, nullable: true })
+  @Column({ type: "varchar", length: 100 })
   province: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 100, nullable: true })
+  @Column({ type: "varchar", length: 100 })
   district: string;
 
   @Expose()
