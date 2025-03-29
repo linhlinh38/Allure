@@ -52,7 +52,7 @@ export class Brand extends BaseEntity {
   phone: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 255 })
+  @Column({ type: "varchar", length: 255, nullable: true })
   address: string;
 
   @Expose()
