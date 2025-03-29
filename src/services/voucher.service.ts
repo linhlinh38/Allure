@@ -1270,10 +1270,11 @@ class VoucherService extends BaseService<Voucher> {
       },
       relations: {
         brand: true,
+        applyProducts: true,
       },
     });
     if (!voucher) throw new BadRequestError('Voucher not found');
-    return plainToInstance(VoucherResponse, voucher);
+    return voucher;
   }
 }
 
