@@ -76,7 +76,7 @@ class TransactionService extends BaseService<Transaction> {
         order.status = ShippingStatusEnum.WAIT_FOR_CONFIRMATION;
         await queryRunner.manager.save(Order, order);
         //create status tracking
-        orderService.createStatusTracking(
+        await orderService.createStatusTracking(
           order,
           null,
           ShippingStatusEnum.WAIT_FOR_CONFIRMATION,
