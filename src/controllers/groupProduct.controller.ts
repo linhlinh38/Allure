@@ -1,14 +1,17 @@
 import { NextFunction, Request, Response } from 'express';
 import { createNormalResponse } from '../utils/response';
 import { groupProductService } from '../services/groupProduct.service';
-import { plainToInstance } from 'class-transformer';
+import { plainToInstance, plainToClass } from 'class-transformer';
 import {
   GroupProductCreateRequest,
   GroupProductUpdateRequest,
+  FilterGroupProductRequest,
+  FilterGroupProductPaging,
 } from '../dtos/request/groupProduct.request';
-import { AuthRequest } from '../middleware/authentication';
 import { GroupBuyingRequest } from '../dtos/request/groupBuying.request';
+import { AuthRequest } from '../middleware/authentication';
 import { StatusEnum } from '../utils/enum';
+
 export default class GroupProductController {
   static async getByBrand(req: AuthRequest, res: Response, next: NextFunction) {
     try {
@@ -162,6 +165,27 @@ export default class GroupProductController {
       );
     } catch (err) {
       next(err);
+    }
+  }
+
+  static async filter(req: Request, res: Response, next: NextFunction) {
+    try {
+      const filterRequest = plainToClass(FilterGroupProductRequest, req.body);
+
+      // Set default values for paging
+      const paging = {
+        page: Number(req.query.page) || 1,
+        limit: Number(req.query.limit) || 10,
+      } as FilterGroupProductPaging;
+
+      const result = await groupProductService.filter(filterRequest, paging);
+      return createNormalResponse(
+        res,
+        'Filter group products successfully',
+        result
+      );
+    } catch (error) {
+      next(error);
     }
   }
 }
