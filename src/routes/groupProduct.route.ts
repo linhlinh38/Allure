@@ -4,6 +4,7 @@ import GroupProductController from '../controllers/groupProduct.controller';
 import {
   GroupProductCreateSchema,
   GroupProductUpdateSchema,
+  FilterGroupProductSchema,
 } from '../dtos/request/groupProduct.request';
 import validate from '../utils/validate';
 import { GroupBuyingCreateSchema } from '../dtos/request/groupBuying.request';
@@ -22,6 +23,11 @@ groupProductRouter.get(
 groupProductRouter.get(
   '/get-by-id/:groupProductId',
   GroupProductController.getById
+);
+groupProductRouter.post(
+  '/filter',
+  validate(FilterGroupProductSchema),
+  GroupProductController.filter
 );
 groupProductRouter.use(authentication);
 groupProductRouter.post(

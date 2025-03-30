@@ -20,6 +20,10 @@ import { accountRepository } from '../repositories/account.repository';
 import { VoucherRequest } from '../dtos/request/voucher.request';
 import { criteriaRepository } from '../repositories/criteria.repository';
 import { addGroupBuyingToQueue } from '../utils/queue/endGrBuyingQueue';
+import {
+  FilterGroupProductRequest,
+  FilterGroupProductPaging,
+} from '../dtos/request/groupProduct.request';
 
 const repository = AppDataSource.getRepository(GroupProduct);
 class GroupProductService extends BaseService<GroupProduct> {
@@ -305,6 +309,57 @@ class GroupProductService extends BaseService<GroupProduct> {
     voucherBody.visibility = VoucherVisibilityEnum.GROUP;
     groupBuyingCriteria.voucher = voucherBody;
     groupProduct.criterias.push(groupBuyingCriteria);
+  }
+
+  async filter(
+    filterRequest: FilterGroupProductRequest,
+    paging: FilterGroupProductPaging
+  ) {
+    const { productIds, name, statuses, brandId } = filterRequest;
+    const { page, limit } = paging;
+    const offset = (page - 1) * limit;
+
+    const queryBuilder = repository
+      .createQueryBuilder('groupProduct')
+      .leftJoinAndSelect('groupProduct.products', 'products')
+      .leftJoinAndSelect('groupProduct.brand', 'brand');
+
+    // Apply filters
+    if (productIds && productIds.length > 0) {
+      queryBuilder.andWhere('products.id IN (:...productIds)', { productIds });
+    }
+
+    if (name) {
+      queryBuilder.andWhere('LOWER(groupProduct.name) LIKE LOWER(:name)', {
+        name: `%${name}%`,
+      });
+    }
+
+    if (statuses && statuses.length > 0) {
+      queryBuilder.andWhere('groupProduct.status IN (:...statuses)', {
+        statuses,
+      });
+    }
+
+    if (brandId) {
+      queryBuilder.andWhere('brand.id = :brandId', { brandId });
+    }
+
+    // Get total count
+    const totalGroupProducts = await queryBuilder.getCount();
+
+    // Get paginated results
+    const groupProducts = await queryBuilder
+      .orderBy('groupProduct.createdAt', 'DESC')
+      .skip(offset)
+      .take(limit)
+      .getMany();
+
+    return {
+      total: totalGroupProducts,
+      totalPages: Math.ceil(totalGroupProducts / limit),
+      items: groupProducts,
+    };
   }
 
   constructor() {

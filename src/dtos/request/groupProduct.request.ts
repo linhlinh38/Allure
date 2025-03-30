@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { VoucherCreateSchema, VoucherRequest } from './voucher.request';
 import { Expose } from 'class-transformer';
+import { StatusEnum } from '../../utils/enum';
 
 export const GroupProductCreateSchema = z.object({
   body: z.object({
@@ -98,4 +99,39 @@ export class GroupProductUpdateRequest {
   }[];
   @Expose()
   brandId: string;
+}
+
+export const FilterGroupProductSchema = z.object({
+  body: z.object({
+    productIds: z.array(z.string().uuid()).optional(),
+    name: z.string().optional(),
+    statuses: z.array(z.nativeEnum(StatusEnum)).optional(),
+    brandId: z.string().uuid().optional(),
+  }),
+  query: z.object({
+    page: z.number().min(1).optional(),
+    limit: z.number().min(1).optional(),
+  }),
+});
+
+export class FilterGroupProductRequest {
+  @Expose()
+  productIds?: string[];
+
+  @Expose()
+  name?: string;
+
+  @Expose()
+  statuses?: StatusEnum[];
+
+  @Expose()
+  brandId?: string;
+}
+
+export class FilterGroupProductPaging {
+  @Expose()
+  page: number = 1;
+
+  @Expose()
+  limit: number = 10;
 }
