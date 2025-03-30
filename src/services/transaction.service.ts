@@ -28,6 +28,7 @@ import { payos } from '../utils/payos';
 import { Account } from '../entities/account.entity';
 import { bookingRepository } from '../repositories/booking.repository';
 import { Booking } from '../entities/booking.entity';
+import { Wallet } from '../entities/wallet.entity';
 
 const repository = AppDataSource.getRepository(Transaction);
 class TransactionService extends BaseService<Transaction> {
@@ -41,6 +42,7 @@ class TransactionService extends BaseService<Transaction> {
           where: { id: payRequest.id },
           relations: {
             account: true,
+            children: true,
           },
         });
         if (!order) throw new BadRequestError(`Order not found`);
@@ -57,8 +59,19 @@ class TransactionService extends BaseService<Transaction> {
           if (wallet.balance < order.totalPrice) {
             throw new BadRequestError(`Balance wallet not enough`);
           }
-          wallet.balance -= order.totalPrice;
-          await queryRunner.manager.save(wallet);
+          const transactions = [];
+          // Create transactions for child orders
+          for (const childOrder of order.children) {
+            wallet.balance -= childOrder.totalPrice;
+            await queryRunner.manager.save(Wallet, wallet);
+
+            const transaction = await this.createTransactionFromChildOrder(
+              childOrder,
+              TransactionTypeEnum.ORDER_PURCHASE
+            );
+            transactions.push(transaction);
+          }
+          await queryRunner.manager.save(Transaction, transactions);
         } else if (order.paymentMethod == PaymentMethodEnum.BANK_TRANSFER) {
           await this.getPaymentData(payRequest.orderId);
         } else {
@@ -66,11 +79,16 @@ class TransactionService extends BaseService<Transaction> {
             `Only pay for with wallet or bank transfer`
           );
         }
-        const transaction = await this.createTransactionFromChildOrder(
-          order,
-          TransactionTypeEnum.ORDER_PURCHASE
-        );
-        await queryRunner.manager.save(transaction);
+        const transactions = [];
+        // Create transactions for child orders
+        for (const childOrder of order.children) {
+          const transaction = await this.createTransactionFromChildOrder(
+            childOrder,
+            TransactionTypeEnum.ORDER_PURCHASE
+          );
+          transactions.push(transaction);
+        }
+        await queryRunner.manager.save(Transaction, transactions);
 
         //update order status and save
         order.status = ShippingStatusEnum.WAIT_FOR_CONFIRMATION;
@@ -78,11 +96,23 @@ class TransactionService extends BaseService<Transaction> {
         //create status tracking
         await orderService.createStatusTracking(
           order,
-          null,
+          order.account.id,
           ShippingStatusEnum.WAIT_FOR_CONFIRMATION,
           null,
           queryRunner
         );
+        for (const childOrder of order.children) {
+          childOrder.status = ShippingStatusEnum.WAIT_FOR_CONFIRMATION;
+          await queryRunner.manager.save(Order, childOrder);
+
+          await orderService.createStatusTracking(
+            childOrder,
+            childOrder.account.id,
+            ShippingStatusEnum.WAIT_FOR_CONFIRMATION,
+            null,
+            queryRunner
+          );
+        }
       } else if (payRequest.type == PayTypeEnum.BOOKING) {
         const booking = await bookingRepository.findOne({
           where: { id: payRequest.id },
