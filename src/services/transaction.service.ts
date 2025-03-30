@@ -42,7 +42,9 @@ class TransactionService extends BaseService<Transaction> {
           where: { id: payRequest.id },
           relations: {
             account: true,
-            children: true,
+            children: {
+              account: true,
+            },
           },
         });
         if (!order) throw new BadRequestError(`Order not found`);
