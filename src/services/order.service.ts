@@ -742,17 +742,25 @@ class OrderService extends BaseService<Order> {
             account: true,
           },
         });
+        if (
+          order.status != ShippingStatusEnum.TO_PAY &&
+          order.paymentMethod != PaymentMethodEnum.CASH
+        ) {
+          //refund to wallet
+          await walletService.refundFromCancelOrder(order, queryRunner);
+          const transaction =
+            await transactionService.createTransactionFromChildOrder(
+              order,
+              TransactionTypeEnum.ORDER_CANCEL
+            );
+          await queryRunner.manager.save(Transaction, transaction);
+        }
         await Promise.all([
           //update order status and save
           (async () => {
             order.status = ShippingStatusEnum.CANCELLED;
             await queryRunner.manager.save(Order, order);
           })(),
-          //update status of transaction
-          transactionService.cancelTransactionBasedOnOrderId(
-            order.id,
-            queryRunner
-          ),
           //update status of request
           (async () => {
             cancelOrderRequest.status = RequestStatusEnum.APPROVED;
@@ -760,8 +768,6 @@ class OrderService extends BaseService<Order> {
           })(),
           //refund voucher
           this.refundVoucherInBothChildAndParentOrder(order, queryRunner),
-          //refund to wallet
-          walletService.refundFromCancelOrder(order, queryRunner),
           //return back stock quantity
           this.returnBackStockQuantity(order, queryRunner),
           //create status tracking
@@ -977,6 +983,19 @@ class OrderService extends BaseService<Order> {
           ShippingStatusEnum.SHIPPING,
         ].includes(order.status)
       ) {
+        if (
+          order.status != ShippingStatusEnum.TO_PAY &&
+          order.paymentMethod != PaymentMethodEnum.CASH
+        ) {
+          //refund to wallet
+          await walletService.refundFromCancelOrder(order, queryRunner);
+          const transaction =
+            await transactionService.createTransactionFromChildOrder(
+              order,
+              TransactionTypeEnum.ORDER_CANCEL
+            );
+          await queryRunner.manager.save(Transaction, transaction);
+        }
         await Promise.all([
           //update order status and save
           (async () => {
@@ -985,13 +1004,6 @@ class OrderService extends BaseService<Order> {
           })(),
           //refund voucher
           this.refundVoucherInBothChildAndParentOrder(order, queryRunner),
-          //update status of transaction
-          transactionService.cancelTransactionBasedOnOrderId(
-            order.id,
-            queryRunner
-          ),
-          //refund to wallet
-          walletService.refundFromCancelOrder(order, queryRunner),
           //return back stock quantity
           this.returnBackStockQuantity(order, queryRunner),
           //create status tracking
@@ -1086,6 +1098,20 @@ class OrderService extends BaseService<Order> {
           ShippingStatusEnum.TO_PAY,
         ].includes(order.status)
       ) {
+        if (
+          order.status == ShippingStatusEnum.WAIT_FOR_CONFIRMATION &&
+          order.paymentMethod != PaymentMethodEnum.CASH
+        ) {
+          //refund to wallet
+          await walletService.refundFromCancelOrder(order, queryRunner);
+
+          const transaction =
+            await transactionService.createTransactionFromChildOrder(
+              order,
+              TransactionTypeEnum.ORDER_CANCEL
+            );
+          await queryRunner.manager.save(Transaction, transaction);
+        }
         await Promise.all([
           //update order status and save
           (async () => {
@@ -1094,13 +1120,7 @@ class OrderService extends BaseService<Order> {
           })(),
           //refund voucher
           this.refundVoucherInBothChildAndParentOrder(order, queryRunner),
-          //update status of transaction
-          transactionService.cancelTransactionBasedOnOrderId(
-            order.id,
-            queryRunner
-          ),
-          //refund to wallet
-          walletService.refundFromCancelOrder(order, queryRunner),
+
           //return back stock quantity
           this.returnBackStockQuantity(order, queryRunner),
           //create status tracking
@@ -1648,12 +1668,6 @@ class OrderService extends BaseService<Order> {
         accountId
       );
 
-      // //create pending transaction
-      // const transactions = createdParentOrder.children.map((childOrder) => {
-      //   return transactionService.createTransactionFromChildOrder(childOrder);
-      // });
-      // await queryRunner.manager.save(Transaction, transactions);
-
       await queryRunner.commitTransaction();
       return createdParentOrder;
     } catch (error) {
@@ -1752,12 +1766,12 @@ class OrderService extends BaseService<Order> {
       }
       //check balance if it is enough
       else {
-        wallet.balance -= parentOrder.totalPrice;
-        await queryRunner.manager.save(Wallet, wallet);
-
         const transactions = [];
         // Create transactions for child orders
         for (const childOrder of parentOrder.children) {
+          wallet.balance -= childOrder.totalPrice;
+          await queryRunner.manager.save(Wallet, wallet);
+
           const transaction =
             await transactionService.createTransactionFromChildOrder(
               childOrder,
