@@ -3,6 +3,7 @@ import { BaseEntity } from './base.entity';
 import { OrderRequestTypeEnum, RequestStatusEnum } from '../utils/enum';
 import { Order } from './order.entity';
 import { File } from './file.entity';
+import { Account } from './account.entity';
 
 @Entity('order_requests')
 export class OrderRequest extends BaseEntity {
@@ -25,6 +26,10 @@ export class OrderRequest extends BaseEntity {
   @ManyToOne(() => Order, (order) => order.requests, { nullable: true })
   @JoinColumn({ name: 'order_id' })
   order: Order;
+
+  @ManyToOne(() => Account, { nullable: true })
+  @JoinColumn({ name: 'updated_by_id' })
+  updatedBy: Account;
 
   @Column({
     type: 'enum',

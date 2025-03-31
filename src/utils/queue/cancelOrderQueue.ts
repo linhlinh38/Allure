@@ -62,7 +62,7 @@ const cancelOrderQueueWorker = new Worker(
         await orderService.cancelParentOrder(parentOrder, queryRunner);
 
         // Lấy FCM token của user
-        const fcmToken = await fcmTokenRepository.findOne({
+        const fcmTokens = await fcmTokenRepository.find({
           where: {
             account: {
               id: parentOrder.account.id,
@@ -71,10 +71,10 @@ const cancelOrderQueueWorker = new Worker(
         });
 
         // Gửi thông báo cho người dùng
-        if (fcmToken?.token) {
+        if (fcmTokens && fcmTokens.length > 0) {
           try {
-            await FCMService.sendNotification(
-              fcmToken.token,
+            await FCMService.sendMulticastNotification(
+              fcmTokens.map((token) => token.token),
               "Đơn hàng đã bị hủy",
               `Đơn hàng #${parentOrder.id} đã bị hủy do không thanh toán kịp thời`,
               {

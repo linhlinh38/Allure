@@ -75,6 +75,8 @@ class OrderService extends BaseService<Order> {
     const { types, statusList } = getMyRequestsRequest;
     const queryBuilder = orderRequestRepository
       .createQueryBuilder('orderRequest')
+      .leftJoinAndSelect('orderRequest.updatedBy', 'updatedBy')
+      .leftJoinAndSelect('updatedBy.role', 'role')
       .leftJoinAndSelect('orderRequest.order', 'order')
       .leftJoinAndSelect('orderRequest.mediaFiles', 'mediaFiles')
       .leftJoinAndSelect(
@@ -166,6 +168,9 @@ class OrderService extends BaseService<Order> {
           rejectedRefundRequest: {
             mediaFiles: true,
           },
+          updatedBy: {
+            role: true,
+          },
         },
       },
     });
@@ -188,7 +193,8 @@ class OrderService extends BaseService<Order> {
 
   async makeDecisionOnComplaintRequest(
     requestId: string,
-    makeDicisionComplaintRequest: MakeDicisionComplaintRequest
+    makeDicisionComplaintRequest: MakeDicisionComplaintRequest,
+    loginUser: string
   ) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
@@ -215,6 +221,7 @@ class OrderService extends BaseService<Order> {
         if (!reasonRejected)
           throw new BadRequestError('Reason Rejected required when rejected');
         complaintRequest.status = status;
+        complaintRequest.updatedBy = { id: loginUser } as Account;
         complaintRequest.reasonRejected =
           makeDicisionComplaintRequest.reasonRejected;
 
@@ -266,6 +273,7 @@ class OrderService extends BaseService<Order> {
         isApproved = false;
       } else if (status === RequestStatusEnum.APPROVED) {
         complaintRequest.status = status;
+        complaintRequest.updatedBy = { id: loginUser } as Account;
         await queryRunner.manager.save(OrderRequest, complaintRequest);
 
         await Promise.all([
@@ -353,7 +361,8 @@ class OrderService extends BaseService<Order> {
   }
   async makeDecisionOnRejectRefundRequest(
     requestId: string,
-    makeDicisionRejectRefundRequest: MakeDicisionRejectRefundRequest
+    makeDicisionRejectRefundRequest: MakeDicisionRejectRefundRequest,
+    loginUser: string
   ) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
@@ -376,6 +385,7 @@ class OrderService extends BaseService<Order> {
       if (status === RequestStatusEnum.REJECTED) {
         if (!reasonRejected)
           throw new BadRequestError('Reason Rejected required when rejected');
+        rejectRefundRequest.updatedBy = { id: loginUser } as Account;
         rejectRefundRequest.status = status;
         rejectRefundRequest.reasonRejected =
           makeDicisionRejectRefundRequest.reasonRejected;
@@ -385,6 +395,7 @@ class OrderService extends BaseService<Order> {
         const order = rejectRefundRequest.refundRequest.order;
 
         rejectRefundRequest.status = status;
+        rejectRefundRequest.updatedBy = { id: loginUser } as Account;
         await queryRunner.manager.save(OrderRequest, rejectRefundRequest);
 
         if (order.status != ShippingStatusEnum.COMPLETED) {
@@ -442,7 +453,8 @@ class OrderService extends BaseService<Order> {
   // }
   async makeDecisionOnRefundRequest(
     requestId: string,
-    makeDicisionRefundRequest: MakeDicisionRefundRequest
+    makeDicisionRefundRequest: MakeDicisionRefundRequest,
+    loginUser: string
   ) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
@@ -464,6 +476,7 @@ class OrderService extends BaseService<Order> {
         if (!reasonRejected)
           throw new BadRequestError('Reason Rejected required when rejected');
         refundRequest.status = status;
+        refundRequest.updatedBy = { id: loginUser } as Account;
         await queryRunner.manager.save(OrderRequest, refundRequest);
 
         //create reject refund request
@@ -487,6 +500,7 @@ class OrderService extends BaseService<Order> {
           //update refund request status
           (async () => {
             refundRequest.status = status;
+            refundRequest.updatedBy = { id: loginUser } as Account;
             await queryRunner.manager.save(OrderRequest, refundRequest);
           })(),
           //update order status
@@ -590,6 +604,9 @@ class OrderService extends BaseService<Order> {
       },
       relations: {
         order: true,
+        updatedBy: {
+          role: true,
+        },
       },
     });
     if (!cancelRequest) throw new BadRequestError('Request not found');
@@ -604,6 +621,9 @@ class OrderService extends BaseService<Order> {
         where: {
           order: {
             account: { id: userId },
+          },
+          updatedBy: {
+            role: true,
           },
           type: OrderRequestTypeEnum.CANCEL,
         },
@@ -666,6 +686,8 @@ class OrderService extends BaseService<Order> {
 
     const queryBuilder = orderRequestRepository
       .createQueryBuilder('cancelRequest')
+      .leftJoinAndSelect('cancelRequest.updatedBy', 'updatedBy')
+      .leftJoinAndSelect('updatedBy.role', 'role')
       .innerJoinAndSelect('cancelRequest.order', 'order')
       .innerJoinAndSelect('order.orderDetails', 'orderDetails')
       .innerJoinAndSelect(
@@ -703,7 +725,8 @@ class OrderService extends BaseService<Order> {
   async makeDecisionOnRequest(
     requestId: string,
     status: RequestStatusEnum,
-    reasonRejected: string
+    reasonRejected: string,
+    loginUser: string
   ) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
@@ -723,6 +746,7 @@ class OrderService extends BaseService<Order> {
       if (status === RequestStatusEnum.REJECTED) {
         if (!reasonRejected)
           throw new BadRequestError('Reason Rejected required when rejected');
+        cancelOrderRequest.updatedBy = { id: loginUser } as Account;
         cancelOrderRequest.status = status;
         cancelOrderRequest.reasonRejected = reasonRejected;
         await queryRunner.manager.save(OrderRequest, cancelOrderRequest);
@@ -763,6 +787,7 @@ class OrderService extends BaseService<Order> {
           })(),
           //update status of request
           (async () => {
+            cancelOrderRequest.updatedBy = { id: loginUser } as Account;
             cancelOrderRequest.status = RequestStatusEnum.APPROVED;
             await queryRunner.manager.save(OrderRequest, cancelOrderRequest);
           })(),
