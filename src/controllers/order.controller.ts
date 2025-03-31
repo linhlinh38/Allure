@@ -91,7 +91,8 @@ export default class OrderController {
       );
       const isApproved = await orderService.makeDecisionOnComplaintRequest(
         req.params.requestId,
-        makeDicisionComplaintRequest
+        makeDicisionComplaintRequest,
+        req.loginUser
       );
       return createNormalResponse(
         res,
@@ -138,7 +139,8 @@ export default class OrderController {
       );
       const isApproved = await orderService.makeDecisionOnRejectRefundRequest(
         req.params.requestId,
-        makeDicisionRejectRefundRequest
+        makeDicisionRejectRefundRequest,
+        req.loginUser
       );
       return createNormalResponse(
         res,
@@ -178,7 +180,8 @@ export default class OrderController {
       );
       const isApproved = await orderService.makeDecisionOnRefundRequest(
         req.params.requestId,
-        makeDicisionRefundRequest
+        makeDicisionRefundRequest,
+        req.loginUser
       );
       return createNormalResponse(
         res,
