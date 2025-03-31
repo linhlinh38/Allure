@@ -5,20 +5,36 @@ import { NextFunction, Response } from 'express';
 import {
   FilterTransactionRequest,
   GetStatisticsRequest,
+  PayRequest,
 } from '../dtos/request/transaction.request';
 import { transactionService } from '../services/transaction.service';
 import { Paging } from '../dtos/other/paging.dto';
 
 export default class TransactionController {
+  static async pay(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const payRequest = plainToInstance(
+        PayRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Pay successfully',
+        await transactionService.pay(payRequest)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async deposit(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       return createNormalResponse(
         res,
         'Deposit successfully',
-        await transactionService.deposit(
-          req.body.orderId,
-          req.loginUser
-        )
+        await transactionService.deposit(req.body.orderId, req.loginUser)
       );
     } catch (err) {
       next(err);

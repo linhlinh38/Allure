@@ -34,6 +34,7 @@ import firebaseAuthRouter from "./firebaseAuth.route";
 import FCMRouter from "./fcm.route";
 import { Blog } from "../entities/blog.entity";
 import blogRouter from "./blog.route";
+import cardRouter from "./card.route";
 
 const router = express.Router();
 router.use("/accounts", accountRouter);
@@ -73,4 +74,5 @@ router.use("/livestreams", livestreamRouter);
 router.use("/firebase-auth", firebaseAuthRouter);
 router.use("/fcm", FCMRouter);
 router.use("/blogs", blogRouter);
+router.use("/cards", cardRouter);
 export default router;

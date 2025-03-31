@@ -1,6 +1,8 @@
 import { messaging } from '../configs/firebaseConfig';
 import { BadRequestError } from '../errors/error';
 import { fcmTokenRepository } from '../repositories/fcmToken.repository';
+import { accountRepository } from '../repositories/account.repository';
+import Logging from '../utils/Logging';
 
 export class FCMService {
   static async sendNotification(
@@ -112,5 +114,46 @@ export class FCMService {
     });
     await fcmTokenRepository.save(newToken);
     return newToken;
+  }
+
+  static async sendTestNotification(accountId: string) {
+    // Get account information
+    const account = await accountRepository.findOne({
+      where: { id: accountId },
+    });
+
+    if (!account) {
+      throw new BadRequestError('Account not found');
+    }
+
+    // Get FCM token
+    const fcmToken = await fcmTokenRepository.findOne({
+      where: { account: { id: accountId } },
+    });
+
+    if (!fcmToken) {
+      throw new BadRequestError('FCM token not found for this account');
+    }
+
+    // Send test notification
+    await this.sendNotification(
+      fcmToken.token,
+      'Test Notification',
+      `Hello ${account.firstName}, this is a test notification!`,
+      {
+        type: 'TEST',
+        message: 'This is a test notification from the API',
+      }
+    );
+
+    Logging.info(
+      `Test notification sent successfully to account ${account.id}`
+    );
+
+    return {
+      accountId: account.id,
+      accountName: account.firstName,
+      notificationSent: true,
+    };
   }
 }

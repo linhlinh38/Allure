@@ -1,8 +1,10 @@
 import { Brackets } from 'typeorm';
 import { AppDataSource } from '../dataSource';
 import {
+  FeedbackCreateForBookingRequest,
   FeedbackCreateRequest,
   FeedbackFilterRequest,
+  FilterConsultantFeedbackRequest,
 } from '../dtos/request/feedback.request';
 import { Feedback } from '../entities/feedback.entity';
 import { BadRequestError } from '../errors/error';
@@ -11,13 +13,19 @@ import { masterConfigRepository } from '../repositories/masterConfig.repository'
 import { orderDetailRepository } from '../repositories/orderDetail.repository';
 import { productRepository } from '../repositories/product.repository';
 import { statusTrackingRepository } from '../repositories/statusTracking.repository';
-import { FeedbackFilterEnum, ShippingStatusEnum } from '../utils/enum';
+import {
+  BookingStatusEnum,
+  FeedbackFilterEnum,
+  ShippingStatusEnum,
+} from '../utils/enum';
 import { BaseService } from './base.service';
 import { Reply } from '../entities/reply.entity';
 import { Account } from '../entities/account.entity';
 import { replyRepository } from '../repositories/reply.repository';
 import { MediaFile } from '../entities/mediaFile.entity';
 import { Paging } from '../dtos/other/paging.dto';
+import { bookingRepository } from '../repositories/booking.repository';
+import { accountRepository } from '../repositories/account.repository';
 
 const repository = AppDataSource.getRepository(Feedback);
 class FeedbackService extends BaseService<Feedback> {
@@ -280,6 +288,74 @@ class FeedbackService extends BaseService<Feedback> {
     });
   }
 
+  async getConsultantFeedbacks(consultantId: string) {
+    const consultant = await accountRepository.findOne({
+      where: {
+        id: consultantId,
+      },
+    });
+    if (!consultant) throw new BadRequestError('Consultant not found');
+    return await feedbackRepository.find({
+      where: {
+        booking: {
+          consultantService: {
+            account: {
+              id: consultantId,
+            },
+          },
+        },
+      },
+      relations: {
+        mediaFiles: true,
+        replies: { account: true },
+        booking: {
+          account: true,
+          consultantService: {
+            account: true,
+          },
+        },
+      },
+    });
+  }
+
+  async createFeedbackForBooking(
+    feedbackCreateForBookingRequest: FeedbackCreateForBookingRequest,
+    loginUser: string
+  ) {
+    const booking = await bookingRepository.findOne({
+      where: {
+        id: feedbackCreateForBookingRequest.bookingId,
+      },
+      relations: {
+        account: true,
+        feedback: true,
+      },
+    });
+    if (!booking) throw new BadRequestError('Booking not found');
+    if (booking.account.id !== loginUser)
+      throw new BadRequestError(
+        'You are not allowed to create feedback for this booking'
+      );
+    if (booking.status != BookingStatusEnum.COMPLETED)
+      throw new BadRequestError('This booking is not completed yet');
+    if (booking.feedback)
+      throw new BadRequestError(
+        'You already created a feedback for this booking'
+      );
+    const feedback = new Feedback();
+    feedback.rating = feedbackCreateForBookingRequest.rating;
+    feedback.content = feedbackCreateForBookingRequest.content;
+    feedback.booking = booking;
+    feedback.mediaFiles = feedbackCreateForBookingRequest.mediaFiles.map(
+      (mediaFile) => {
+        const mediaFileEntity = new MediaFile();
+        mediaFileEntity.fileUrl = mediaFile;
+        return mediaFileEntity;
+      }
+    );
+    return await feedbackRepository.save(feedback);
+  }
+
   async createFeedback(
     feedbackCreateRequest: FeedbackCreateRequest,
     loginUser: string
@@ -335,6 +411,59 @@ class FeedbackService extends BaseService<Feedback> {
     });
     return await feedbackRepository.save(feedback);
   }
+
+  async filterConsultantFeedbacks(
+    consultantId: string,
+    filterRequest: FilterConsultantFeedbackRequest,
+    paging: Paging
+  ) {
+    const limit = paging.limit;
+    const offset = (paging.page - 1) * paging.limit;
+
+    // Get total count of feedbacks
+    const queryBuilder = feedbackRepository
+      .createQueryBuilder('feedback')
+      .leftJoinAndSelect('feedback.booking', 'booking')
+      .leftJoinAndSelect('booking.consultantService', 'consultantService')
+      .leftJoinAndSelect('consultantService.account', 'consultant')
+      .leftJoinAndSelect('feedback.mediaFiles', 'mediaFiles')
+      .where('consultant.id = :consultantId', { consultantId });
+
+    // Apply filters
+    switch (filterRequest.type) {
+      case FeedbackFilterEnum.ALL:
+        break;
+      case FeedbackFilterEnum.IMAGE_VIDEO:
+        queryBuilder.andWhere('mediaFiles.id IS NOT NULL');
+        break;
+      case FeedbackFilterEnum.RATING:
+        const rating = filterRequest.value ? parseInt(filterRequest.value) : 5; // Default to 5 stars if not specified
+        if (isNaN(rating) || rating < 0 || rating > 5) {
+          throw new BadRequestError('Rating must be a number between 0 and 5');
+        }
+        queryBuilder.andWhere('feedback.rating = :rating', { rating });
+        break;
+      default:
+        throw new BadRequestError('Invalid filter type');
+    }
+
+    // Get total count
+    const totalFeedbacks = await queryBuilder.getCount();
+
+    // Get paginated results
+    const feedbacks = await queryBuilder
+      .orderBy('feedback.createdAt', 'DESC')
+      .skip(offset)
+      .take(limit)
+      .getMany();
+
+    return {
+      total: totalFeedbacks,
+      totalPages: Math.ceil(totalFeedbacks / limit),
+      items: feedbacks,
+    };
+  }
+
   constructor() {
     super(repository);
   }

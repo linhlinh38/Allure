@@ -9,6 +9,7 @@ import {
   GetBestPlatformVouchersRequest,
   GetBestShopVouchersRequest,
   VoucherRequest,
+  VoucherUpdateRequest,
 } from '../dtos/request/voucher.request';
 import { Voucher } from '../entities/voucher.entity';
 
@@ -218,7 +219,7 @@ export default class VoucherController {
 
   static async updateDetail(req: Request, res: Response, next: NextFunction) {
     try {
-      const voucherBody = plainToInstance(VoucherRequest, req.body, {
+      const voucherBody = plainToInstance(VoucherUpdateRequest, req.body, {
         excludeExtraneousValues: true,
       });
       await voucherService.updateDetail(req.params.id, voucherBody);

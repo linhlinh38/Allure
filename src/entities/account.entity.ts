@@ -28,6 +28,7 @@ import { Transaction } from "./transaction.entity";
 import { Report } from "./report.entity";
 import { FCMToken } from "./FCMToken.entity";
 import { Blog } from "./blog.entity";
+import { Card } from "./card.entity";
 
 @Entity("accounts")
 export class Account extends BaseEntity {
@@ -148,4 +149,7 @@ export class Account extends BaseEntity {
 
   @OneToMany(() => Blog, (blog) => blog.author)
   blogs: Report[];
+
+  @OneToMany(() => Card, (card) => card.account)
+  cards: Card[];
 }

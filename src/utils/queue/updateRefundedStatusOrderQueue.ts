@@ -69,6 +69,15 @@ const updateRefundedStatusOrderQueueWorker = new Worker(
         complaintRequest
       ) {
       } else {
+        //refund to wallet
+        const wallet = await walletRepository.findOne({
+          where: {
+            id: order.account.id,
+          },
+        });
+        wallet.balance += order.totalPrice;
+        await queryRunner.manager.save(wallet);
+
         await Promise.all([
           //update order status
           (async () => {
@@ -91,16 +100,6 @@ const updateRefundedStatusOrderQueueWorker = new Worker(
                 TransactionTypeEnum.ORDER_REFUND
               );
             await queryRunner.manager.save(Transaction, transaction);
-          })(),
-          //refund to wallet
-          (async () => {
-            const wallet = await walletRepository.findOne({
-              where: {
-                id: order.account.id,
-              },
-            });
-            wallet.balance += order.totalPrice;
-            await queryRunner.manager.save(wallet);
           })(),
         ]);
         //refund voucher for type gr buying

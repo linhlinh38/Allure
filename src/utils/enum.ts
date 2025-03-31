@@ -271,3 +271,8 @@ export enum BlogEnum {
   PUBLISHED = "PUBLISHED",
   INACTIVE = "INACTIVE",
 }
+
+export enum PayTypeEnum {
+  ORDER = "ORDER",
+  BOOKING = "BOOKING",
+}

@@ -13,11 +13,32 @@ export class FCMController {
     }
   }
 
-  static async createToken(req: AuthRequest, res: Response, next: NextFunction) {
+  static async createToken(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const { token } = req.body;
       await FCMService.createToken(req.loginUser, token);
       return createNormalResponse(res, 'Create token success');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async testNotification(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const result = await FCMService.sendTestNotification(req.loginUser);
+      return createNormalResponse(
+        res,
+        'Test notification sent successfully',
+        result
+      );
     } catch (error) {
       next(error);
     }

@@ -19,12 +19,13 @@ import { Slot } from "./slot.entity";
 import { Report } from "./report.entity";
 import { Brand } from "./brand.entity";
 import { Transaction } from "./transaction.entity";
+import { Feedback } from "./feedback.entity";
 import { BookingFormAnswer } from "./bookingFormAnswer.entity";
 import { ConsultationResult } from "./consultationResult.entity";
 
-@Entity("bookings")
+@Entity('bookings')
 export class Booking extends BaseEntity {
-  @Column({ type: "double precision", default: 0 })
+  @Column({ type: 'double precision', default: 0 })
   totalPrice: number;
 
   @Column({
@@ -42,30 +43,30 @@ export class Booking extends BaseEntity {
   endTime: Date;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: PaymentMethodEnum,
     default: PaymentMethodEnum.BANK_TRANSFER,
     nullable: true,
   })
   paymentMethod: PaymentMethodEnum;
 
-  @Column({ type: "varchar", length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   notes: string;
 
-  @Column({ type: "varchar", length: 255, nullable: true, name: "meet_url" })
+  @Column({ type: 'varchar', length: 255, nullable: true, name: 'meet_url' })
   meetUrl: string;
 
-  @Column({ type: "varchar", length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   record: string;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: BookingTypeEnum,
   })
   type: BookingTypeEnum;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: BookingStatusEnum,
   })
   status: BookingStatusEnum;
@@ -83,28 +84,28 @@ export class Booking extends BaseEntity {
   @ManyToOne(() => Slot, (slot) => slot.bookings, {
     nullable: true,
   })
-  @JoinColumn({ name: "slot_id" })
+  @JoinColumn({ name: 'slot_id' })
   slot: Slot;
 
   @ManyToOne(() => Account, (account) => account.bookings)
-  @JoinColumn({ name: "account_id" })
+  @JoinColumn({ name: 'account_id' })
   account: Account;
 
   @ManyToOne(() => Brand, (brand) => brand.bookings)
-  @JoinColumn({ name: "brand_id" })
+  @JoinColumn({ name: 'brand_id' })
   brand: Brand;
 
   // @ManyToOne(() => Account, { nullable: true })
   // @JoinColumn({ name: 'assignee_to_interview_id' })
   // assigneeToInterview: Account;
 
-  @Column({ type: "varchar", length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   resultNote: string;
 
   @ManyToOne(() => ConsultantService, (service) => service.bookings, {
     nullable: true,
   })
-  @JoinColumn({ name: "consultant_service_id" })
+  @JoinColumn({ name: 'consultant_service_id' })
   consultantService: ConsultantService;
 
   @OneToMany(() => StatusTracking, (statusTracking) => statusTracking.booking)
@@ -118,4 +119,9 @@ export class Booking extends BaseEntity {
 
   @OneToMany(() => Transaction, (transaction) => transaction.booking)
   transactions: Transaction[];
+
+  @OneToOne(() => Feedback, (feedback) => feedback.booking, {
+    nullable: true,
+  })
+  feedback: Feedback;
 }
