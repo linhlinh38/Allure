@@ -1,6 +1,6 @@
-import { QueryRunner } from 'typeorm';
-import { AppDataSource } from '../dataSource';
-import { Transaction } from '../entities/transaction.entity';
+import { QueryRunner } from "typeorm";
+import { AppDataSource } from "../dataSource";
+import { Transaction } from "../entities/transaction.entity";
 import {
   BookingStatusEnum,
   PaymentMethodEnum,
@@ -8,26 +8,26 @@ import {
   ShippingStatusEnum,
   StatisticsTimeEnum,
   TransactionTypeEnum,
-} from '../utils/enum';
-import { BaseService } from './base.service';
-import { Order } from '../entities/order.entity';
-import { GroupBuying } from '../entities/groupBuying.entity';
+} from "../utils/enum";
+import { BaseService } from "./base.service";
+import { Order } from "../entities/order.entity";
+import { GroupBuying } from "../entities/groupBuying.entity";
 import {
   FilterTransactionRequest,
   GetStatisticsRequest,
   PayRequest,
-} from '../dtos/request/transaction.request';
-import { orderRepository } from '../repositories/order.repository';
-import { brandRepository } from '../repositories/brand.repository';
-import { BadRequestError } from '../errors/error';
-import { Paging } from '../dtos/other/paging.dto';
-import { transactionRepository } from '../repositories/transaction.repository';
-import { orderService } from './order.service';
-import { walletRepository } from '../repositories/wallet.reposirory';
-import { payos } from '../utils/payos';
-import { Account } from '../entities/account.entity';
-import { bookingRepository } from '../repositories/booking.repository';
-import { Booking } from '../entities/booking.entity';
+} from "../dtos/request/transaction.request";
+import { orderRepository } from "../repositories/order.repository";
+import { brandRepository } from "../repositories/brand.repository";
+import { BadRequestError } from "../errors/error";
+import { Paging } from "../dtos/other/paging.dto";
+import { transactionRepository } from "../repositories/transaction.repository";
+import { orderService } from "./order.service";
+import { walletRepository } from "../repositories/wallet.reposirory";
+import { payos } from "../utils/payos";
+import { Account } from "../entities/account.entity";
+import { bookingRepository } from "../repositories/booking.repository";
+import { Booking } from "../entities/booking.entity";
 
 const repository = AppDataSource.getRepository(Transaction);
 class TransactionService extends BaseService<Transaction> {
@@ -78,7 +78,7 @@ class TransactionService extends BaseService<Transaction> {
         //create status tracking
         await orderService.createStatusTracking(
           order,
-          null,
+          order.account.id,
           ShippingStatusEnum.WAIT_FOR_CONFIRMATION,
           null,
           queryRunner
@@ -159,7 +159,7 @@ class TransactionService extends BaseService<Transaction> {
   async getPaymentData(orderId: string) {
     try {
       const data = await payos.getPaymentLinkInformation(orderId);
-      if (data.status != 'PAID') {
+      if (data.status != "PAID") {
         throw new BadRequestError(`This transaction is not paid`);
       }
       return data;
@@ -199,18 +199,18 @@ class TransactionService extends BaseService<Transaction> {
     const { types, startDate, endDate } = filterTransactionRequest;
 
     const query = transactionRepository
-      .createQueryBuilder('transaction')
-      .leftJoinAndSelect('transaction.buyer', 'buyer')
-      .leftJoinAndSelect('transaction.brand', 'brand')
-      .leftJoinAndSelect('transaction.order', 'order')
-      .where('buyer.id = :loginUser', { loginUser })
-      .orderBy('transaction.createdAt', 'DESC');
+      .createQueryBuilder("transaction")
+      .leftJoinAndSelect("transaction.buyer", "buyer")
+      .leftJoinAndSelect("transaction.brand", "brand")
+      .leftJoinAndSelect("transaction.order", "order")
+      .where("buyer.id = :loginUser", { loginUser })
+      .orderBy("transaction.createdAt", "DESC");
     orderService.queryBuilderForOrder(query);
 
     if (types && types.length > 0)
-      query.andWhere('transaction.type IN (:...types)', { types });
+      query.andWhere("transaction.type IN (:...types)", { types });
     if (startDate && endDate)
-      query.andWhere('transaction.createdAt BETWEEN :startDate AND :endDate', {
+      query.andWhere("transaction.createdAt BETWEEN :startDate AND :endDate", {
         startDate,
         endDate,
       });
@@ -223,14 +223,14 @@ class TransactionService extends BaseService<Transaction> {
   ) {
     const { types, startDate, endDate } = filterTransactionRequest;
     const query = transactionRepository
-      .createQueryBuilder('transaction')
-      .select('COUNT(*)', 'total')
-      .innerJoin('transaction.buyer', 'buyer')
-      .where('buyer.id = :loginUser', { loginUser });
+      .createQueryBuilder("transaction")
+      .select("COUNT(*)", "total")
+      .innerJoin("transaction.buyer", "buyer")
+      .where("buyer.id = :loginUser", { loginUser });
     if (types && types.length > 0)
-      query.andWhere('transaction.type IN (:...types)', { types });
+      query.andWhere("transaction.type IN (:...types)", { types });
     if (startDate && endDate)
-      query.andWhere('transaction.createdAt BETWEEN :startDate AND :endDate', {
+      query.andWhere("transaction.createdAt BETWEEN :startDate AND :endDate", {
         startDate,
         endDate,
       });
@@ -250,19 +250,19 @@ class TransactionService extends BaseService<Transaction> {
     startDate.setHours(0, 0, 0, 0);
     endDate.setHours(23, 59, 59, 999);
     const queryBuilder = orderRepository
-      .createQueryBuilder('o')
-      .innerJoin('o.brand', 'b')
+      .createQueryBuilder("o")
+      .innerJoin("o.brand", "b")
       .select([
-        'COALESCE(COUNT(o.id), 0) AS order_quantity',
-        'COALESCE(SUM(o.totalPrice), 0) AS total',
+        "COALESCE(COUNT(o.id), 0) AS order_quantity",
+        "COALESCE(SUM(o.totalPrice), 0) AS total",
         'COALESCE(SUM(o."subTotal"), 0) AS sub_total',
         'COALESCE(SUM(o."subTotal"- o.totalPrice), 0) AS discount',
       ])
-      .where('b.id = :brandId', {
+      .where("b.id = :brandId", {
         brandId,
       })
       .andWhere(
-        'o.status NOT IN (:...excludedStatuses) AND o.parent_id IS NOT NULL',
+        "o.status NOT IN (:...excludedStatuses) AND o.parent_id IS NOT NULL",
         {
           excludedStatuses: [
             ShippingStatusEnum.CANCELLED,
@@ -271,7 +271,7 @@ class TransactionService extends BaseService<Transaction> {
           ],
         }
       )
-      .groupBy('b.id');
+      .groupBy("b.id");
     if (
       getBrandRevenueStatisticsRequest.type == StatisticsTimeEnum.SPECIFIC_TIME
     ) {
@@ -279,7 +279,7 @@ class TransactionService extends BaseService<Transaction> {
       let endDate = new Date(getBrandRevenueStatisticsRequest.endDate);
       startDate.setHours(0, 0, 0, 0);
       endDate.setHours(23, 59, 59, 999);
-      queryBuilder.andWhere('o.createdAt BETWEEN :startDate AND :endDate', {
+      queryBuilder.andWhere("o.createdAt BETWEEN :startDate AND :endDate", {
         startDate,
         endDate,
       });
@@ -305,18 +305,18 @@ class TransactionService extends BaseService<Transaction> {
     loginUser: string
   ) {
     const queryBuilder = orderRepository
-      .createQueryBuilder('o')
-      .innerJoin('o.account', 'a')
+      .createQueryBuilder("o")
+      .innerJoin("o.account", "a")
       .select([
-        'COALESCE(SUM(o.totalPrice), 0) AS total',
+        "COALESCE(SUM(o.totalPrice), 0) AS total",
         'COALESCE(SUM(o."subTotal"), 0) AS sub_total',
         'COALESCE(SUM(o."subTotal"- o.totalPrice), 0) AS discount',
       ])
-      .where('a.id = :loginUser', {
+      .where("a.id = :loginUser", {
         loginUser,
       })
       .andWhere(
-        'o.status NOT IN (:...excludedStatuses) AND o.parent_id IS NOT NULL',
+        "o.status NOT IN (:...excludedStatuses) AND o.parent_id IS NOT NULL",
         {
           excludedStatuses: [
             ShippingStatusEnum.CANCELLED,
@@ -325,7 +325,7 @@ class TransactionService extends BaseService<Transaction> {
           ],
         }
       )
-      .groupBy('a.id');
+      .groupBy("a.id");
     if (
       getUserSpendingStatisticsRequest.type == StatisticsTimeEnum.SPECIFIC_TIME
     ) {
@@ -333,7 +333,7 @@ class TransactionService extends BaseService<Transaction> {
       let endDate = new Date(getUserSpendingStatisticsRequest.endDate);
       startDate.setHours(0, 0, 0, 0);
       endDate.setHours(23, 59, 59, 999);
-      queryBuilder.andWhere('o.createdAt BETWEEN :startDate AND :endDate', {
+      queryBuilder.andWhere("o.createdAt BETWEEN :startDate AND :endDate", {
         startDate,
         endDate,
       });
