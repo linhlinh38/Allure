@@ -72,7 +72,7 @@ const approveRefundRequestQueueWorker = new Worker(
       ]);
 
       // Lấy FCM token của user
-      const fcmToken = await fcmTokenRepository.findOne({
+      const fcmTokens = await fcmTokenRepository.find({
         where: {
           account: {
             id: order.account.id,
@@ -81,10 +81,10 @@ const approveRefundRequestQueueWorker = new Worker(
       });
 
       // Gửi thông báo cho người dùng
-      if (fcmToken?.token) {
+      if (fcmTokens && fcmTokens.length > 0) {
         try {
-          await FCMService.sendNotification(
-            fcmToken.token,
+          await FCMService.sendMulticastNotification(
+            fcmTokens.map((token) => token.token),
             'Yêu cầu hoàn tiền đã được chấp nhận',
             `Đơn hàng #${order.id} của bạn đã được chấp nhận hoàn tiền`,
             {

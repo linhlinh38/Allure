@@ -113,7 +113,7 @@ const updateRefundedStatusOrderQueueWorker = new Worker(
         isUpdate = true;
 
         // Gửi thông báo cho người dùng
-        const fcmToken = await fcmTokenRepository.findOne({
+        const fcmTokens = await fcmTokenRepository.find({
           where: {
             account: {
               id: order.account.id,
@@ -121,10 +121,10 @@ const updateRefundedStatusOrderQueueWorker = new Worker(
           },
         });
 
-        if (fcmToken?.token) {
+        if (fcmTokens && fcmTokens.length > 0) {
           try {
-            await FCMService.sendNotification(
-              fcmToken.token,
+            await FCMService.sendMulticastNotification(
+              fcmTokens.map((token) => token.token),
               'Hoàn tiền thành công',
               `Đơn hàng #${
                 order.id

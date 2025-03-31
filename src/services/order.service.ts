@@ -703,7 +703,8 @@ class OrderService extends BaseService<Order> {
   async makeDecisionOnRequest(
     requestId: string,
     status: RequestStatusEnum,
-    reasonRejected: string
+    reasonRejected: string,
+    loginUser: string
   ) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();

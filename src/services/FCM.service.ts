@@ -3,6 +3,7 @@ import { BadRequestError } from '../errors/error';
 import { fcmTokenRepository } from '../repositories/fcmToken.repository';
 import { accountRepository } from '../repositories/account.repository';
 import Logging from '../utils/Logging';
+import admin from 'firebase-admin';
 
 export class FCMService {
   static async sendNotification(
@@ -89,31 +90,25 @@ export class FCMService {
   }
 
   static async createToken(userId: string, token: string) {
-    // Kiểm tra xem user đã có token chưa
     const existingToken = await fcmTokenRepository.findOne({
       where: {
         account: {
           id: userId,
         },
+        token: token,
       },
     });
 
-    if (existingToken) {
-      // Nếu đã có token, cập nhật token mới
-      existingToken.token = token;
-      await fcmTokenRepository.save(existingToken);
-      return existingToken;
+    if (!existingToken) {
+      const newToken = fcmTokenRepository.create({
+        token,
+        account: {
+          id: userId,
+        },
+      });
+      await fcmTokenRepository.save(newToken);
+      return newToken;
     }
-
-    // Nếu chưa có token, tạo mới
-    const newToken = fcmTokenRepository.create({
-      token,
-      account: {
-        id: userId,
-      },
-    });
-    await fcmTokenRepository.save(newToken);
-    return newToken;
   }
 
   static async sendTestNotification(accountId: string) {
@@ -127,23 +122,36 @@ export class FCMService {
     }
 
     // Get FCM token
-    const fcmToken = await fcmTokenRepository.findOne({
+    const fcmTokens = await fcmTokenRepository.find({
       where: { account: { id: accountId } },
     });
 
-    if (!fcmToken) {
+    if (!fcmTokens || fcmTokens.length === 0) {
       throw new BadRequestError('FCM token not found for this account');
     }
 
-    // Send test notification
-    await this.sendNotification(
-      fcmToken.token,
-      'Test Notification',
-      `Hello ${account.firstName}, this is a test notification!`,
-      {
+    // Create notification data
+    const notificationData = {
+      title: 'Test Notification',
+      body: `Hello ${account.firstName}, this is a test notification!`,
+      data: {
         type: 'TEST',
         message: 'This is a test notification from the API',
-      }
+      },
+      createdAt: new Date(),
+      accountIds: [account.id],
+      isRead: false,
+    };
+
+    // Save to Firestore
+    await this.saveNotificationToFirestore(notificationData);
+
+    // Send test notification
+    await this.sendMulticastNotification(
+      fcmTokens.map((token) => token.token),
+      notificationData.title,
+      notificationData.body,
+      notificationData.data
     );
 
     Logging.info(
@@ -155,5 +163,16 @@ export class FCMService {
       accountName: account.firstName,
       notificationSent: true,
     };
+  }
+
+  private static async saveNotificationToFirestore(notificationData: any) {
+    try {
+      const db = admin.firestore();
+      await db.collection('notifications').add(notificationData);
+      Logging.info('Notification saved to Firestore successfully');
+    } catch (error) {
+      Logging.error('Error saving notification to Firestore:' + error);
+      throw new BadRequestError('Failed to save notification to Firestore');
+    }
   }
 }
