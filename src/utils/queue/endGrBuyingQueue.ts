@@ -52,7 +52,7 @@ const endGrBuyingQueueWorker = new Worker(
 
       // Gửi thông báo cho từng đơn hàng
       for (const order of groupBuying.orders) {
-        const fcmToken = await fcmTokenRepository.findOne({
+        const fcmTokens = await fcmTokenRepository.find({
           where: {
             account: {
               id: order.account.id,
@@ -60,14 +60,14 @@ const endGrBuyingQueueWorker = new Worker(
           },
         });
 
-        if (fcmToken?.token) {
+        if (fcmTokens && fcmTokens.length > 0) {
           try {
             // Kiểm tra trạng thái đơn hàng để xác định kết quả
             const isOrderSuccess =
               order.parent.status === ShippingStatusEnum.WAIT_FOR_CONFIRMATION;
 
-            await FCMService.sendNotification(
-              fcmToken.token,
+            await FCMService.sendMulticastNotification(
+              fcmTokens.map((token) => token.token),
               isOrderSuccess
                 ? 'Đơn hàng group buying thành công'
                 : 'Đơn hàng group buying thất bại',
