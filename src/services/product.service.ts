@@ -551,10 +551,7 @@ class ProductService extends BaseService<Product> {
 
     if (body.productClassifications) {
       for (const classification of body.productClassifications) {
-        if (
-          (classification.sku || classification.sku !== "") &&
-          !classification.id
-        ) {
+        if (classification.sku && !classification.id) {
           const checkSku =
             await productClassificationService.checkSkuUniqueness(
               classification.sku,
@@ -568,10 +565,7 @@ class ProductService extends BaseService<Product> {
               `sku of classification ${classification.title} already exists`
             );
         }
-        if (
-          (classification.sku || classification.sku !== "") &&
-          classification.id
-        ) {
+        if (classification.sku && classification.id) {
           const checkSku =
             await productClassificationService.checkSkuUniqueness(
               classification.sku,

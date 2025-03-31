@@ -265,3 +265,9 @@ export enum ActionReceivedEnum {
   RECEIVED = "RECEIVED",
   NOT_RECEIVED = "NOT_RECEIVED",
 }
+
+export enum BlogEnum {
+  UN_PUBLISHED = "UN_PUBLISHED",
+  PUBLISHED = "PUBLISHED",
+  INACTIVE = "INACTIVE",
+}

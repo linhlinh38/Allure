@@ -5,6 +5,7 @@ import { NotFoundError } from "../errors/error";
 import { AuthRequest } from "../middleware/authentication";
 import { StatusEnum } from "../utils/enum";
 import { ConsultantService } from "../entities/consultantService.entity";
+import { plainToClass } from "class-transformer";
 export default class ConsultantServiceController {
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
