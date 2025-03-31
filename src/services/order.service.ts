@@ -75,6 +75,8 @@ class OrderService extends BaseService<Order> {
     const { types, statusList } = getMyRequestsRequest;
     const queryBuilder = orderRequestRepository
       .createQueryBuilder('orderRequest')
+      .leftJoinAndSelect('orderRequest.updatedBy', 'updatedBy')
+      .leftJoinAndSelect('updatedBy.role', 'role')
       .leftJoinAndSelect('orderRequest.order', 'order')
       .leftJoinAndSelect('orderRequest.mediaFiles', 'mediaFiles')
       .leftJoinAndSelect(
@@ -165,6 +167,9 @@ class OrderService extends BaseService<Order> {
           mediaFiles: true,
           rejectedRefundRequest: {
             mediaFiles: true,
+          },
+          updatedBy: {
+            role: true,
           },
         },
       },
@@ -599,6 +604,9 @@ class OrderService extends BaseService<Order> {
       },
       relations: {
         order: true,
+        updatedBy: {
+          role: true,
+        },
       },
     });
     if (!cancelRequest) throw new BadRequestError('Request not found');
@@ -613,6 +621,9 @@ class OrderService extends BaseService<Order> {
         where: {
           order: {
             account: { id: userId },
+          },
+          updatedBy: {
+            role: true,
           },
           type: OrderRequestTypeEnum.CANCEL,
         },
@@ -675,6 +686,8 @@ class OrderService extends BaseService<Order> {
 
     const queryBuilder = orderRequestRepository
       .createQueryBuilder('cancelRequest')
+      .leftJoinAndSelect('cancelRequest.updatedBy', 'updatedBy')
+      .leftJoinAndSelect('updatedBy.role', 'role')
       .innerJoinAndSelect('cancelRequest.order', 'order')
       .innerJoinAndSelect('order.orderDetails', 'orderDetails')
       .innerJoinAndSelect(
