@@ -32,7 +32,7 @@ import reportRouter from "./report.route";
 import livestreamRouter from "./livestream.route";
 import firebaseAuthRouter from "./firebaseAuth.route";
 import FCMRouter from "./fcm.route";
-import cardRouter from "./card.route";
+import bankAccountRouter from "./bankAccount.route";
 
 const router = express.Router();
 router.use("/accounts", accountRouter);
@@ -71,5 +71,5 @@ router.use("/reports", reportRouter);
 router.use("/livestreams", livestreamRouter);
 router.use('/firebase-auth', firebaseAuthRouter);
 router.use('/fcm', FCMRouter);
-router.use('/cards', cardRouter);
+router.use('/bank-accounts', bankAccountRouter);
 export default router;
