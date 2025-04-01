@@ -63,8 +63,10 @@ class BookingService extends BaseService<Booking> {
         brand: { reviewer: true },
         consultantService: {
           account: true,
-          systemService: true,
-          serviceBookingForm: true,
+          systemService: {
+            consultationCriteria: { consultationCriteriaSections: true },
+          },
+          serviceBookingForm: { questions: { images: true } },
         },
         account: true,
         slot: true,
@@ -176,7 +178,7 @@ class BookingService extends BaseService<Booking> {
           consultantService: {
             account: true,
             systemService: true,
-            serviceBookingForm: true,
+            serviceBookingForm: { questions: { images: true } },
           },
           account: true,
           slot: true,
@@ -195,9 +197,17 @@ class BookingService extends BaseService<Booking> {
         },
         relations: {
           brand: { reviewer: true },
-          consultantService: { account: true },
+          consultantService: {
+            account: true,
+            systemService: {
+              consultationCriteria: { consultationCriteriaSections: true },
+            },
+            serviceBookingForm: true,
+          },
           account: true,
           slot: true,
+          bookingFormAnswer: true,
+          consultationResult: true,
         },
         order: {
           createdAt: "DESC",
