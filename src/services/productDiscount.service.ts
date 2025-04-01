@@ -10,6 +10,7 @@ import { ProductDiscountEnum, ProductEnum, StatusEnum } from "../utils/enum";
 import { BaseService } from "./base.service";
 import { productService } from "./product.service";
 import { productClassificationService } from "./productClassification.service";
+import { preOrderProductService } from "./preOrderProduct.service";
 
 const repository = AppDataSource.getRepository(ProductDiscount);
 interface FilterOptions {
@@ -368,19 +369,27 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
       const endTime = await this.formatDatetime(body.endTime);
       body.endTime = endTime;
     }
+
+    if (body.startTime || body.endTime) {
+      await preOrderProductService.validateEventTimeRange(
+        body.product,
+        body.startTime,
+        body.endTime
+      );
+    }
   }
   async beforeUpdate(id: string, body: any) {
-    const productDiscount = await this.repository.findOne({ where: { id } });
+    const productDiscount = await this.repository.findOne({
+      where: { id },
+      relations: ["product"],
+    });
     if (!productDiscount) {
       throw new BadRequestError("ProductDiscount not found");
     }
 
     if (body.productClassifications) {
       for (const classification of body.productClassifications) {
-        if (
-          (classification.sku || classification.sku !== "") &&
-          !classification.id
-        ) {
+        if (classification.sku && !classification.id) {
           const checkSku =
             await productClassificationService.checkSkuUniqueness(
               classification.sku,
@@ -394,10 +403,7 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
               `sku of classification ${classification.title} already exists`
             );
         }
-        if (
-          (classification.sku || classification.sku !== "") &&
-          classification.id
-        ) {
+        if (classification.sku && classification.id) {
           const checkSku =
             await productClassificationService.checkSkuUniqueness(
               classification.sku,
@@ -420,6 +426,14 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
     if (body.endTime) {
       const endTime = await this.formatDatetime(body.endTime);
       body.endTime = endTime;
+    }
+    if (body.startTime || body.endTime) {
+      await preOrderProductService.validateEventTimeRange(
+        productDiscount.product.id,
+        body.startTime ?? productDiscount.startTime,
+        body.endTime ?? productDiscount.endTime,
+        id
+      );
     }
   }
 

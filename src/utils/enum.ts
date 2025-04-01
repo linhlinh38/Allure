@@ -266,6 +266,12 @@ export enum ActionReceivedEnum {
   NOT_RECEIVED = "NOT_RECEIVED",
 }
 
+export enum BlogEnum {
+  UN_PUBLISHED = "UN_PUBLISHED",
+  PUBLISHED = "PUBLISHED",
+  INACTIVE = "INACTIVE",
+}
+
 export enum PayTypeEnum {
   ORDER = "ORDER",
   BOOKING = "BOOKING",
