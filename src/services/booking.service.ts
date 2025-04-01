@@ -60,9 +60,16 @@ class BookingService extends BaseService<Booking> {
         id,
       },
       relations: {
+        brand: { reviewer: true },
+        consultantService: {
+          account: true,
+          systemService: true,
+          serviceBookingForm: true,
+        },
         account: true,
-        brand: true,
         slot: true,
+        bookingFormAnswer: true,
+        consultationResult: true,
       },
     });
     if (!booking) throw new BadRequestError("Booking not found");
@@ -166,9 +173,15 @@ class BookingService extends BaseService<Booking> {
         },
         relations: {
           brand: { reviewer: true },
-          consultantService: { account: true },
+          consultantService: {
+            account: true,
+            systemService: true,
+            serviceBookingForm: true,
+          },
           account: true,
           slot: true,
+          bookingFormAnswer: true,
+          consultationResult: true,
         },
         order: {
           createdAt: "DESC",
