@@ -5,6 +5,7 @@ import { retrieveMasterConfig } from '../retrieveMasterConfig';
 import { orderRepository } from '../../repositories/order.repository';
 import { BadRequestError } from '../../errors/error';
 import {
+  NotificationTypeEnum,
   OrderEnum,
   OrderRequestTypeEnum,
   ShippingStatusEnum,
@@ -125,16 +126,20 @@ const updateRefundedStatusOrderQueueWorker = new Worker(
           try {
             await FCMService.sendMulticastNotification(
               fcmTokens.map((token) => token.token),
-              'Hoàn tiền thành công',
-              `Đơn hàng #${
-                order.id
-              } của bạn đã được hoàn tiền ${order.totalPrice.toLocaleString(
-                'vi-VN'
-              )}đ vào ví`,
               {
-                type: 'REFUND_SUCCESS',
-                orderId: order.id,
-                amount: order.totalPrice.toString(),
+                title: 'Hoàn tiền thành công',
+                body: `Đơn hàng #${
+                  order.id
+                } của bạn đã được hoàn tiền ${order.totalPrice.toLocaleString(
+                  'vi-VN'
+                )}đ vào ví`,
+                data: {
+                  type: NotificationTypeEnum.REFUND_SUCCESS,
+                  orderId: order.id,
+                  amount: order.totalPrice.toString(),
+                },
+                accountIds: [order.account.id],
+                createdAt: new Date(),
               }
             );
           } catch (err) {

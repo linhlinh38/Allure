@@ -27,7 +27,9 @@ import { Booking } from "./booking.entity";
 import { Transaction } from "./transaction.entity";
 import { Report } from "./report.entity";
 import { FCMToken } from "./FCMToken.entity";
-import { Card } from "./card.entity";
+import { Blog } from "./blog.entity";
+import { BankAccount } from "./bankAccount.entity";
+// import { WithdrawalRequest } from "./withdrawalRequest.entity";
 
 @Entity("accounts")
 export class Account extends BaseEntity {
@@ -146,6 +148,15 @@ export class Account extends BaseEntity {
   @OneToMany(() => Report, (report) => report.reporter)
   reportedReports: Report[];
 
-  @OneToMany(() => Card, (card) => card.account)
-  cards: Card[];
+  @OneToMany(() => Blog, (blog) => blog.author)
+  blogs: Report[];
+
+  @OneToMany(() => BankAccount, (bankAccount) => bankAccount.account)
+  bankAccounts: BankAccount[];
+
+  // @OneToMany(
+  //   () => WithdrawalRequest,
+  //   (withdrawalRequest) => withdrawalRequest.account
+  // )
+  // withdrawalRequests: WithdrawalRequest[];
 }

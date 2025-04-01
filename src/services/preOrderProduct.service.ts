@@ -1,14 +1,23 @@
+import { Between, In, Not } from "typeorm";
 import { AppDataSource } from "../dataSource";
 import { PreOrderProduct } from "../entities/preOrderProduct.entity";
 import { Product } from "../entities/product.entity";
 import { ProductClassification } from "../entities/productClassification.entity";
 import { ProductImage } from "../entities/productImage.entity";
 import { BadRequestError } from "../errors/error";
-import { PreOrderProductEnum, ProductEnum, StatusEnum } from "../utils/enum";
+import { preOrderProductRepository } from "../repositories/preOrderProduct.repository";
+import { productDiscountRepository } from "../repositories/productDiscount.repository";
+import {
+  PreOrderProductEnum,
+  ProductDiscountEnum,
+  ProductEnum,
+  StatusEnum,
+} from "../utils/enum";
 import { BaseService } from "./base.service";
 import { productService } from "./product.service";
 import { productClassificationService } from "./productClassification.service";
 import { format } from "date-fns";
+import { log } from "console";
 
 const repository = AppDataSource.getRepository(PreOrderProduct);
 interface FilterOptions {
@@ -293,19 +302,113 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
       const formattedEndTime = await this.formatDatetime(data.endTime);
       data.endTime = formattedEndTime;
     }
+
+    if (data.startTime || data.endTime) {
+      await this.validateEventTimeRange(
+        data.product,
+        data.startTime,
+        data.endTime
+      );
+    }
+  }
+
+  async validateEventTimeRange(
+    productId: string,
+    startTime: string,
+    endTime: string,
+    excludeEventId?: string
+  ): Promise<void> {
+    const preOrderRepository = preOrderProductRepository;
+    const discountRepository = productDiscountRepository;
+
+    // Convert startTime and endTime to Date objects for comparison
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      throw new BadRequestError("Invalid start time or end time");
+    }
+
+    if (start >= end) {
+      throw new BadRequestError("Start time must be earlier than end time");
+    }
+
+    // Check for overlapping pre-order events
+    const overlappingPreOrder = await preOrderRepository
+      .createQueryBuilder("preOrderProduct")
+      .leftJoin("preOrderProduct.product", "product")
+      .where("product.id = :productId", { productId })
+      .andWhere(
+        `(
+        (preOrderProduct.startTime <= :endTime AND preOrderProduct.endTime >= :startTime) OR
+        (preOrderProduct.startTime >= :startTime AND preOrderProduct.endTime <= :endTime) OR
+        (preOrderProduct.startTime <= :startTime AND preOrderProduct.endTime >= :endTime)
+      )`,
+        { startTime, endTime }
+      )
+      .andWhere(
+        excludeEventId ? "preOrderProduct.id != :excludeEventId" : "1=1",
+        { excludeEventId }
+      )
+      .andWhere("preOrderProduct.status IN (:...statuses)", {
+        statuses: [
+          PreOrderProductEnum.ACTIVE,
+          PreOrderProductEnum.WAITING,
+          PreOrderProductEnum.SOLD_OUT,
+        ],
+      })
+      .getOne();
+
+    if (overlappingPreOrder) {
+      throw new BadRequestError(
+        `The time range overlaps with an existing pre-order event (ID: ${overlappingPreOrder.id})`
+      );
+    }
+
+    // Check for overlapping discount events
+    const overlappingDiscount = await discountRepository
+      .createQueryBuilder("productDiscount")
+      .leftJoin("productDiscount.product", "product")
+      .where("product.id = :productId", { productId })
+      .andWhere(
+        `(
+        (productDiscount.startTime <= :endTime AND productDiscount.endTime >= :startTime) OR
+        (productDiscount.startTime >= :startTime AND productDiscount.endTime <= :endTime) OR
+        (productDiscount.startTime <= :startTime AND productDiscount.endTime >= :endTime)
+      )`,
+        { startTime, endTime }
+      )
+      .andWhere(
+        excludeEventId ? "productDiscount.id != :excludeEventId" : "1=1",
+        { excludeEventId }
+      )
+      .andWhere("productDiscount.status IN (:...statuses)", {
+        statuses: [
+          ProductDiscountEnum.ACTIVE,
+          ProductDiscountEnum.WAITING,
+          ProductDiscountEnum.SOLD_OUT,
+        ],
+      })
+      .getOne();
+
+    if (overlappingDiscount) {
+      throw new BadRequestError(
+        `The time range overlaps with an existing discount event (ID: ${overlappingDiscount.id})`
+      );
+    }
   }
 
   async beforeUpdate(id: string, body: any) {
-    const preorderProduct = await this.repository.findOne({ where: { id } });
+    const preorderProduct = await this.repository.findOne({
+      where: { id },
+      relations: ["product"],
+    });
     if (!preorderProduct) {
       throw new BadRequestError("Pre-order Product not found");
     }
     if (body.productClassifications) {
       for (const classification of body.productClassifications) {
-        if (
-          (classification.sku || classification.sku !== "") &&
-          !classification.id
-        ) {
+        if (classification.sku && !classification.id) {
           const checkSku =
             await productClassificationService.checkSkuUniqueness(
               classification.sku,
@@ -319,10 +422,7 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
               `sku of classification ${classification.title} already exists`
             );
         }
-        if (
-          (classification.sku || classification.sku !== "") &&
-          classification.id
-        ) {
+        if (classification.sku && classification.id) {
           const checkSku =
             await productClassificationService.checkSkuUniqueness(
               classification.sku,
@@ -331,6 +431,7 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
               null,
               null
             );
+
           if (checkSku.length !== 0 && checkSku[0].id !== classification.id)
             throw new BadRequestError(
               `sku of classification ${classification.title} already exists`
@@ -345,6 +446,14 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
     if (body.endTime) {
       const formattedEndTime = await this.formatDatetime(body.endTime);
       body.endTime = formattedEndTime;
+    }
+    if (body.startTime || body.endTime) {
+      await this.validateEventTimeRange(
+        preorderProduct.product.id,
+        body.startTime ?? preorderProduct.startTime,
+        body.endTime ?? preorderProduct.endTime,
+        id
+      );
     }
   }
 

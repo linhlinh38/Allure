@@ -1,13 +1,13 @@
 import { Queue, Worker } from "bullmq";
 import { AppDataSource } from "../../dataSource";
 import { bookingRepository } from "../../repositories/booking.repository";
-import { walletRepository } from "../../repositories/wallet.reposirory";
-import { BookingStatusEnum, TransactionTypeEnum } from "../enum";
+import { BookingStatusEnum, NotificationTypeEnum } from "../enum";
 import Logging from "../Logging";
 import { connection } from "./connection";
 import { bookingService } from "../../services/booking.service";
 import { retrieveMasterConfig } from "../retrieveMasterConfig";
-
+import { fcmTokenRepository } from "../../repositories/fcmToken.repository";
+import { FCMService } from "../../services/FCM.service";
 export const cancelBookingQueue = new Queue("cancelBookingQueue", {
   connection,
 });
@@ -53,6 +53,26 @@ const cancelBookingQueueWorker = new Worker(
           undefined,
           "Auto-cancelled due to booking timeout"
         );
+
+        //send notification to account
+        const tokens = (await fcmTokenRepository.find({
+          where: {
+            account: {
+              id: booking.account.id,
+            },
+          },
+        })).map((token) => token.token);
+        const notificationData = {
+          title: 'Booking cancelled',
+          body: `Booking with ID ${bookingId} has been cancelled`,
+          data: {
+            type: NotificationTypeEnum.BOOKING_CANCELLED,
+            bookingId: booking.id,
+          },
+          accountIds: [booking.account.id],
+          createdAt: new Date(),
+        };
+        await FCMService.sendMulticastNotification(tokens, notificationData);
 
         console.log(`✅ Booking with ID ${bookingId} has been cancelled.`);
       }

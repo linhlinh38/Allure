@@ -3,6 +3,7 @@ import { AppDataSource } from "../../dataSource";
 import { orderRepository } from "../../repositories/order.repository";
 import { orderService } from "../../services/order.service";
 import {
+  NotificationTypeEnum,
   OrderRequestTypeEnum,
   RequestStatusEnum,
   ShippingStatusEnum,
@@ -85,11 +86,15 @@ const approveRefundRequestQueueWorker = new Worker(
         try {
           await FCMService.sendMulticastNotification(
             fcmTokens.map((token) => token.token),
-            "Yêu cầu hoàn tiền đã được chấp nhận",
-            `Đơn hàng #${order.id} của bạn đã được chấp nhận hoàn tiền`,
             {
-              type: "REFUND_APPROVED",
-              orderId: order.id,
+              title: "Yêu cầu hoàn tiền đã được chấp nhận",
+              body: `Đơn hàng #${order.id} của bạn đã được chấp nhận hoàn tiền`,
+              data: {
+                type: NotificationTypeEnum.REFUND_APPROVED,
+                orderId: order.id,
+              },
+              accountIds: [order.account.id],
+              createdAt: new Date(),
             }
           );
         } catch (err) {

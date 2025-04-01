@@ -5,6 +5,7 @@ import { BadRequestError } from '../errors/error';
 import { BaseService } from './base.service';
 import { groupBuyingRepository } from '../repositories/groupBuying.repository';
 import {
+  NotificationTypeEnum,
   OrderEnum,
   ShippingStatusEnum,
   StatusEnum,
@@ -31,6 +32,9 @@ import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
 import { Voucher } from '../entities/voucher.entity';
 import { Product } from '../entities/product.entity';
 import { Brand } from '../entities/brand.entity';
+import { NotificationData } from '../dtos/request/notification.request';
+import { FCMService } from './FCM.service';
+import { fcmTokenRepository } from '../repositories/fcmToken.repository';
 
 const repository = AppDataSource.getRepository(GroupBuying);
 class GroupBuyingService extends BaseService<GroupBuying> {
@@ -41,7 +45,9 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       },
       relations: {
         creator: true,
-        orders: true,
+        orders: {
+          account: true,
+        },
         groupProduct: true,
       },
     });
@@ -57,7 +63,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       masterConfig.groupBuyingRemainingTime
     )
       throw new BadRequestError(
-        'Can not start to end because there is under 15 minutes left'
+        'Can not start to end because there is under 5 minutes left'
       );
     const criterias = await criteriaRepository.find({
       where: {
@@ -77,6 +83,28 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       groupBuyingId,
       masterConfig.groupBuyingRemainingTime
     );
+
+    // Send notifications to all participants
+    const participantIds = groupBuying.orders.map((order) => order.account.id);
+    const tokens = (
+      await fcmTokenRepository.find({
+        where: {
+          account: { id: In(participantIds) },
+        },
+      })
+    ).map((token) => token.token);
+    const notificationData = {
+      title: 'Group Buying Ending Soon',
+      body: `The group buying for ${groupBuying.groupProduct.name} will end in 5 minutes!`,
+      data: {
+        type: NotificationTypeEnum.GROUP_BUYING_ENDING,
+        groupBuyingId: groupBuying.id,
+      },
+      accountIds: participantIds,
+      createdAt: new Date(),
+    } as NotificationData;
+
+    await FCMService.sendMulticastNotification(tokens, notificationData);
   }
   async getOrderByGroupBuyingId(groupBuyingId: string, loginUser: string) {
     const groupBuying = await groupBuyingRepository.findOne({
