@@ -5,7 +5,7 @@ import { connection } from './connection';
 import { FCMService } from '../../services/FCM.service';
 import { fcmTokenRepository } from '../../repositories/fcmToken.repository';
 import { groupBuyingRepository } from '../../repositories/groupBuying.repository';
-import { ShippingStatusEnum } from '../../utils/enum';
+import { NotificationTypeEnum, ShippingStatusEnum } from '../../utils/enum';
 
 export const endGrBuyingQueue = new Queue('endGrBuyingQueue', {
   connection,
@@ -68,18 +68,22 @@ const endGrBuyingQueueWorker = new Worker(
 
             await FCMService.sendMulticastNotification(
               fcmTokens.map((token) => token.token),
-              isOrderSuccess
-                ? 'Đơn hàng group buying thành công'
-                : 'Đơn hàng group buying thất bại',
-              isOrderSuccess
-                ? `Đơn hàng của bạn trong group buying "${groupBuying.groupProduct.name}" đã được xác nhận và đang chờ xử lý`
-                : `Đơn hàng của bạn trong group buying "${groupBuying.groupProduct.name}" không đủ điều kiện thanh toán và đã bị hủy`,
               {
-                type: isOrderSuccess
-                  ? 'GROUP_BUYING_ORDER_SUCCESS'
-                  : 'GROUP_BUYING_ORDER_FAILED',
-                groupBuyingId: groupBuying.id,
-                orderId: order.parent.id,
+                title: isOrderSuccess
+                  ? 'Đơn hàng group buying thành công'
+                  : 'Đơn hàng group buying thất bại',
+                body: isOrderSuccess
+                  ? `Đơn hàng của bạn trong group buying "${groupBuying.groupProduct.name}" đã thanh toán thành công`
+                  : `Đơn hàng của bạn trong group buying "${groupBuying.groupProduct.name}" không đủ điều kiện thanh toán và đã bị hủy`,
+                data: {
+                  type: isOrderSuccess
+                    ? NotificationTypeEnum.GROUP_BUYING_ORDER_SUCCESS
+                    : NotificationTypeEnum.GROUP_BUYING_ORDER_FAILED,
+                  groupBuyingId: groupBuying.id,
+                  orderId: order.parent.id,
+                },
+                accountIds: [order.account.id],
+                createdAt: new Date(),
               }
             );
           } catch (err) {

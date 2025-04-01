@@ -4,6 +4,7 @@ import { fcmTokenRepository } from '../repositories/fcmToken.repository';
 import { accountRepository } from '../repositories/account.repository';
 import Logging from '../utils/Logging';
 import admin from 'firebase-admin';
+import { NotificationData } from '../dtos/request/fcm.request';
 
 export class FCMService {
   static async sendNotification(
@@ -31,21 +32,22 @@ export class FCMService {
 
   static async sendMulticastNotification(
     tokens: string[],
-    title: string,
-    body: string,
-    data?: Record<string, string>
+    notificationData: NotificationData
   ) {
     try {
       const message = {
         notification: {
-          title,
-          body,
+          title: notificationData.title,
+          body: notificationData.body,
         },
-        data: data || {},
+        data: notificationData.data || {},
         tokens,
       };
 
       const response = await messaging.sendEachForMulticast(message);
+
+      //store to firestore
+      await this.saveNotificationToFirestore(notificationData);
       return response;
     } catch (error) {
       throw new Error(
@@ -143,15 +145,10 @@ export class FCMService {
       isRead: false,
     };
 
-    // Save to Firestore
-    await this.saveNotificationToFirestore(notificationData);
-
     // Send test notification
     await this.sendMulticastNotification(
       fcmTokens.map((token) => token.token),
-      notificationData.title,
-      notificationData.body,
-      notificationData.data
+      notificationData
     );
 
     Logging.info(
@@ -165,7 +162,9 @@ export class FCMService {
     };
   }
 
-  private static async saveNotificationToFirestore(notificationData: any) {
+  private static async saveNotificationToFirestore(
+    notificationData: NotificationData
+  ) {
     try {
       const db = admin.firestore();
       await db.collection('notifications').add(notificationData);
