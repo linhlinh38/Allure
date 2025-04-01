@@ -28,59 +28,60 @@ import { Transaction } from "./transaction.entity";
 import { Report } from "./report.entity";
 import { FCMToken } from "./FCMToken.entity";
 import { Blog } from "./blog.entity";
-import { Card } from "./card.entity";
+import { BankAccount } from "./bankAccount.entity";
+import { WithdrawalRequest } from "./withdrawalRequest.entity";
 
-@Entity("accounts")
+@Entity('accounts')
 export class Account extends BaseEntity {
-  @Column({ type: "varchar", length: 100, nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   firstName: string;
 
-  @Column({ type: "varchar", length: 100, nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   lastName: string;
 
-  @Column({ type: "varchar", length: 100, unique: true, nullable: true })
+  @Column({ type: 'varchar', length: 100, unique: true, nullable: true })
   username?: string;
 
-  @Column({ type: "varchar", nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   avatar?: string;
 
-  @Column({ type: "varchar", nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   introduceVideo?: string;
 
-  @Column({ type: "varchar", length: 255, nullable: false })
+  @Column({ type: 'varchar', length: 255, nullable: false })
   email: string;
 
-  @Column({ name: "is_email_verify", type: "boolean", default: false })
+  @Column({ name: 'is_email_verify', type: 'boolean', default: false })
   isEmailVerify: boolean;
 
-  @Column({ type: "varchar", length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   password: string;
 
   @ManyToOne(() => Role, (role) => role.accounts)
-  @JoinColumn({ name: "role_id" })
+  @JoinColumn({ name: 'role_id' })
   role: Role;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: GenderEnum,
     nullable: true,
   })
   gender: GenderEnum;
 
-  @Column({ type: "varchar", length: 15, nullable: true })
+  @Column({ type: 'varchar', length: 15, nullable: true })
   phone?: string;
 
-  @Column({ type: "timestamp", nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   dob?: Date;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: AccountStatusEnum,
     default: AccountStatusEnum.PENDING,
   })
   status: AccountStatusEnum;
 
-  @Column({ type: "bigint", nullable: true })
+  @Column({ type: 'bigint', nullable: true })
   yoe: number;
 
   @OneToMany(() => Address, (address) => address.account, { nullable: true })
@@ -90,14 +91,14 @@ export class Account extends BaseEntity {
   files?: File[];
 
   @OneToMany(() => CartItem, (cartItem) => cartItem.account, { nullable: true })
-  @JoinColumn({ name: "cart_items" })
+  @JoinColumn({ name: 'cart_items' })
   cartItems?: CartItem[];
 
   @ManyToMany(() => Brand, (brand) => brand.accounts)
   @JoinTable({
-    name: "account_brand_role",
-    joinColumn: { name: "account_id", referencedColumnName: "id" },
-    inverseJoinColumn: { name: "brand_id", referencedColumnName: "id" },
+    name: 'account_brand_role',
+    joinColumn: { name: 'account_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'brand_id', referencedColumnName: 'id' },
   })
   brands: Brand[];
 
@@ -132,9 +133,9 @@ export class Account extends BaseEntity {
 
   @ManyToMany(() => Slot, { cascade: true })
   @JoinTable({
-    name: "working_slot",
-    joinColumn: { name: "account_id", referencedColumnName: "id" },
-    inverseJoinColumn: { name: "slot_id", referencedColumnName: "id" },
+    name: 'working_slot',
+    joinColumn: { name: 'account_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'slot_id', referencedColumnName: 'id' },
   })
   workingSlots: Slot[];
 
@@ -150,6 +151,13 @@ export class Account extends BaseEntity {
   @OneToMany(() => Blog, (blog) => blog.author)
   blogs: Report[];
 
-  @OneToMany(() => Card, (card) => card.account)
-  cards: Card[];
+  @OneToMany(() => BankAccount, (bankAccount) => bankAccount.account)
+  bankAccounts: BankAccount[];
+
+  @OneToMany(
+    () => WithdrawalRequest,
+    (withdrawalRequest) => withdrawalRequest.account
+  )
+  withdrawalRequests: WithdrawalRequest[];
+
 }

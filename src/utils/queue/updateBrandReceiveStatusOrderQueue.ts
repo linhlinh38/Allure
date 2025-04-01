@@ -3,7 +3,7 @@ import Logging from '../Logging';
 import { connection } from './connection';
 import { orderRepository } from '../../repositories/order.repository';
 import { BadRequestError } from '../../errors/error';
-import { ShippingStatusEnum } from '../enum';
+import { NotificationTypeEnum, ShippingStatusEnum } from '../enum';
 import { AppDataSource } from '../../dataSource';
 import { Order } from '../../entities/order.entity';
 import { orderService } from '../../services/order.service';
@@ -71,7 +71,7 @@ const uupdateBrandReceiveStatusOrderQueueWorker = new Worker(
         isUpdate = true;
 
         // Gửi thông báo cho người dùng
-        const fcmToken = await fcmTokenRepository.findOne({
+        const fcmTokens = await fcmTokenRepository.find({
           where: {
             account: {
               id: order.account.id,
@@ -79,15 +79,19 @@ const uupdateBrandReceiveStatusOrderQueueWorker = new Worker(
           },
         });
 
-        if (fcmToken?.token) {
+        if (fcmTokens.length > 0) {
           try {
-            await FCMService.sendNotification(
-              fcmToken.token,
-              'Brand đã nhận hàng hoàn trả',
-              `Đơn hàng #${order.id} của bạn đã được brand xác nhận nhận hàng hoàn trả`,
+            await FCMService.sendMulticastNotification(
+              fcmTokens.map((fcmToken) => fcmToken.token),
               {
-                type: 'BRAND_RECEIVED_RETURN',
-                orderId: order.id,
+                title: 'Brand đã nhận hàng hoàn trả',
+                body: `Đơn hàng #${order.id} của bạn đã được brand xác nhận nhận hàng hoàn trả`,
+                data: {
+                  type: NotificationTypeEnum.BRAND_RECEIVED_RETURN,
+                  orderId: order.id,
+                },
+                accountIds: [order.account.id],
+                createdAt: new Date(),
               }
             );
           } catch (err) {

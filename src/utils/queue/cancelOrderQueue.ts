@@ -2,7 +2,7 @@ import { Queue, Worker } from 'bullmq';
 import { AppDataSource } from '../../dataSource';
 import { orderRepository } from '../../repositories/order.repository';
 import { orderService } from '../../services/order.service';
-import { ShippingStatusEnum } from '../enum';
+import { NotificationTypeEnum, ShippingStatusEnum } from '../enum';
 import { retrieveMasterConfig } from '../retrieveMasterConfig';
 import Logging from '../Logging';
 import { connection } from './connection';
@@ -75,11 +75,15 @@ const cancelOrderQueueWorker = new Worker(
           try {
             await FCMService.sendMulticastNotification(
               fcmTokens.map((token) => token.token),
-              'Đơn hàng đã bị hủy',
-              `Đơn hàng #${parentOrder.id} đã bị hủy do không thanh toán kịp thời`,
               {
-                type: 'ORDER_CANCELLED',
-                orderId: parentOrder.id,
+                title: 'Đơn hàng đã bị hủy',
+                body: `Đơn hàng #${parentOrder.id} của bạn đã bị hủy`,
+                data: {
+                  type: NotificationTypeEnum.ORDER_CANCELLED,
+                  orderId: parentOrder.id,
+                },
+                accountIds: [parentOrder.account.id],
+                createdAt: new Date(),
               }
             );
           } catch (err) {
