@@ -7,6 +7,9 @@ export class Wallet extends BaseEntity {
   @Column({ type: 'double precision', nullable: false, default: 0 })
   balance: number;
 
+  @Column({ type: 'double precision', nullable: false, default: 0 })
+  availableBalance: number;
+
   @OneToOne(() => Account, (account) => account.wallet)
   @JoinColumn({ name: 'account_id' })
   owner: Account;
