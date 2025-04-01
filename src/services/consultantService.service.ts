@@ -116,6 +116,16 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
     const query = this.repository
       .createQueryBuilder("consultantService")
       .leftJoinAndSelect("consultantService.account", "account")
+      .select("consultantService")
+      .addSelect([
+        "account.id",
+        "account.username",
+        "account.email",
+        "account.phone",
+        "account.firstName",
+        "account.lastName",
+        "account.avatar",
+      ])
       .leftJoinAndSelect(
         "consultantService.serviceBookingForm",
         "serviceBookingForm"

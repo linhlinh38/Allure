@@ -7,28 +7,29 @@ import {
   ManyToOne,
   OneToMany,
   OneToOne,
-} from 'typeorm';
-import { BaseEntity } from './base.entity';
-import { AccountStatusEnum, GenderEnum } from '../utils/enum';
-import { Address } from './address.entity';
-import { File } from './file.entity';
-import { Role } from './role.entity';
-import { Brand } from './brand.entity';
-import { Follow } from './follow.entity';
-import { Order } from './order.entity';
-import { CartItem } from './cartItem.entity';
-import { GroupBuying } from './groupBuying.entity';
-import { VoucherWallet } from './voucherWallet.entity';
-import { StatusTracking } from './statusTracking.entity';
-import { Wallet } from './wallet.entity';
-import { ConsultantService } from './consultantService.entity';
-import { Slot } from './slot.entity';
-import { Booking } from './booking.entity';
-import { Transaction } from './transaction.entity';
-import { Report } from './report.entity';
-import { FCMToken } from './FCMToken.entity';
-import { WithdrawalRequest } from './withdrawalRequest.entity';
-import { BankAccount } from './bankAccount.entity';
+} from "typeorm";
+import { BaseEntity } from "./base.entity";
+import { AccountStatusEnum, GenderEnum } from "../utils/enum";
+import { Address } from "./address.entity";
+import { File } from "./file.entity";
+import { Role } from "./role.entity";
+import { Brand } from "./brand.entity";
+import { Follow } from "./follow.entity";
+import { Order } from "./order.entity";
+import { CartItem } from "./cartItem.entity";
+import { GroupBuying } from "./groupBuying.entity";
+import { VoucherWallet } from "./voucherWallet.entity";
+import { StatusTracking } from "./statusTracking.entity";
+import { Wallet } from "./wallet.entity";
+import { ConsultantService } from "./consultantService.entity";
+import { Slot } from "./slot.entity";
+import { Booking } from "./booking.entity";
+import { Transaction } from "./transaction.entity";
+import { Report } from "./report.entity";
+import { FCMToken } from "./FCMToken.entity";
+import { Blog } from "./blog.entity";
+import { BankAccount } from "./bankAccount.entity";
+import { WithdrawalRequest } from "./withdrawalRequest.entity";
 
 @Entity('accounts')
 export class Account extends BaseEntity {
@@ -147,6 +148,9 @@ export class Account extends BaseEntity {
   @OneToMany(() => Report, (report) => report.reporter)
   reportedReports: Report[];
 
+  @OneToMany(() => Blog, (blog) => blog.author)
+  blogs: Report[];
+
   @OneToMany(() => BankAccount, (bankAccount) => bankAccount.account)
   bankAccounts: BankAccount[];
 
@@ -155,4 +159,5 @@ export class Account extends BaseEntity {
     (withdrawalRequest) => withdrawalRequest.account
   )
   withdrawalRequests: WithdrawalRequest[];
+
 }

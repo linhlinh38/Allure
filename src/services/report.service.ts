@@ -1,19 +1,19 @@
-import { Report } from './../entities/report.entity';
-import { AppDataSource } from '../dataSource';
+import { Report } from "./../entities/report.entity";
+import { AppDataSource } from "../dataSource";
 import {
   CreateReportRequest,
   FilterReportsRequest,
-} from '../dtos/request/report.request';
-import { BaseService } from './base.service';
-import { File } from '../entities/file.entity';
-import { Account } from '../entities/account.entity';
-import { ReportStatusEnum, ReportTypeEnum } from '../utils/enum';
-import { bookingRepository } from '../repositories/booking.repository';
-import { BadRequestError } from '../errors/error';
-import { orderRepository } from '../repositories/order.repository';
-import { accountRepository } from '../repositories/account.repository';
-import { orderService } from './order.service';
-import { bookingService } from './booking.service';
+} from "../dtos/request/report.request";
+import { BaseService } from "./base.service";
+import { File } from "../entities/file.entity";
+import { Account } from "../entities/account.entity";
+import { ReportStatusEnum, ReportTypeEnum } from "../utils/enum";
+import { bookingRepository } from "../repositories/booking.repository";
+import { BadRequestError } from "../errors/error";
+import { orderRepository } from "../repositories/order.repository";
+import { accountRepository } from "../repositories/account.repository";
+import { orderService } from "./order.service";
+import { bookingService } from "./booking.service";
 
 const repository = AppDataSource.getRepository(Report);
 class ReportService extends BaseService<Report> {
@@ -43,7 +43,7 @@ class ReportService extends BaseService<Report> {
         },
       },
     });
-    if (!report) throw new BadRequestError('Report not found');
+    if (!report) throw new BadRequestError("Report not found");
     return report;
   }
   async noteResult(id: string, resultNote: string, loginUser: string) {
@@ -55,7 +55,7 @@ class ReportService extends BaseService<Report> {
     });
     if (!report) throw new BadRequestError(`Report not found`);
     if (!report.assignee || report.assignee.id != loginUser)
-      throw new BadRequestError('Only assignee can note result');
+      throw new BadRequestError("Only assignee can note result");
     report.resultNote = resultNote;
     await repository.save(report);
   }
@@ -75,7 +75,10 @@ class ReportService extends BaseService<Report> {
       },
     });
     if (!report) throw new BadRequestError(`Report not found`);
-    if (report.status == ReportStatusEnum.DONE)
+    if (
+      report.status == ReportStatusEnum.APPROVED ||
+      report.status == ReportStatusEnum.REJECTED
+    )
       throw new BadRequestError(`Report is done. Can not assign`);
     if (report.assignee?.id == assigneeId) return;
     const assignee = await accountRepository.findOneBy({ id: assigneeId });
@@ -102,14 +105,14 @@ class ReportService extends BaseService<Report> {
     report.reporter.id = loginUser;
     if (report.type == ReportTypeEnum.BOOKING) {
       if (!createReportRequest.bookingId)
-        throw new BadRequestError('Booking id required');
+        throw new BadRequestError("Booking id required");
       const booking = await bookingRepository.findOne({
         where: {
           id: createReportRequest.bookingId,
         },
       });
       if (!booking) {
-        throw new BadRequestError('Booking not found');
+        throw new BadRequestError("Booking not found");
       }
       const existedBookingReport = await repository.findOne({
         where: {
@@ -118,18 +121,18 @@ class ReportService extends BaseService<Report> {
         },
       });
       if (existedBookingReport)
-        throw new BadRequestError('You only report once for this booking');
+        throw new BadRequestError("You only report once for this booking");
       report.booking = booking;
     } else if (report.type == ReportTypeEnum.ORDER) {
       if (!createReportRequest.orderId)
-        throw new BadRequestError('Order id required');
+        throw new BadRequestError("Order id required");
       const order = await orderRepository.findOne({
         where: {
           id: createReportRequest.orderId,
         },
       });
       if (!order) {
-        throw new BadRequestError('Order not found');
+        throw new BadRequestError("Order not found");
       }
       const existedOrderReport = await repository.findOne({
         where: {
@@ -138,7 +141,7 @@ class ReportService extends BaseService<Report> {
         },
       });
       if (existedOrderReport)
-        throw new BadRequestError('You only report once for this order');
+        throw new BadRequestError("You only report once for this order");
       report.order = order;
     }
     return await report.save();
@@ -148,28 +151,28 @@ class ReportService extends BaseService<Report> {
     const { type, status, assigneeId } = filterReportsRequest;
 
     const queryBuilder = repository
-      .createQueryBuilder('report')
-      .leftJoinAndSelect('report.reporter', 'reporter')
-      .leftJoinAndSelect('report.assignee', 'assignee')
-      .leftJoinAndSelect('report.files', 'files')
-      .leftJoinAndSelect('report.order', 'order')
-      .leftJoinAndSelect('report.booking', 'booking');
+      .createQueryBuilder("report")
+      .leftJoinAndSelect("report.reporter", "reporter")
+      .leftJoinAndSelect("report.assignee", "assignee")
+      .leftJoinAndSelect("report.files", "files")
+      .leftJoinAndSelect("report.order", "order")
+      .leftJoinAndSelect("report.booking", "booking");
     bookingService.queryBuilderForBooking(queryBuilder);
     orderService.queryBuilderForOrder(queryBuilder);
 
     if (type) {
-      queryBuilder.andWhere('report.type = :type', { type });
+      queryBuilder.andWhere("report.type = :type", { type });
     }
 
     if (status) {
-      queryBuilder.andWhere('report.status = :status', { status });
+      queryBuilder.andWhere("report.status = :status", { status });
     }
 
     if (assigneeId) {
-      queryBuilder.andWhere('report.assignee.id = :assigneeId', { assigneeId });
+      queryBuilder.andWhere("report.assignee.id = :assigneeId", { assigneeId });
     }
 
-    queryBuilder.orderBy('report.createdAt', 'DESC');
+    queryBuilder.orderBy("report.createdAt", "DESC");
 
     return await queryBuilder.getMany();
   }

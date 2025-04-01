@@ -248,7 +248,9 @@ export enum ReportTypeEnum {
 export enum ReportStatusEnum {
   PENDING = "PENDING",
   IN_PROCESSING = "IN_PROCESSING",
-  DONE = "DONE",
+  //DONE = "DONE",
+  REJECTED = "REJECTED",
+  APPROVED = "APPROVED",
   CANCELLED = "CANCELLED",
 }
 
@@ -262,6 +264,12 @@ export enum OrderRequestTypeEnum {
 export enum ActionReceivedEnum {
   RECEIVED = "RECEIVED",
   NOT_RECEIVED = "NOT_RECEIVED",
+}
+
+export enum BlogEnum {
+  UN_PUBLISHED = "UN_PUBLISHED",
+  PUBLISHED = "PUBLISHED",
+  INACTIVE = "INACTIVE",
 }
 
 export enum PayTypeEnum {
