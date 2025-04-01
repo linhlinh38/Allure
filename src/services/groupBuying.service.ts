@@ -32,9 +32,9 @@ import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
 import { Voucher } from '../entities/voucher.entity';
 import { Product } from '../entities/product.entity';
 import { Brand } from '../entities/brand.entity';
-import { NotificationData } from '../dtos/request/notification.request';
 import { FCMService } from './FCM.service';
 import { fcmTokenRepository } from '../repositories/fcmToken.repository';
+import { NotificationData } from '../dtos/request/fcm.request';
 
 const repository = AppDataSource.getRepository(GroupBuying);
 class GroupBuyingService extends BaseService<GroupBuying> {
