@@ -59,70 +59,82 @@ export class WithdrawalRequestService {
     request: UpdateWithdrawalRequest,
     loginUser: string
   ) {
-    const withdrawalRequest = await withdrawalRequestRepository.findOne({
-      where: { id },
-      relations: ['account', 'account.wallet'],
-    });
+    const queryRunner =
+      withdrawalRequestRepository.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    if (!withdrawalRequest) {
-      throw new BadRequestError('Withdrawal request not found');
-    }
-
-    const wallet = withdrawalRequest.account.wallet;
-
-    const updatedBy = await accountRepository.findOne({
-      where: { id: loginUser },
-      relations: ['role'],
-    });
-
-    if (
-      updatedBy &&
-      updatedBy.role.role == RoleEnum.CUSTOMER &&
-      updatedBy.id != withdrawalRequest.account.id
-    ) {
-      throw new BadRequestError(
-        'You are not allowed to update this withdrawal request'
+    try {
+      const withdrawalRequest = await queryRunner.manager.findOne(
+        withdrawalRequestRepository.target,
+        {
+          where: { id },
+          relations: ['account', 'account.wallet'],
+        }
       );
-    }
 
-    if (withdrawalRequest.status == WithdrawalStatusEnum.PENDING) {
+      if (!withdrawalRequest) {
+        throw new BadRequestError('Withdrawal request not found');
+      }
+
+      const wallet = withdrawalRequest.account.wallet;
+
+      const updatedBy = await queryRunner.manager.findOne(
+        accountRepository.target,
+        {
+          where: { id: loginUser },
+          relations: ['role'],
+        }
+      );
+
       if (
-        !nextWithDrawStatusMap[withdrawalRequest.status].includes(
-          request.status
-        )
+        updatedBy &&
+        updatedBy.role.role == RoleEnum.CUSTOMER &&
+        updatedBy.id != withdrawalRequest.account.id
       ) {
         throw new BadRequestError(
-          'Only allowed status: ' +
-            nextWithDrawStatusMap[withdrawalRequest.status].join(', ')
+          'You are not allowed to update this withdrawal request'
         );
       }
-      if (request.status == WithdrawalStatusEnum.APPROVED) {
-        wallet.availableBalance -= withdrawalRequest.amount;
-        await wallet.save();
+
+      if (withdrawalRequest.status == WithdrawalStatusEnum.PENDING) {
+        if (
+          !nextWithDrawStatusMap[withdrawalRequest.status].includes(
+            request.status
+          )
+        ) {
+          throw new BadRequestError(
+            'Only allowed status: ' +
+              nextWithDrawStatusMap[withdrawalRequest.status].join(', ')
+          );
+        }
       }
-    }
 
-    // Update status and processor
-    withdrawalRequest.status = request.status as WithdrawalStatusEnum;
-    withdrawalRequest.processedBy = { id: loginUser } as Account;
-
-    if (request.status === WithdrawalStatusEnum.CANCELLED) {
-      wallet.availableBalance += withdrawalRequest.amount;
-      await wallet.save();
+      // Update status and processor
+      withdrawalRequest.status = request.status as WithdrawalStatusEnum;
+      withdrawalRequest.processedBy = { id: loginUser } as Account;
 
       if (request.status === WithdrawalStatusEnum.CANCELLED) {
+        wallet.availableBalance += withdrawalRequest.amount;
         withdrawalRequest.rejectedReason = request.rejectedReason;
       }
-    }
 
-    if (request.status === WithdrawalStatusEnum.COMPLETED) {
-      wallet.balance -= withdrawalRequest.amount;
-      await wallet.save();
-    }
+      if (request.status === WithdrawalStatusEnum.COMPLETED) {
+        wallet.balance -= withdrawalRequest.amount;
+      }
 
-    await withdrawalRequestRepository.save(withdrawalRequest);
-    Logging.info(`Withdrawal request ${id} updated to ${request.status}`);
-    return withdrawalRequest;
+      await queryRunner.manager.save(wallet);
+      await queryRunner.manager.save(withdrawalRequest);
+
+      await queryRunner.commitTransaction();
+      Logging.info(`Withdrawal request ${id} updated to ${request.status}`);
+      return withdrawalRequest;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   static async getWithdrawalRequests(accountId: string) {
