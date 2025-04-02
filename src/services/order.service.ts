@@ -1095,8 +1095,10 @@ class OrderService extends BaseService<Order> {
           parent: {
             children: {
               voucher: true,
+              account: true,
             },
             voucher: true,
+            account: true,
           },
           account: true,
           orderDetails: { productClassification: true },

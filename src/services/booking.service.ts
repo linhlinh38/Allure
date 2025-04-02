@@ -60,9 +60,18 @@ class BookingService extends BaseService<Booking> {
         id,
       },
       relations: {
+        brand: { reviewer: true },
+        consultantService: {
+          account: true,
+          systemService: {
+            consultationCriteria: { consultationCriteriaSections: true },
+          },
+          serviceBookingForm: { questions: { images: true } },
+        },
         account: true,
-        brand: true,
         slot: true,
+        bookingFormAnswer: true,
+        consultationResult: true,
       },
     });
     if (!booking) throw new BadRequestError("Booking not found");
@@ -166,9 +175,15 @@ class BookingService extends BaseService<Booking> {
         },
         relations: {
           brand: { reviewer: true },
-          consultantService: { account: true },
+          consultantService: {
+            account: true,
+            systemService: true,
+            serviceBookingForm: { questions: { images: true } },
+          },
           account: true,
           slot: true,
+          bookingFormAnswer: true,
+          consultationResult: true,
         },
         order: {
           createdAt: "DESC",
@@ -182,9 +197,17 @@ class BookingService extends BaseService<Booking> {
         },
         relations: {
           brand: { reviewer: true },
-          consultantService: { account: true },
+          consultantService: {
+            account: true,
+            systemService: {
+              consultationCriteria: { consultationCriteriaSections: true },
+            },
+            serviceBookingForm: true,
+          },
           account: true,
           slot: true,
+          bookingFormAnswer: true,
+          consultationResult: true,
         },
         order: {
           createdAt: "DESC",
