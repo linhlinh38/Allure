@@ -298,6 +298,17 @@ class AccountService extends BaseService<Account> {
             await queryRunner.manager.save(File, certConsultant);
           }
         }
+        if (data.thumbnailImageList && data.thumbnailImageList.length !== 0) {
+          for (const img of data.thumbnailImageList) {
+            const thumbnail: Partial<File> = {
+              account: account,
+              name: img.name ?? null,
+              fileUrl: img.fileUrl,
+              type: FileEnum.CONSULTANT_THUMBNAIL,
+            };
+            await queryRunner.manager.save(File, thumbnail);
+          }
+        }
 
         // await sendRegisterAccountEmail(account, data.url);
         break;
