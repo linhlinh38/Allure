@@ -29,7 +29,7 @@ import { Report } from "./report.entity";
 import { FCMToken } from "./FCMToken.entity";
 import { Blog } from "./blog.entity";
 import { BankAccount } from "./bankAccount.entity";
-// import { WithdrawalRequest } from "./withdrawalRequest.entity";
+import { WithdrawalRequest } from "./withdrawalRequest.entity";
 
 @Entity("accounts")
 export class Account extends BaseEntity {
@@ -47,6 +47,12 @@ export class Account extends BaseEntity {
 
   @Column({ type: "varchar", nullable: true })
   introduceVideo?: string;
+
+  @Column({ type: "varchar", nullable: true })
+  description?: string;
+
+  @Column({ type: "varchar", nullable: true })
+  majorTitle?: string;
 
   @Column({ type: "varchar", length: 255, nullable: false })
   email: string;
@@ -154,9 +160,9 @@ export class Account extends BaseEntity {
   @OneToMany(() => BankAccount, (bankAccount) => bankAccount.account)
   bankAccounts: BankAccount[];
 
-  // @OneToMany(
-  //   () => WithdrawalRequest,
-  //   (withdrawalRequest) => withdrawalRequest.account
-  // )
-  // withdrawalRequests: WithdrawalRequest[];
+  @OneToMany(
+    () => WithdrawalRequest,
+    (withdrawalRequest) => withdrawalRequest.account
+  )
+  withdrawalRequests: WithdrawalRequest[];
 }

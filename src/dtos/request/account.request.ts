@@ -28,6 +28,9 @@ export const AccountCreateSchema = z.object({
       .optional(),
     role: z.string(),
     url: z.string().optional(),
+    yoe: z.number().nonnegative().optional(),
+    description: z.string().optional(),
+    majorTitle: z.string().optional(),
     gender: z.nativeEnum(GenderEnum).optional(),
     avatar: z.string().min(1, "avatar must more than 1 character").optional(),
     phone: z
@@ -50,6 +53,7 @@ export const AccountCreateSchema = z.object({
       .optional(),
     address: AddressCreateSchema.shape.body.optional(),
     certificates: z.array(FileCreateSchema.shape.body).optional(),
+    thumbnailImageList: z.array(FileCreateSchema.shape.body).optional(),
   }),
 });
 
