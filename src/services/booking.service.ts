@@ -608,7 +608,10 @@ class BookingService extends BaseService<Booking> {
         await queryRunner.manager.save(StatusTracking, statusTrackings);
 
         if (createdBooking.status === BookingStatusEnum.TO_PAY) {
-          await addBookingToQueue(createdBooking.id);
+          await addBookingToQueue(createdBooking.id, 120000);
+        }
+        if (createdBooking.status === BookingStatusEnum.WAIT_FOR_CONFIRMATION) {
+          await addBookingToQueue(createdBooking.id, 240000);
         }
       }
       await queryRunner.commitTransaction();

@@ -165,4 +165,7 @@ export class Account extends BaseEntity {
     (withdrawalRequest) => withdrawalRequest.account
   )
   withdrawalRequests: WithdrawalRequest[];
+
+  @OneToMany(() => Report, (report) => report.account)
+  reports: Report[];
 }
