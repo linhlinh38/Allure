@@ -12,12 +12,12 @@ export const cancelBookingQueue = new Queue("cancelBookingQueue", {
   connection,
 });
 
-export async function addBookingToQueue(bookingId: string) {
+export async function addBookingToQueue(bookingId: string, delay: number) {
   const masterConfig = await retrieveMasterConfig();
   await cancelBookingQueue.add(
     "checkBookingStatus",
     { bookingId },
-    { delay: 120000 } // Delay in milliseconds
+    { delay } // Delay in milliseconds
   );
 }
 
@@ -55,15 +55,17 @@ const cancelBookingQueueWorker = new Worker(
         );
 
         //send notification to account
-        const tokens = (await fcmTokenRepository.find({
-          where: {
-            account: {
-              id: booking.account.id,
+        const tokens = (
+          await fcmTokenRepository.find({
+            where: {
+              account: {
+                id: booking.account.id,
+              },
             },
-          },
-        })).map((token) => token.token);
+          })
+        ).map((token) => token.token);
         const notificationData = {
-          title: 'Booking cancelled',
+          title: "Booking cancelled",
           body: `Booking with ID ${bookingId} has been cancelled`,
           data: {
             type: NotificationTypeEnum.BOOKING_CANCELLED,
