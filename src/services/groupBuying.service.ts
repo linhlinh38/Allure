@@ -35,6 +35,7 @@ import { Brand } from '../entities/brand.entity';
 import { FCMService } from './FCM.service';
 import { fcmTokenRepository } from '../repositories/fcmToken.repository';
 import { NotificationData } from '../dtos/request/fcm.request';
+import { walletService } from './wallet.service';
 
 const repository = AppDataSource.getRepository(GroupBuying);
 class GroupBuyingService extends BaseService<GroupBuying> {
@@ -674,7 +675,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
           voucherService.applyShopVoucher(order);
           voucherService.calculateOrderPrice(order.parent);
 
-          if (wallet && wallet.balance >= order.totalPrice) {
+          if (wallet && wallet.availableBalance >= order.totalPrice) {
             countAffordableOrder++;
             orderIdCanAffordMap[order.id] = true;
           } else {
@@ -711,7 +712,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
             voucherService.calculateOrderPrice(order.parent);
             //check if order is affordable or not
             if (orderIdCanAffordMap[order.id]) {
-              wallet.balance -= order.totalPrice;
+              walletService.decreaseBalance(wallet, order.totalPrice);
               await queryRunner.manager.save(wallet);
               //change order status
               const statusTrackings =

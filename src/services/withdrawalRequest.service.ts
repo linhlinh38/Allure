@@ -145,13 +145,11 @@ export class WithdrawalRequestService {
           });
           wallet.balance -= withdrawalRequest.amount;
 
-          await queryRunner.manager.save(wallet);
-          const transaction =
-            await transactionService.createTransactionFromWithDraw(
-              withdrawalRequest.amount,
-              loginUser,
-              queryRunner
-            );
+          const transaction = transactionService.createTransactionFromWithDraw(
+            withdrawalRequest.amount,
+            wallet.balance,
+            loginUser
+          );
           await queryRunner.manager.save(transaction);
         } else if (request.status === WithdrawalStatusEnum.REJECTED) {
           if (!request.rejectedReason) {

@@ -20,6 +20,7 @@ import { Transaction } from '../../entities/transaction.entity';
 import { VoucherWallet } from '../../entities/voucherWallet.entity';
 import { FCMService } from '../../services/FCM.service';
 import { fcmTokenRepository } from '../../repositories/fcmToken.repository';
+import { walletService } from '../../services/wallet.service';
 
 export const updateRefundedStatusOrderQueue = new Queue(
   'updateRefundedStatusOrderQueue',
@@ -76,7 +77,7 @@ const updateRefundedStatusOrderQueueWorker = new Worker(
             id: order.account.id,
           },
         });
-        wallet.balance += order.totalPrice;
+        walletService.increaseBalance(wallet, order.totalPrice);
         await queryRunner.manager.save(wallet);
 
         await Promise.all([
@@ -98,7 +99,8 @@ const updateRefundedStatusOrderQueueWorker = new Worker(
             const transaction =
               await transactionService.createTransactionFromChildOrder(
                 complaintRequest.order,
-                TransactionTypeEnum.ORDER_REFUND
+                TransactionTypeEnum.ORDER_REFUND,
+                queryRunner
               );
             await queryRunner.manager.save(Transaction, transaction);
           })(),

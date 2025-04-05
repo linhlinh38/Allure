@@ -1,4 +1,3 @@
-import { Between, In, Not } from "typeorm";
 import { AppDataSource } from "../dataSource";
 import { PreOrderProduct } from "../entities/preOrderProduct.entity";
 import { Product } from "../entities/product.entity";
@@ -17,7 +16,6 @@ import { BaseService } from "./base.service";
 import { productService } from "./product.service";
 import { productClassificationService } from "./productClassification.service";
 import { format } from "date-fns";
-import { log } from "console";
 
 const repository = AppDataSource.getRepository(PreOrderProduct);
 interface FilterOptions {

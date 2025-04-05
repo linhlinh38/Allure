@@ -29,6 +29,7 @@ import { Account } from '../entities/account.entity';
 import { bookingRepository } from '../repositories/booking.repository';
 import { Booking } from '../entities/booking.entity';
 import { Wallet } from '../entities/wallet.entity';
+import { walletService } from './wallet.service';
 
 const repository = AppDataSource.getRepository(Transaction);
 class TransactionService extends BaseService<Transaction> {
@@ -58,18 +59,19 @@ class TransactionService extends BaseService<Transaction> {
             },
           });
           if (!wallet) throw new BadRequestError(`Wallet not found`);
-          if (wallet.balance < order.totalPrice) {
+          if (wallet.availableBalance < order.totalPrice) {
             throw new BadRequestError(`Balance wallet not enough`);
           }
           const transactions = [];
           // Create transactions for child orders
           for (const childOrder of order.children) {
-            wallet.balance -= childOrder.totalPrice;
+            walletService.decreaseBalance(wallet, childOrder.totalPrice);
             await queryRunner.manager.save(Wallet, wallet);
 
             const transaction = await this.createTransactionFromChildOrder(
               childOrder,
-              TransactionTypeEnum.ORDER_PURCHASE
+              TransactionTypeEnum.ORDER_PURCHASE,
+              queryRunner
             );
             transactions.push(transaction);
           }
@@ -86,7 +88,8 @@ class TransactionService extends BaseService<Transaction> {
         for (const childOrder of order.children) {
           const transaction = await this.createTransactionFromChildOrder(
             childOrder,
-            TransactionTypeEnum.ORDER_PURCHASE
+            TransactionTypeEnum.ORDER_PURCHASE,
+            queryRunner
           );
           transactions.push(transaction);
         }
@@ -130,10 +133,10 @@ class TransactionService extends BaseService<Transaction> {
             },
           });
           if (!wallet) throw new BadRequestError(`Wallet not found`);
-          if (wallet.balance < booking.totalPrice) {
+          if (wallet.availableBalance < booking.totalPrice) {
             throw new BadRequestError(`Balance wallet not enough`);
           }
-          wallet.balance -= booking.totalPrice;
+          walletService.decreaseBalance(wallet, booking.totalPrice);
           await queryRunner.manager.save(wallet);
         } else if (booking.paymentMethod == PaymentMethodEnum.BANK_TRANSFER) {
           await this.getPaymentData(payRequest.orderId);
@@ -144,7 +147,8 @@ class TransactionService extends BaseService<Transaction> {
         }
         const transaction = await this.createTransactionFromBooking(
           booking,
-          TransactionTypeEnum.BOOKING_PURCHASE
+          TransactionTypeEnum.BOOKING_PURCHASE,
+          queryRunner
         );
         await queryRunner.manager.save(transaction);
 
@@ -172,9 +176,10 @@ class TransactionService extends BaseService<Transaction> {
         },
       });
       if (!wallet) throw new BadRequestError(`Wallet not found`);
-      wallet.balance += data.amount;
+      walletService.increaseBalance(wallet, data.amount);
       await queryRunner.manager.save(wallet);
-      const transaction = await transactionService.createTransactionFromDeposit(
+      const transaction = transactionService.createTransactionFromDeposit(
+        wallet.balance,
         data.amount,
         loginUser
       );
@@ -200,6 +205,26 @@ class TransactionService extends BaseService<Transaction> {
     }
   }
 
+  async filterForAdmin(
+    filterTransactionRequest: FilterTransactionRequest,
+    paging: Paging
+  ) {
+    const limit = paging.limit;
+    const offset = (paging.page - 1) * paging.limit;
+    const total = await this.getTotalTransactionCount(filterTransactionRequest);
+
+    const totalPages = Math.ceil(total / paging.limit);
+    const query = this.getTransactionsQuery(filterTransactionRequest)
+      .take(limit)
+      .skip(offset);
+
+    return {
+      total,
+      totalPages,
+      items: await query.getMany(),
+    };
+  }
+
   async filter(
     filterTransactionRequest: FilterTransactionRequest,
     loginUser: string,
@@ -208,12 +233,12 @@ class TransactionService extends BaseService<Transaction> {
     const limit = paging.limit;
     const offset = (paging.page - 1) * paging.limit;
     const total = await this.getTotalTransactionCount(
-      loginUser,
-      filterTransactionRequest
+      filterTransactionRequest,
+      loginUser
     );
 
     const totalPages = Math.ceil(total / paging.limit);
-    const query = this.getTransactionsQuery(loginUser, filterTransactionRequest)
+    const query = this.getTransactionsQuery(filterTransactionRequest, loginUser)
       .take(limit)
       .skip(offset);
 
@@ -225,8 +250,8 @@ class TransactionService extends BaseService<Transaction> {
   }
 
   getTransactionsQuery(
-    loginUser: string,
-    filterTransactionRequest: FilterTransactionRequest
+    filterTransactionRequest: FilterTransactionRequest,
+    loginUser?: string
   ) {
     const { types, startDate, endDate } = filterTransactionRequest;
 
@@ -235,10 +260,12 @@ class TransactionService extends BaseService<Transaction> {
       .leftJoinAndSelect('transaction.buyer', 'buyer')
       .leftJoinAndSelect('transaction.brand', 'brand')
       .leftJoinAndSelect('transaction.order', 'order')
-      .where('buyer.id = :loginUser', { loginUser })
       .orderBy('transaction.createdAt', 'DESC');
     orderService.queryBuilderForOrder(query);
 
+    if (loginUser) {
+      query.where('buyer.id = :loginUser', { loginUser });
+    }
     if (types && types.length > 0)
       query.andWhere('transaction.type IN (:...types)', { types });
     if (startDate && endDate)
@@ -250,15 +277,17 @@ class TransactionService extends BaseService<Transaction> {
   }
 
   async getTotalTransactionCount(
-    loginUser: string,
-    filterTransactionRequest: FilterTransactionRequest
+    filterTransactionRequest: FilterTransactionRequest,
+    loginUser?: string
   ) {
     const { types, startDate, endDate } = filterTransactionRequest;
     const query = transactionRepository
       .createQueryBuilder('transaction')
       .select('COUNT(*)', 'total')
-      .innerJoin('transaction.buyer', 'buyer')
-      .where('buyer.id = :loginUser', { loginUser });
+      .innerJoin('transaction.buyer', 'buyer');
+    if (loginUser) {
+      query.where('buyer.id = :loginUser', { loginUser });
+    }
     if (types && types.length > 0)
       query.andWhere('transaction.type IN (:...types)', { types });
     if (startDate && endDate)
@@ -409,66 +438,58 @@ class TransactionService extends BaseService<Transaction> {
     return transaction;
   }
 
-  async createTransactionFromDeposit(amount: number, loginUser: string) {
+  createTransactionFromDeposit(
+    balance: number,
+    amount: number,
+    loginUser: string
+  ) {
     const transaction = new Transaction();
     transaction.amount = amount;
     transaction.buyer = { id: loginUser } as Account;
     transaction.paymentMethod = PaymentMethodEnum.BANK_TRANSFER;
     transaction.type = TransactionTypeEnum.DEPOSIT;
-
-    const wallet = await walletRepository.findOne({
-      where: {
-        owner: { id: loginUser },
-      },
-    });
-    if (!wallet) throw new BadRequestError(`Wallet not found`);
-    transaction.balanceAfterTransaction = wallet.balance;
+    transaction.balanceAfterTransaction = balance;
     return transaction;
   }
 
-  async createTransactionFromWithDraw(
+  createTransactionFromWithDraw(
     amount: number,
-    loginUser: string,
-    queryRunner?: QueryRunner
+    balance: number,
+    loginUser: string
   ) {
     const transaction = new Transaction();
     transaction.amount = amount;
     transaction.buyer = { id: loginUser } as Account;
     transaction.paymentMethod = PaymentMethodEnum.WALLET;
     transaction.type = TransactionTypeEnum.WITHDRAW;
-    let wallet;
-    if (queryRunner) {
-      wallet = await queryRunner.manager.findOne(Wallet, {
-        where: {
-          owner: { id: loginUser },
-        },
-      });
-    } else
-      wallet = await walletRepository.findOne({
-        where: {
-          owner: { id: loginUser },
-        },
-      });
-    if (!wallet) throw new BadRequestError(`Wallet not found`);
-    transaction.balanceAfterTransaction = wallet.balance;
+    transaction.balanceAfterTransaction = balance;
     return transaction;
   }
 
   async createTransactionFromChildOrder(
     childOrder: Order,
-    type: TransactionTypeEnum
+    type: TransactionTypeEnum,
+    queryRunner?: QueryRunner
   ) {
     const transaction = new Transaction();
     transaction.order = childOrder;
     transaction.buyer = childOrder.account;
     transaction.amount = childOrder.totalPrice;
     transaction.brand = childOrder.brand;
-
-    const wallet = await walletRepository.findOne({
-      where: {
-        owner: { id: childOrder.account.id },
-      },
-    });
+    let wallet: Wallet;
+    if (queryRunner) {
+      wallet = await queryRunner.manager.findOne(Wallet, {
+        where: {
+          owner: { id: childOrder.account.id },
+        },
+      });
+    } else {
+      wallet = await walletRepository.findOne({
+        where: {
+          owner: { id: childOrder.account.id },
+        },
+      });
+    }
     if (!wallet) throw new BadRequestError(`Wallet not found`);
     transaction.balanceAfterTransaction = wallet.balance;
     if (type) {
@@ -497,19 +518,28 @@ class TransactionService extends BaseService<Transaction> {
 
   async createTransactionFromBooking(
     booking: Booking,
-    type: TransactionTypeEnum
+    type: TransactionTypeEnum,
+    queryRunner?: QueryRunner
   ) {
     const transaction = new Transaction();
     transaction.booking = booking;
     transaction.buyer = booking.account;
     transaction.amount = booking.totalPrice;
     transaction.brand = booking.brand;
-
-    const wallet = await walletRepository.findOne({
-      where: {
-        owner: { id: booking.account.id },
-      },
-    });
+    let wallet: Wallet;
+    if (queryRunner) {
+      wallet = await queryRunner.manager.findOne(Wallet, {
+        where: {
+          owner: { id: booking.account.id },
+        },
+      });
+    } else {
+      wallet = await walletRepository.findOne({
+        where: {
+          owner: { id: booking.account.id },
+        },
+      });
+    }
     if (!wallet) throw new BadRequestError(`Wallet not found`);
     transaction.balanceAfterTransaction = wallet.balance;
 

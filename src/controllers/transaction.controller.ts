@@ -13,13 +13,9 @@ import { Paging } from '../dtos/other/paging.dto';
 export default class TransactionController {
   static async pay(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const payRequest = plainToInstance(
-        PayRequest,
-        req.body,
-        {
-          excludeExtraneousValues: true,
-        }
-      );
+      const payRequest = plainToInstance(PayRequest, req.body, {
+        excludeExtraneousValues: true,
+      });
       return createNormalResponse(
         res,
         'Pay successfully',
@@ -35,6 +31,35 @@ export default class TransactionController {
         res,
         'Deposit successfully',
         await transactionService.deposit(req.body.orderId, req.loginUser)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async filterForAdmin(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const paging = {
+        page: Number(req.query.page) ? Number(req.query.page) : 1,
+        limit: Number(req.query.limit) ? Number(req.query.limit) : 10,
+      } as Paging;
+      const filterTransactionRequest = plainToInstance(
+        FilterTransactionRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Filter transactions successfully',
+        await transactionService.filterForAdmin(
+          filterTransactionRequest,
+          paging
+        )
       );
     } catch (err) {
       next(err);

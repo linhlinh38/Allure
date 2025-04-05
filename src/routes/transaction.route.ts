@@ -21,6 +21,12 @@ transactionRouter.post(
 );
 
 transactionRouter.post(
+  '/filter-for-admin',
+  validate(FilterTransactionSchema),
+  TransactionController.filterForAdmin
+);
+
+transactionRouter.post(
   '/get-user-spending-statistics',
   validate(GetStatisticsSchema),
   TransactionController.getUserSpendingStatistics

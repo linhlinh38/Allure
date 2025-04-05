@@ -1,6 +1,5 @@
 import express from "express";
 import authentication from "../middleware/authentication";
-import validate from "../utils/validate";
 
 import BlogController from "../controllers/blog.controller";
 const blogRouter = express.Router();
