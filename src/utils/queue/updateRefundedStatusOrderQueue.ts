@@ -136,7 +136,7 @@ const updateRefundedStatusOrderQueueWorker = new Worker(
                   'vi-VN'
                 )}đ vào ví`,
                 data: {
-                  type: NotificationTypeEnum.REFUND_SUCCESS,
+                  type: NotificationTypeEnum.UPDATE_ORDER_STATUS,
                   orderId: order.id,
                   amount: order.totalPrice.toString(),
                 },

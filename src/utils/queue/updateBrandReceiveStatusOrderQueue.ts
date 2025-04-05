@@ -87,7 +87,7 @@ const uupdateBrandReceiveStatusOrderQueueWorker = new Worker(
                 title: 'Brand đã nhận hàng hoàn trả',
                 body: `Đơn hàng #${order.id} của bạn đã được brand xác nhận nhận hàng hoàn trả`,
                 data: {
-                  type: NotificationTypeEnum.BRAND_RECEIVED_RETURN,
+                  type: NotificationTypeEnum.UPDATE_ORDER_STATUS,
                   orderId: order.id,
                 },
                 accountIds: [order.account.id],
