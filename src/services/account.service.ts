@@ -12,7 +12,6 @@ import { roleService } from "./role.service";
 import { Brand } from "../entities/brand.entity";
 import { StatusTracking } from "../entities/statusTracking.entity";
 import { AccountUpdateStatusType } from "../dtos/request/account.request";
-import { ConsultationResult } from "../entities/consultationResult.entity";
 import { consultationResultRepository } from "../repositories/consultationResult.repository";
 import { productClassificationRepository } from "../repositories/productClassification.repository";
 const repository = AppDataSource.getRepository(Account);
