@@ -1,7 +1,8 @@
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Account } from './account.entity';
 import { WithdrawalStatusEnum } from '../utils/enum';
+import { File } from './file.entity';
 
 @Entity('withdrawal_requests')
 export class WithdrawalRequest extends BaseEntity {
@@ -31,6 +32,11 @@ export class WithdrawalRequest extends BaseEntity {
   @ManyToOne(() => Account)
   @JoinColumn({ name: 'processed_by_id' })
   processedBy: Account;
+
+  @OneToMany(() => File, (evidence) => evidence.withdrawalRequest, {
+    cascade: true,
+  })
+  evidences: File[];
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   rejectedReason: string;
