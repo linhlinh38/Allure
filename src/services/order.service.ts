@@ -41,6 +41,7 @@ import {
   OrderRequestTypeEnum,
   ActionReceivedEnum,
   TransactionTypeEnum,
+  NotificationTypeEnum,
 } from '../utils/enum';
 import { validate as isUUID } from 'uuid';
 import { addressRepository } from '../repositories/address.repository';
@@ -65,6 +66,9 @@ import { OrderRequest } from '../entities/orderRequest.entity';
 import { File } from '../entities/file.entity';
 import { addUpdateRefundedStatusOrderToQueue } from '../utils/queue/updateRefundedStatusOrderQueue';
 import { addUpdateBrandReceiveStatusOrderToQueue } from '../utils/queue/updateBrandReceiveStatusOrderQueue';
+import { fcmTokenRepository } from '../repositories/fcmToken.repository';
+import { FCMService } from './FCM.service';
+import Logging from '../utils/Logging';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
@@ -971,6 +975,33 @@ class OrderService extends BaseService<Order> {
             queryRunner
           );
         await queryRunner.manager.save(Transaction, transaction);
+      }
+      const fcmTokens = await fcmTokenRepository.find({
+        where: {
+          account: {
+            id: order.account.id,
+          },
+        },
+      });
+      // Gửi thông báo cho người dùng
+      if (fcmTokens && fcmTokens.length > 0) {
+        try {
+          await FCMService.sendMulticastNotification(
+            fcmTokens.map((token) => token.token),
+            {
+              title: 'Đơn hàng đã được cập nhật trạng thái: ' + status,
+              body: `Đơn hàng #${order.id} của bạn đã được cập nhật trạng thái: ${status}`,
+              data: {
+                type: NotificationTypeEnum.UPDATE_ORDER_STATUS,
+                orderId: order.id,
+              },
+              accountIds: [order.account.id],
+              createdAt: new Date(),
+            }
+          );
+        } catch (err) {
+          Logging.error('Failed to send FCM notification:' + err);
+        }
       }
       await queryRunner.commitTransaction();
     } catch (error) {
