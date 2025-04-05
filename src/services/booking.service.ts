@@ -59,9 +59,18 @@ class BookingService extends BaseService<Booking> {
         id,
       },
       relations: {
+        brand: { reviewer: true },
+        consultantService: {
+          account: true,
+          systemService: {
+            consultationCriteria: { consultationCriteriaSections: true },
+          },
+          serviceBookingForm: { questions: { images: true } },
+        },
         account: true,
-        brand: true,
         slot: true,
+        bookingFormAnswer: true,
+        consultationResult: true,
       },
     });
     if (!booking) throw new BadRequestError("Booking not found");
@@ -165,9 +174,15 @@ class BookingService extends BaseService<Booking> {
         },
         relations: {
           brand: { reviewer: true },
-          consultantService: { account: true },
+          consultantService: {
+            account: true,
+            systemService: true,
+            serviceBookingForm: { questions: { images: true } },
+          },
           account: true,
           slot: true,
+          bookingFormAnswer: true,
+          consultationResult: true,
         },
         order: {
           createdAt: "DESC",
@@ -181,9 +196,17 @@ class BookingService extends BaseService<Booking> {
         },
         relations: {
           brand: { reviewer: true },
-          consultantService: { account: true },
+          consultantService: {
+            account: true,
+            systemService: {
+              consultationCriteria: { consultationCriteriaSections: true },
+            },
+            serviceBookingForm: true,
+          },
           account: true,
           slot: true,
+          bookingFormAnswer: true,
+          consultationResult: true,
         },
         order: {
           createdAt: "DESC",
@@ -584,7 +607,10 @@ class BookingService extends BaseService<Booking> {
         await queryRunner.manager.save(StatusTracking, statusTrackings);
 
         if (createdBooking.status === BookingStatusEnum.TO_PAY) {
-          await addBookingToQueue(createdBooking.id);
+          await addBookingToQueue(createdBooking.id, 120000);
+        }
+        if (createdBooking.status === BookingStatusEnum.WAIT_FOR_CONFIRMATION) {
+          await addBookingToQueue(createdBooking.id, 240000);
         }
       }
       await queryRunner.commitTransaction();

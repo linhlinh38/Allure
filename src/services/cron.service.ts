@@ -9,6 +9,8 @@ import {
 } from "../utils/enum";
 import { Product } from "../entities/product.entity";
 import { ProductDiscount } from "../entities/productDiscount.entity";
+import Logging from "../utils/Logging";
+import { accountService } from "./account.service";
 const startPreOrderCheck = () => {
   cron.schedule("* * * * *", async () => {
     const queryRunner = AppDataSource.createQueryRunner();
@@ -301,8 +303,28 @@ const autoCheckOutOfStock = () => {
   });
 };
 
+const autoBannedAccountIfNecessary = () => {
+  cron.schedule("0 0 * * *", async () => {
+    try {
+      console.log(
+        "⏳ Running scheduled task to auto banned violation account."
+      );
+
+      // running the function to check and ban accounts
+      await accountService.checkAllAccountsAndBanIfNecessary();
+
+      console.log(
+        "✅ Scheduled task completed: checkAllAccountsAndBanIfNecessary."
+      );
+    } catch (error) {
+      Logging.error("❌ Error running scheduled task: " + error.message);
+    }
+  });
+};
+
 startPreOrderCheck();
 endPreOrderCheck();
 startProductDiscount();
 endProductDiscount();
 autoCheckOutOfStock();
+autoBannedAccountIfNecessary();

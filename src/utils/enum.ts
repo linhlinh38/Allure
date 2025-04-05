@@ -102,6 +102,7 @@ export enum FileEnum {
   BRAND_LOGO = "BRAND_LOGO",
   BRAND_DOCUMENT = "BRAND_DOCUMENT",
   SERVICE_IMAGE = "SERVICE_IMAGE",
+  CONSULTANT_THUMBNAIL = "CONSULTANT_THUMBNAIL",
 }
 
 export enum DiscountTypeEnum {
@@ -279,11 +280,11 @@ export enum PayTypeEnum {
 }
 
 export enum WithdrawalStatusEnum {
-  PENDING = 'PENDING',
-  APPROVED = 'APPROVED',
-  COMPLETED = 'COMPLETED',
-  CANCELLED = 'CANCELLED',
-  REJECTED = 'REJECTED',
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+  REJECTED = "REJECTED",
 }
 
 export enum NotificationTypeEnum {
@@ -294,3 +295,4 @@ export enum NotificationTypeEnum {
   UPDATE_ORDER_STATUS = 'UPDATE_ORDER_STATUS',
   TRANSFER_TO_WALLET = 'TRANSFER_TO_WALLET',
 }
+
