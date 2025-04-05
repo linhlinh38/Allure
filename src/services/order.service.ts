@@ -69,6 +69,7 @@ import { addUpdateBrandReceiveStatusOrderToQueue } from '../utils/queue/updateBr
 import { fcmTokenRepository } from '../repositories/fcmToken.repository';
 import { FCMService } from './FCM.service';
 import Logging from '../utils/Logging';
+import { addtransferToBrandWalletToQueue } from '../utils/queue/transferToBrandWalletQueue';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
@@ -297,6 +298,7 @@ class OrderService extends BaseService<Order> {
           ),
         ]);
 
+        await transactionService.transferToBrandWallet(order.id, queryRunner);
         isApproved = true;
       }
       await queryRunner.commitTransaction();
@@ -975,6 +977,8 @@ class OrderService extends BaseService<Order> {
             queryRunner
           );
         await queryRunner.manager.save(Transaction, transaction);
+      } else if (status == ShippingStatusEnum.DELIVERED) {
+        await addtransferToBrandWalletToQueue(order.id);
       }
       const fcmTokens = await fcmTokenRepository.find({
         where: {

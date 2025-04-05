@@ -5,6 +5,7 @@ import {
   BookingStatusEnum,
   PaymentMethodEnum,
   PayTypeEnum,
+  RoleEnum,
   ShippingStatusEnum,
   StatisticsTimeEnum,
   TransactionTypeEnum,
@@ -30,6 +31,7 @@ import { bookingRepository } from '../repositories/booking.repository';
 import { Booking } from '../entities/booking.entity';
 import { Wallet } from '../entities/wallet.entity';
 import { walletService } from './wallet.service';
+import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
 
 const repository = AppDataSource.getRepository(Transaction);
 class TransactionService extends BaseService<Transaction> {
@@ -466,6 +468,38 @@ class TransactionService extends BaseService<Transaction> {
     return transaction;
   }
 
+  async createTransactionForTransferToWalletFromOrder(
+    balance: number,
+    order: Order
+  ) {
+    const masterConfig = await retrieveMasterConfig();
+    const transaction = new Transaction();
+    transaction.order = order;
+    transaction.amount = order.totalPrice * (1 - masterConfig.commissionFee);
+    transaction.brand = order.brand;
+    transaction.buyer = { id: order.account.id } as Account;
+    transaction.paymentMethod = PaymentMethodEnum.WALLET;
+    transaction.type = TransactionTypeEnum.TRANSFER_TO_WALLET;
+    transaction.balanceAfterTransaction = balance;
+    return transaction;
+  }
+
+  async createTransactionForTransferToWalletFromBooking(
+    balance: number,
+    booking: Booking
+  ) {
+    const masterConfig = await retrieveMasterConfig();
+    const transaction = new Transaction();
+    transaction.booking = booking;
+    transaction.amount = booking.totalPrice * (1 - masterConfig.commissionFee);
+    transaction.consultant = booking.consultantService.account;
+    transaction.buyer = { id: booking.account.id } as Account;
+    transaction.paymentMethod = PaymentMethodEnum.WALLET;
+    transaction.type = TransactionTypeEnum.TRANSFER_TO_WALLET;
+    transaction.balanceAfterTransaction = balance;
+    return transaction;
+  }
+
   async createTransactionFromChildOrder(
     childOrder: Order,
     type: TransactionTypeEnum,
@@ -514,6 +548,79 @@ class TransactionService extends BaseService<Transaction> {
       }
     }
     return transaction;
+  }
+
+  async transferToBrandWallet(orderId: string, queryRunner: QueryRunner) {
+    const order = await queryRunner.manager.findOne(Order, {
+      where: {
+        id: orderId,
+      },
+      relations: {
+        account: true,
+        brand: {
+          accounts: {
+            role: true,
+          },
+        },
+      },
+    });
+    const manager = order.brand.accounts.find(
+      (account) => account.role.role == RoleEnum.MANAGER
+    );
+    if (!manager) throw new BadRequestError(`Brand manager not found`);
+
+    const wallet = await queryRunner.manager.findOne(Wallet, {
+      where: {
+        owner: { id: manager.id },
+      },
+    });
+    if (!wallet) throw new BadRequestError('Dont have wallet');
+    const masterConfig = await retrieveMasterConfig();
+    walletService.increaseBalance(
+      wallet,
+      order.totalPrice * (1 - masterConfig.commissionFee)
+    );
+    await queryRunner.manager.save(wallet);
+    const transaction =
+      await this.createTransactionForTransferToWalletFromOrder(
+        wallet.balance,
+        order
+      );
+    await queryRunner.manager.save(transaction);
+  }
+
+  async transferToConsultantWallet(bookingId: string, queryRunner: QueryRunner) {
+    const booking = await queryRunner.manager.findOne(Booking, {
+      where: {
+        id: bookingId,
+      },
+      relations: {
+        account: true,
+        consultantService: {
+          account: true,
+        },
+      },
+    });
+    const consultant = booking.consultantService.account;
+
+    const wallet = await queryRunner.manager.findOne(Wallet, {
+      where: {
+        owner: { id: consultant.id },
+      },
+    });
+    if (!wallet) throw new BadRequestError('Dont have wallet');
+    const masterConfig = await retrieveMasterConfig();
+    walletService.increaseBalance(
+      wallet,
+      booking.totalPrice * (1 - masterConfig.commissionFee)
+    );
+    await queryRunner.manager.save(wallet);
+    const transaction =
+      await this.createTransactionForTransferToWalletFromBooking(
+        wallet.balance,
+        booking
+      );
+    await queryRunner.manager.save(transaction);
   }
 
   async createTransactionFromBooking(
