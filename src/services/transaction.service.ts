@@ -426,6 +426,34 @@ class TransactionService extends BaseService<Transaction> {
     return transaction;
   }
 
+  async createTransactionFromWithDraw(
+    amount: number,
+    loginUser: string,
+    queryRunner?: QueryRunner
+  ) {
+    const transaction = new Transaction();
+    transaction.amount = amount;
+    transaction.buyer = { id: loginUser } as Account;
+    transaction.paymentMethod = PaymentMethodEnum.WALLET;
+    transaction.type = TransactionTypeEnum.WITHDRAW;
+    let wallet;
+    if (queryRunner) {
+      wallet = await queryRunner.manager.findOne(Wallet, {
+        where: {
+          owner: { id: loginUser },
+        },
+      });
+    } else
+      wallet = await walletRepository.findOne({
+        where: {
+          owner: { id: loginUser },
+        },
+      });
+    if (!wallet) throw new BadRequestError(`Wallet not found`);
+    transaction.balanceAfterTransaction = wallet.balance;
+    return transaction;
+  }
+
   async createTransactionFromChildOrder(
     childOrder: Order,
     type: TransactionTypeEnum

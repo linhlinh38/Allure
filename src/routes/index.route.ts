@@ -34,6 +34,7 @@ import firebaseAuthRouter from "./firebaseAuth.route";
 import FCMRouter from "./fcm.route";
 import blogRouter from "./blog.route";
 import bankAccountRouter from "./bankAccount.route";
+import withdrawalRequestrouter from "./withdrawalRequest.route";
 
 const router = express.Router();
 router.use("/accounts", accountRouter);
@@ -74,4 +75,5 @@ router.use("/firebase-auth", firebaseAuthRouter);
 router.use("/fcm", FCMRouter);
 router.use("/blogs", blogRouter);
 router.use("/bank-accounts", bankAccountRouter);
+router.use("/withdrawal-requests", withdrawalRequestrouter);
 export default router;

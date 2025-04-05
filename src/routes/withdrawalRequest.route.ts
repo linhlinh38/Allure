@@ -4,40 +4,33 @@ import authentication from '../middleware/authentication';
 import {
   CreateWithdrawalRequestSchema,
   UpdateWithdrawalRequestSchema,
+  FilterWithdrawalRequestSchema,
 } from '../dtos/request/withdrawalRequest.request';
 import validate from '../utils/validate';
 
-const router = Router();
+const withdrawalRequestrouter = Router();
 
-// User routes
-router.post(
+withdrawalRequestrouter.use(authentication);
+
+withdrawalRequestrouter.post(
   '/',
-  authentication,
   validate(CreateWithdrawalRequestSchema),
   WithdrawalRequestController.create
 );
-router.get(
-  '/',
-  authentication,
+withdrawalRequestrouter.get(
+  '/get-my-withdrawal-requests',
   WithdrawalRequestController.getWithdrawalRequests
 );
-router.get(
-  '/:id',
-  authentication,
-  WithdrawalRequestController.getWithdrawalRequest
+withdrawalRequestrouter.get('/:id', WithdrawalRequestController.getById);
+withdrawalRequestrouter.post(
+  '/filter',
+  validate(FilterWithdrawalRequestSchema),
+  WithdrawalRequestController.filter
 );
-
-// Admin routes
-router.get(
-  '/admin/all',
-  authentication,
-  WithdrawalRequestController.getAllWithdrawalRequests
-);
-router.patch(
-  '/admin/:id',
-  authentication,
+withdrawalRequestrouter.post(
+  '/update/:id',
   validate(UpdateWithdrawalRequestSchema),
   WithdrawalRequestController.update
 );
 
-export default router;
+export default withdrawalRequestrouter;

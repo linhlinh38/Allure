@@ -13,6 +13,15 @@ export const UpdateWithdrawalRequestSchema = z.object({
   body: z.object({
     status: z.nativeEnum(WithdrawalStatusEnum),
     rejectedReason: z.string().optional(),
+    evidences: z.array(z.string()).optional(),
+  }),
+});
+
+export const FilterWithdrawalRequestSchema = z.object({
+  body: z.object({
+    accountId: z.string().uuid().optional(),
+    processedById: z.string().uuid().optional(),
+    statuses: z.array(z.nativeEnum(WithdrawalStatusEnum)).optional(),
   }),
 });
 
@@ -30,4 +39,18 @@ export class UpdateWithdrawalRequest {
 
   @Expose()
   rejectedReason?: string;
+
+  @Expose()
+  evidences?: string[];
+}
+
+export class FilterWithdrawalRequest {
+  @Expose()
+  accountId?: string;
+
+  @Expose()
+  processedById?: string;
+
+  @Expose()
+  statuses?: WithdrawalStatusEnum[];
 }
