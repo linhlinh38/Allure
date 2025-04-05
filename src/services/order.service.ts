@@ -248,7 +248,7 @@ class OrderService extends BaseService<Order> {
                 owner: { id: order.account.id },
               },
             });
-            wallet.balance += order.totalPrice;
+            walletService.increaseBalance(wallet, order.totalPrice);
             await queryRunner.manager.save(wallet);
           })(),
         ]);
@@ -257,7 +257,8 @@ class OrderService extends BaseService<Order> {
         const transaction =
           await transactionService.createTransactionFromChildOrder(
             complaintRequest.order,
-            TransactionTypeEnum.ORDER_REFUND
+            TransactionTypeEnum.ORDER_REFUND,
+            queryRunner
           );
         await queryRunner.manager.save(Transaction, transaction);
 
@@ -775,7 +776,8 @@ class OrderService extends BaseService<Order> {
           const transaction =
             await transactionService.createTransactionFromChildOrder(
               order,
-              TransactionTypeEnum.ORDER_CANCEL
+              TransactionTypeEnum.ORDER_CANCEL,
+              queryRunner
             );
           await queryRunner.manager.save(Transaction, transaction);
         }
@@ -959,13 +961,14 @@ class OrderService extends BaseService<Order> {
           },
         });
         if (!wallet) throw new BadRequestError(`Wallet not found`);
-        wallet.balance += order.totalPrice;
+        walletService.increaseBalance(wallet, order.totalPrice);
         await queryRunner.manager.save(wallet);
 
         const transaction =
           await transactionService.createTransactionFromChildOrder(
             order,
-            TransactionTypeEnum.ORDER_REFUND
+            TransactionTypeEnum.ORDER_REFUND,
+            queryRunner
           );
         await queryRunner.manager.save(Transaction, transaction);
       }
@@ -1017,7 +1020,8 @@ class OrderService extends BaseService<Order> {
           const transaction =
             await transactionService.createTransactionFromChildOrder(
               order,
-              TransactionTypeEnum.ORDER_CANCEL
+              TransactionTypeEnum.ORDER_CANCEL,
+              queryRunner
             );
           await queryRunner.manager.save(Transaction, transaction);
         }
@@ -1135,7 +1139,8 @@ class OrderService extends BaseService<Order> {
           const transaction =
             await transactionService.createTransactionFromChildOrder(
               order,
-              TransactionTypeEnum.ORDER_CANCEL
+              TransactionTypeEnum.ORDER_CANCEL,
+              queryRunner
             );
           await queryRunner.manager.save(Transaction, transaction);
         }
@@ -1784,7 +1789,7 @@ class OrderService extends BaseService<Order> {
         },
       });
       //check balance if it is NOT enough
-      if (!wallet || wallet.balance < parentOrder.totalPrice) {
+      if (!wallet || wallet.availableBalance < parentOrder.totalPrice) {
         const statusTrackings = this.updateOrderStatusBeforeCreation(
           parentOrder,
           ShippingStatusEnum.TO_PAY
@@ -1796,13 +1801,14 @@ class OrderService extends BaseService<Order> {
         const transactions = [];
         // Create transactions for child orders
         for (const childOrder of parentOrder.children) {
-          wallet.balance -= childOrder.totalPrice;
+          walletService.decreaseBalance(wallet, childOrder.totalPrice);
           await queryRunner.manager.save(Wallet, wallet);
 
           const transaction =
             await transactionService.createTransactionFromChildOrder(
               childOrder,
-              TransactionTypeEnum.ORDER_PURCHASE
+              TransactionTypeEnum.ORDER_PURCHASE,
+              queryRunner
             );
           transactions.push(transaction);
         }

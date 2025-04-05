@@ -26,7 +26,7 @@ class WalletService extends BaseService<Wallet> {
       },
     });
     if (wallet) {
-      wallet.balance += paymentLink.amountPaid;
+      walletService.increaseBalance(wallet, paymentLink.amountPaid);
     }
     await walletRepository.save(wallet);
   }
@@ -84,10 +84,7 @@ class WalletService extends BaseService<Wallet> {
     return wallet;
   }
 
-  async refundFromCancelOrder(
-    order: Order,
-    queryRunner: QueryRunner
-  ) {
+  async refundFromCancelOrder(order: Order, queryRunner: QueryRunner) {
     if (order.paymentMethod == PaymentMethodEnum.CASH) return;
     const wallet = await walletRepository.findOne({
       where: {
@@ -95,8 +92,18 @@ class WalletService extends BaseService<Wallet> {
       },
     });
     if (!wallet) throw new BadRequestError('Dont have wallet');
-    wallet.balance += order.totalPrice;
+    walletService.increaseBalance(wallet, order.totalPrice);
     await queryRunner.manager.save(wallet);
+  }
+
+  increaseBalance(wallet: Wallet, amount: number) {
+    wallet.balance += amount;
+    wallet.availableBalance -= amount;
+  }
+
+  decreaseBalance(wallet: Wallet, amount: number) {
+    wallet.balance -= amount;
+    wallet.availableBalance -= amount;
   }
 
   async getById(id: string) {
