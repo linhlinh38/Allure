@@ -4,8 +4,17 @@ import { BaseService } from "./base.service";
 import { AppDataSource } from "../dataSource";
 import { BadRequestError, EmailAlreadyExistError } from "../errors/error";
 import { encryptedPassword } from "../utils/jwt";
-import { AccountStatusEnum, FileEnum, RoleEnum } from "../utils/enum";
-import { sendRegisterAccountEmail } from "./mail.service";
+import {
+  AccountStatusEnum,
+  BookingStatusEnum,
+  FileEnum,
+  ReportStatusEnum,
+  RoleEnum,
+} from "../utils/enum";
+import {
+  sendBannedAccountEmail,
+  sendRegisterAccountEmail,
+} from "./mail.service";
 import { Address } from "../entities/address.entity";
 import { File } from "../entities/file.entity";
 import { roleService } from "./role.service";
@@ -14,6 +23,8 @@ import { StatusTracking } from "../entities/statusTracking.entity";
 import { AccountUpdateStatusType } from "../dtos/request/account.request";
 import { consultationResultRepository } from "../repositories/consultationResult.repository";
 import { productClassificationRepository } from "../repositories/productClassification.repository";
+import { bookingRepository } from "../repositories/booking.repository";
+import { reportRepository } from "../repositories/report.repository";
 const repository = AppDataSource.getRepository(Account);
 
 interface FilterOptions {
@@ -297,6 +308,17 @@ class AccountService extends BaseService<Account> {
             await queryRunner.manager.save(File, certConsultant);
           }
         }
+        if (data.thumbnailImageList && data.thumbnailImageList.length !== 0) {
+          for (const img of data.thumbnailImageList) {
+            const thumbnail: Partial<File> = {
+              account: account,
+              name: img.name ?? null,
+              fileUrl: img.fileUrl,
+              type: FileEnum.CONSULTANT_THUMBNAIL,
+            };
+            await queryRunner.manager.save(File, thumbnail);
+          }
+        }
 
         // await sendRegisterAccountEmail(account, data.url);
         break;
@@ -377,6 +399,42 @@ class AccountService extends BaseService<Account> {
     if (!consultant) {
       throw new Error("Consultant not found");
     }
+    const monthlyData = await bookingRepository
+      .createQueryBuilder("booking")
+      .select("to_char(date(booking.createdAt), 'YYYY-MM')", "month")
+      .addSelect("COUNT(booking.id)", "totalBookings")
+      .addSelect("SUM(booking.totalPrice)", "totalRevenue")
+      .leftJoin("booking.consultantService", "consultantService")
+      .leftJoin("consultantService.account", "account")
+      .where("account.id = :consultantId", { consultantId })
+      .andWhere("booking.status = :status", {
+        status: BookingStatusEnum.COMPLETED,
+      })
+      .groupBy("to_char(date(booking.createdAt), 'YYYY-MM')")
+      .orderBy("month", "ASC")
+      .getRawMany();
+
+    // Query to calculate total bookings grouped by service in each month
+    const serviceMonthlyData = await bookingRepository
+      .createQueryBuilder("booking")
+      .leftJoinAndSelect("booking.consultantService", "consultantService")
+      .leftJoinAndSelect("consultantService.account", "account")
+      .leftJoinAndSelect("consultantService.systemService", "systemService")
+      .select("to_char(date(booking.createdAt), 'YYYY-MM')", "month")
+      .addSelect("consultantService.id", "serviceId")
+      .addSelect("systemService.name", "serviceName")
+      .addSelect("COUNT(booking.id)", "totalBookings")
+      .addSelect("SUM(booking.totalPrice)", "totalRevenue")
+      .where("account.id = :consultantId", { consultantId })
+      .andWhere("booking.status = :status", {
+        status: BookingStatusEnum.COMPLETED,
+      })
+      .groupBy("to_char(date(booking.createdAt), 'YYYY-MM')")
+      .addGroupBy("consultantService.id")
+      .addGroupBy("systemService.name")
+      .orderBy("month", "ASC")
+      .addOrderBy("systemService.name", "ASC")
+      .getRawMany();
     const consultationResults = await consultationResultRepository.find({
       where: {
         booking: { consultantService: { account: { id: consultantId } } },
@@ -422,7 +480,38 @@ class AccountService extends BaseService<Account> {
         files: consultant.files,
       },
       brandRecommendations: brandPercentages,
+      totalProductSuggestions: totalSuggestions,
+      productSuggestList: productClassifications,
+      monthlyData,
+      serviceMonthlyData,
     };
+  }
+
+  async checkAllAccountsAndBanIfNecessary(): Promise<void> {
+    // Get all accounts with the role CUSTOMER
+    const customerAccounts = await this.repository.find({
+      where: { role: { role: RoleEnum.CUSTOMER } },
+      relations: ["role"],
+    });
+
+    for (const account of customerAccounts) {
+      // Count the number of approved reports for the account
+      const approvedReportsCount = await reportRepository
+        .createQueryBuilder("report")
+        .leftJoinAndSelect("report.account", "account")
+        .where("account.id = :accountId", { accountId: account.id })
+        .andWhere("report.status = :status", {
+          status: ReportStatusEnum.APPROVED,
+        })
+        .getCount();
+
+      // If the count exceeds 15, update the account's status to BANNED
+      if (approvedReportsCount > 15) {
+        account.status = AccountStatusEnum.BANNED;
+        await this.repository.save(account);
+        await sendBannedAccountEmail(account.email, account.username);
+      }
+    }
   }
 }
 

@@ -73,4 +73,9 @@ accountRouter.put(
   accountController.updateAccount
 );
 accountRouter.delete("/:id", accountController.deleteAccount);
+
+accountRouter.get(
+  "/checkBannedAccount",
+  accountController.checkAllAccountsAndBanIfNecessary
+);
 export default accountRouter;

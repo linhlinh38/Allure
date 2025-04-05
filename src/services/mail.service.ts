@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import { generateResetPasswordContent } from "../utils/email/resetPasswordContent";
 import { generateRequestCreateAccountContent } from "../utils/email/requestCreateAccountContent";
 import { generateBrandActivationTemplate } from "../utils/email/activeBrandContent";
+import { generateAccountBannedContent } from "../utils/email/accountBannedEmail";
 
 const nodemailer = require("nodemailer");
 
@@ -116,7 +117,7 @@ export async function sendConfirmActiveBrandEmail(
 ) {
   try {
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      service: "gmail",
       auth: {
         user: config.EMAIL_USERNAME,
         pass: config.EMAIL_PASSWORD,
@@ -127,13 +128,38 @@ export async function sendConfirmActiveBrandEmail(
     const mailOptions = {
       from: config.FROM_EMAIL,
       to: email,
-      subject: '[Allure Brand] Kích hoạt thương hiệu thành công',
+      subject: "[Allure Brand] Kích hoạt thương hiệu thành công",
       html: body.html,
       text: body.text,
     };
 
     await transporter.sendMail(mailOptions);
   } catch (error) {
-    console.error('Error in generateBrandActivationTemplate:', error);
+    console.error("Error in generateBrandActivationTemplate:", error);
+  }
+}
+
+export async function sendBannedAccountEmail(email: string, userName: string) {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: config.EMAIL_USERNAME,
+        pass: config.EMAIL_PASSWORD,
+      },
+    });
+    const body = generateAccountBannedContent(userName);
+
+    const mailOptions = {
+      from: config.FROM_EMAIL,
+      to: email,
+      subject: "[Allure Brand] Vô hiệu hóa account",
+      html: body.html,
+      text: body.text,
+    };
+
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error("Error in sendBannedAccountEmail:", error);
   }
 }

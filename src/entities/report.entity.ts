@@ -1,55 +1,69 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne } from 'typeorm';
-import { BaseEntity } from './base.entity';
-import { ReportStatusEnum, ReportTypeEnum } from '../utils/enum';
-import { Account } from './account.entity';
-import { Order } from './order.entity';
-import { Booking } from './booking.entity';
-import { File } from './file.entity';
-import { Feedback } from './feedback.entity';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  OneToOne,
+} from "typeorm";
+import { BaseEntity } from "./base.entity";
+import { ReportStatusEnum, ReportTypeEnum } from "../utils/enum";
+import { Account } from "./account.entity";
+import { Order } from "./order.entity";
+import { Booking } from "./booking.entity";
+import { File } from "./file.entity";
+import { Feedback } from "./feedback.entity";
 
-@Entity('reports')
+@Entity("reports")
 export class Report extends BaseEntity {
   @Column({
-    type: 'enum',
+    type: "enum",
     enum: ReportTypeEnum,
   })
   type: ReportTypeEnum;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: "varchar" })
   reason: string;
 
-  @OneToMany(() => File, (file) => file.report, { nullable: true, cascade: true })
+  @OneToMany(() => File, (file) => file.report, {
+    nullable: true,
+    cascade: true,
+  })
   files: File[];
 
   @ManyToOne(() => Account, (assignee) => assignee.assignedReports, {
     nullable: true,
   })
-  @JoinColumn({ name: 'assignee_id' })
+  @JoinColumn({ name: "assignee_id" })
   assignee: Account;
 
   @ManyToOne(() => Account, (reporter) => reporter.reportedReports)
-  @JoinColumn({ name: 'reporter_id' })
+  @JoinColumn({ name: "reporter_id" })
   reporter: Account;
 
-  @Column({ type: 'varchar', name: 'result_note', nullable: true })
+  @Column({ type: "varchar", name: "result_note", nullable: true })
   resultNote: string;
 
   @Column({
-    type: 'enum',
+    type: "enum",
     enum: ReportStatusEnum,
     default: ReportStatusEnum.PENDING,
   })
   status: ReportStatusEnum;
 
   @OneToOne(() => Order, (order) => order.report, { nullable: true })
-  @JoinColumn({ name: 'order_id' })
+  @JoinColumn({ name: "order_id" })
   order: Order;
 
   @OneToOne(() => Booking, (booking) => booking.report, { nullable: true })
-  @JoinColumn({ name: 'booking_id' })
+  @JoinColumn({ name: "booking_id" })
   booking: Booking;
 
   @OneToOne(() => Feedback, (feedback) => feedback.report, { nullable: true })
-  @JoinColumn({ name: 'feedback_id' })
+  @JoinColumn({ name: "feedback_id" })
   feedback: Feedback;
+
+  @ManyToOne(() => Account, (account) => account.reports, { nullable: true })
+  @JoinColumn({ name: "account_id" })
+  account: Account;
 }
