@@ -205,6 +205,26 @@ class TransactionService extends BaseService<Transaction> {
     }
   }
 
+  async filterForAdmin(
+    filterTransactionRequest: FilterTransactionRequest,
+    paging: Paging
+  ) {
+    const limit = paging.limit;
+    const offset = (paging.page - 1) * paging.limit;
+    const total = await this.getTotalTransactionCount(filterTransactionRequest);
+
+    const totalPages = Math.ceil(total / paging.limit);
+    const query = this.getTransactionsQuery(filterTransactionRequest)
+      .take(limit)
+      .skip(offset);
+
+    return {
+      total,
+      totalPages,
+      items: await query.getMany(),
+    };
+  }
+
   async filter(
     filterTransactionRequest: FilterTransactionRequest,
     loginUser: string,
@@ -213,12 +233,12 @@ class TransactionService extends BaseService<Transaction> {
     const limit = paging.limit;
     const offset = (paging.page - 1) * paging.limit;
     const total = await this.getTotalTransactionCount(
-      loginUser,
-      filterTransactionRequest
+      filterTransactionRequest,
+      loginUser
     );
 
     const totalPages = Math.ceil(total / paging.limit);
-    const query = this.getTransactionsQuery(loginUser, filterTransactionRequest)
+    const query = this.getTransactionsQuery(filterTransactionRequest, loginUser)
       .take(limit)
       .skip(offset);
 
@@ -230,8 +250,8 @@ class TransactionService extends BaseService<Transaction> {
   }
 
   getTransactionsQuery(
-    loginUser: string,
-    filterTransactionRequest: FilterTransactionRequest
+    filterTransactionRequest: FilterTransactionRequest,
+    loginUser?: string
   ) {
     const { types, startDate, endDate } = filterTransactionRequest;
 
@@ -240,10 +260,12 @@ class TransactionService extends BaseService<Transaction> {
       .leftJoinAndSelect('transaction.buyer', 'buyer')
       .leftJoinAndSelect('transaction.brand', 'brand')
       .leftJoinAndSelect('transaction.order', 'order')
-      .where('buyer.id = :loginUser', { loginUser })
       .orderBy('transaction.createdAt', 'DESC');
     orderService.queryBuilderForOrder(query);
 
+    if (loginUser) {
+      query.where('buyer.id = :loginUser', { loginUser });
+    }
     if (types && types.length > 0)
       query.andWhere('transaction.type IN (:...types)', { types });
     if (startDate && endDate)
@@ -255,15 +277,17 @@ class TransactionService extends BaseService<Transaction> {
   }
 
   async getTotalTransactionCount(
-    loginUser: string,
-    filterTransactionRequest: FilterTransactionRequest
+    filterTransactionRequest: FilterTransactionRequest,
+    loginUser?: string
   ) {
     const { types, startDate, endDate } = filterTransactionRequest;
     const query = transactionRepository
       .createQueryBuilder('transaction')
       .select('COUNT(*)', 'total')
-      .innerJoin('transaction.buyer', 'buyer')
-      .where('buyer.id = :loginUser', { loginUser });
+      .innerJoin('transaction.buyer', 'buyer');
+    if (loginUser) {
+      query.where('buyer.id = :loginUser', { loginUser });
+    }
     if (types && types.length > 0)
       query.andWhere('transaction.type IN (:...types)', { types });
     if (startDate && endDate)
@@ -414,7 +438,11 @@ class TransactionService extends BaseService<Transaction> {
     return transaction;
   }
 
-  createTransactionFromDeposit(balance: number, amount: number, loginUser: string) {
+  createTransactionFromDeposit(
+    balance: number,
+    amount: number,
+    loginUser: string
+  ) {
     const transaction = new Transaction();
     transaction.amount = amount;
     transaction.buyer = { id: loginUser } as Account;
