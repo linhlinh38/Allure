@@ -56,15 +56,23 @@ export class Brand extends BaseEntity {
   address: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 100 })
+  @Column({
+    type: "varchar",
+    length: 100,
+    name: "business_tax_code",
+  })
   businessTaxCode: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 100 })
+  @Column({
+    type: "varchar",
+    length: 100,
+    name: "business_registration_code",
+  })
   businessRegistrationCode: string;
 
   @Expose()
-  @Column({ type: "date" })
+  @Column({ type: "date", name: "establishment_date" })
   establishmentDate: Date;
 
   @Expose()
@@ -80,7 +88,11 @@ export class Brand extends BaseEntity {
   ward: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 255 })
+  @Column({
+    type: "varchar",
+    length: 255,
+    name: "business_registration_address",
+  })
   businessRegistrationAddress: string;
 
   @Column({ type: "integer", name: "current_update_profile_time", default: 0 })
