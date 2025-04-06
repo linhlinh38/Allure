@@ -148,7 +148,7 @@ export class WithdrawalRequestService {
           const transaction = transactionService.createTransactionFromWithDraw(
             withdrawalRequest.amount,
             wallet.balance,
-            loginUser
+            withdrawalRequest.account.id
           );
           await queryRunner.manager.save(transaction);
         } else if (request.status === WithdrawalStatusEnum.REJECTED) {
