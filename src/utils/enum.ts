@@ -18,7 +18,7 @@ export enum StatusEnum {
   ACTIVE = "ACTIVE",
   INACTIVE = "INACTIVE",
   BANNED = "BANNED",
-}
+} 
 
 export enum AccountStatusEnum {
   PENDING = "PENDING",
@@ -206,7 +206,7 @@ export enum TransactionTypeEnum {
   BOOKING_PURCHASE = 'BOOKING_PURCHASE', // Đặt booking
   DEPOSIT = 'DEPOSIT', // Nạp tiền
   WITHDRAW = 'WITHDRAW', // Rút tiền
-  ORDER_REFUND = ' ORDER_REFUND', // Hoàn tiền sản phẩm (đã nhận hàng)
+  ORDER_REFUND = 'ORDER_REFUND', // Hoàn tiền sản phẩm (đã nhận hàng)
   BOOKING_REFUND = 'BOOKING_REFUND', // Hoàn tiền booking (đã sử dụng)
   ORDER_CANCEL = 'ORDER_CANCEL', // Hủy đơn sản phẩm (chưa nhận hàng)
   BOOKING_CANCEL = 'BOOKING_CANCEL',
