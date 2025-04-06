@@ -534,7 +534,7 @@ class TransactionService extends BaseService<Transaction> {
       };
 
     return {
-      orderQuantityCompleted: result.order_quantity,
+      orderQuantityCompleted: parseInt(result.order_quantity),
       total: result.total,
       subTotal: result.sub_total,
       discount: result.discount,
@@ -548,6 +548,7 @@ class TransactionService extends BaseService<Transaction> {
       .createQueryBuilder('o')
       .innerJoin('o.account', 'a')
       .select([
+        'COALESCE(COUNT(o.id), 0) AS order_quantity',
         'COALESCE(SUM(o.totalPrice), 0) AS total',
         'COALESCE(SUM(o."subTotal"), 0) AS sub_total',
         'COALESCE(SUM(o."subTotal"- o.totalPrice), 0) AS discount',
@@ -578,11 +579,13 @@ class TransactionService extends BaseService<Transaction> {
     const result = await queryBuilder.getRawOne();
     if (!result)
       return {
+        orderQuantityCompleted: 0,
         total: 0,
         subTotal: 0,
         discount: 0,
       };
     return {
+      orderQuantityCompleted: parseInt(result.order_quantity),
       total: result.total,
       subTotal: result.sub_total,
       discount: result.discount,
