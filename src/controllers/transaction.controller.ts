@@ -181,7 +181,7 @@ export default class TransactionController {
       );
       return createNormalResponse(
         res,
-        'Can apply voucher',
+        'Statistic successfully',
         await transactionService.getBrandRevenueStatistics(
           getBrandRevenueStatisticsRequest,
           req.params.brandId
@@ -206,7 +206,7 @@ export default class TransactionController {
       );
       return createNormalResponse(
         res,
-        'Can apply voucher',
+        'Statistic successfully',
         await transactionService.getUserSpendingStatistics(
           getUserSpendingStatisticsRequest,
           req.loginUser
