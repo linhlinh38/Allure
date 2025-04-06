@@ -11,15 +11,26 @@ import { transactionService } from '../services/transaction.service';
 import { Paging } from '../dtos/other/paging.dto';
 
 export default class TransactionController {
+  static async getFinancialSummary(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get financial summary successfully',
+        await transactionService.getFinancialSummary(req.loginUser)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async pay(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const payRequest = plainToInstance(
-        PayRequest,
-        req.body,
-        {
-          excludeExtraneousValues: true,
-        }
-      );
+      const payRequest = plainToInstance(PayRequest, req.body, {
+        excludeExtraneousValues: true,
+      });
       return createNormalResponse(
         res,
         'Pay successfully',
@@ -35,6 +46,95 @@ export default class TransactionController {
         res,
         'Deposit successfully',
         await transactionService.deposit(req.body.orderId, req.loginUser)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async filterForConsultant(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const paging = {
+        page: Number(req.query.page) ? Number(req.query.page) : 1,
+        limit: Number(req.query.limit) ? Number(req.query.limit) : 10,
+      } as Paging;
+      const filterTransactionRequest = plainToInstance(
+        FilterTransactionRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Filter transactions successfully',
+        await transactionService.filterForConsultant(
+          filterTransactionRequest,
+          paging,
+          req.loginUser
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async filterForBrand(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const paging = {
+        page: Number(req.query.page) ? Number(req.query.page) : 1,
+        limit: Number(req.query.limit) ? Number(req.query.limit) : 10,
+      } as Paging;
+      const filterTransactionRequest = plainToInstance(
+        FilterTransactionRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Filter transactions successfully',
+        await transactionService.filterForBrand(
+          filterTransactionRequest,
+          paging,
+          req.params.brandId
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async filterForAdmin(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const paging = {
+        page: Number(req.query.page) ? Number(req.query.page) : 1,
+        limit: Number(req.query.limit) ? Number(req.query.limit) : 10,
+      } as Paging;
+      const filterTransactionRequest = plainToInstance(
+        FilterTransactionRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Filter transactions successfully',
+        await transactionService.filterForAdmin(
+          filterTransactionRequest,
+          paging
+        )
       );
     } catch (err) {
       next(err);
@@ -81,7 +181,7 @@ export default class TransactionController {
       );
       return createNormalResponse(
         res,
-        'Can apply voucher',
+        'Statistic successfully',
         await transactionService.getBrandRevenueStatistics(
           getBrandRevenueStatisticsRequest,
           req.params.brandId
@@ -106,7 +206,7 @@ export default class TransactionController {
       );
       return createNormalResponse(
         res,
-        'Can apply voucher',
+        'Statistic successfully',
         await transactionService.getUserSpendingStatistics(
           getUserSpendingStatisticsRequest,
           req.loginUser

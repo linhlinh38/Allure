@@ -49,6 +49,12 @@ export class BankAccountService {
       throw new BadRequestError('Bank account not found');
     }
 
+    if(!request.isDefault) {
+      if(bankAccount.isDefault) {
+        throw new BadRequestError('Cannot unselect default bank account');
+      }
+    }
+
     if (request.isDefault) {
       // Remove default status from other bank accounts
       await bankAccountRepository.update(

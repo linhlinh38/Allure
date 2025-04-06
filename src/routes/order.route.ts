@@ -5,6 +5,7 @@ import {
   CancelOrderSchema,
   CancelOrderStatusSchema,
   GetMyRequestsSchema,
+  OrderFilterRequestSchema,
   OrderNormalCreateSchema,
   RequestComlaintSchema,
   RequestRefundSchema,
@@ -113,6 +114,11 @@ orderRouter.post(
   // Author(['ADMIN']),
   validate(GetMyRequestsSchema),
   OrderController.getMyRequests
+);
+orderRouter.post(
+  '/filter',
+  validate(OrderFilterRequestSchema),
+  OrderController.filter
 );
 orderRouter.post('/create-pre-order', OrderController.createPreOrder);
 orderRouter.post('/create-group-order', OrderController.createGroupOrder);

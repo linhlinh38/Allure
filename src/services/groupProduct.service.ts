@@ -322,6 +322,8 @@ class GroupProductService extends BaseService<GroupProduct> {
     const queryBuilder = repository
       .createQueryBuilder('groupProduct')
       .leftJoinAndSelect('groupProduct.products', 'products')
+      .leftJoinAndSelect('groupProduct.criterias', 'criterias')
+      .leftJoinAndSelect('criterias.voucher', 'voucher')
       .leftJoinAndSelect('groupProduct.brand', 'brand');
 
     // Apply filters

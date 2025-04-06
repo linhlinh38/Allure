@@ -90,7 +90,7 @@ const approveRefundRequestQueueWorker = new Worker(
               title: "Yêu cầu hoàn tiền đã được chấp nhận",
               body: `Đơn hàng #${order.id} của bạn đã được chấp nhận hoàn tiền`,
               data: {
-                type: NotificationTypeEnum.REFUND_APPROVED,
+                type: NotificationTypeEnum.UPDATE_ORDER_STATUS,
                 orderId: order.id,
               },
               accountIds: [order.account.id],

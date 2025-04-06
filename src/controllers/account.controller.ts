@@ -194,6 +194,7 @@ async function verifyAccount(
       const newWallet = new Wallet();
       newWallet.owner = { id: req.params.id } as Account;
       newWallet.balance = 0;
+      newWallet.availableBalance = 0;
       await walletRepository.save(newWallet);
     }
 
@@ -358,6 +359,19 @@ async function calculateBrandRecommendationPercentage(
   }
 }
 
+async function checkAllAccountsAndBanIfNecessary(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const account = await accountService.checkAllAccountsAndBanIfNecessary();
+    return res.status(200).send({ message: "check success", data: account });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export const accountController = {
   getAllAccount,
   getAccountBy,
@@ -375,4 +389,5 @@ export const accountController = {
   filterAccounts,
   resendVerifyEmail,
   calculateBrandRecommendationPercentage,
+  checkAllAccountsAndBanIfNecessary,
 };

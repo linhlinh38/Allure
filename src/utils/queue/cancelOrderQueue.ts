@@ -79,7 +79,7 @@ const cancelOrderQueueWorker = new Worker(
                 title: "Đơn hàng đã bị hủy",
                 body: `Đơn hàng #${parentOrder.id} của bạn đã bị hủy`,
                 data: {
-                  type: NotificationTypeEnum.ORDER_CANCELLED,
+                  type: NotificationTypeEnum.UPDATE_ORDER_STATUS,
                   orderId: parentOrder.id,
                 },
                 accountIds: [parentOrder.account.id],

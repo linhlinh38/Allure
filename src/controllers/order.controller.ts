@@ -13,11 +13,39 @@ import {
   MakeDicisionComplaintRequest,
   SearchOrderRequest,
   GetMyRequestsRequest,
+  OrderFilterRequest,
 } from '../dtos/request/order.request';
 import { AuthRequest } from '../middleware/authentication';
 import { ActionReceivedEnum } from '../utils/enum';
+import { Paging } from '../dtos/other/paging.dto';
 
 export default class OrderController {
+  static async filter(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const paging = {
+        page: Number(req.query.page) ? Number(req.query.page) : 1,
+        limit: Number(req.query.limit) ? Number(req.query.limit) : 10,
+      } as Paging;
+      const orderFilterRequest = plainToInstance(
+        OrderFilterRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Filter orders success',
+        await orderService.filter(
+          orderFilterRequest,
+          paging,
+          req.loginUser
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async getMyRequests(
     req: AuthRequest,
     res: Response,
@@ -49,7 +77,8 @@ export default class OrderController {
     try {
       const isReceived = await orderService.takeReceivedAction(
         req.body.action as ActionReceivedEnum,
-        req.params.orderId
+        req.params.orderId,
+        req.loginUser
       );
       return createNormalResponse(
         res,

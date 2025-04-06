@@ -6,6 +6,7 @@ import { Brand } from "./brand.entity";
 import { Product } from "./product.entity";
 import { Report } from "./report.entity";
 import { OrderRequest } from "./orderRequest.entity";
+import { WithdrawalRequest } from "./withdrawalRequest.entity";
 
 @Entity('files')
 export class File extends BaseEntity {
@@ -52,4 +53,10 @@ export class File extends BaseEntity {
   })
   @JoinColumn({ name: 'order_request_id' })
   orderRequest: OrderRequest;
+
+  @ManyToOne(() => WithdrawalRequest, (withdrawalRequest) => withdrawalRequest.evidences, {
+    nullable: true,
+  })
+  @JoinColumn({ name: 'withdrawal_request_id' })
+  withdrawalRequest: WithdrawalRequest;
 }

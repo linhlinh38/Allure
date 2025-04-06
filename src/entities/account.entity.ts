@@ -33,10 +33,10 @@ import { WithdrawalRequest } from "./withdrawalRequest.entity";
 
 @Entity("accounts")
 export class Account extends BaseEntity {
-  @Column({ type: "varchar", length: 100, nullable: true })
+  @Column({ type: "varchar", length: 100, nullable: true, name: "first_name" })
   firstName: string;
 
-  @Column({ type: "varchar", length: 100, nullable: true })
+  @Column({ type: "varchar", length: 100, nullable: true, name: "last_name" })
   lastName: string;
 
   @Column({ type: "varchar", length: 100, unique: true, nullable: true })
@@ -45,13 +45,13 @@ export class Account extends BaseEntity {
   @Column({ type: "varchar", nullable: true })
   avatar?: string;
 
-  @Column({ type: "varchar", nullable: true })
+  @Column({ type: "varchar", nullable: true, name: "introduce_video" })
   introduceVideo?: string;
 
   @Column({ type: "varchar", nullable: true })
   description?: string;
 
-  @Column({ type: "varchar", nullable: true })
+  @Column({ type: "varchar", nullable: true, name: "major_title" })
   majorTitle?: string;
 
   @Column({ type: "varchar", length: 255, nullable: false })
@@ -165,4 +165,7 @@ export class Account extends BaseEntity {
     (withdrawalRequest) => withdrawalRequest.account
   )
   withdrawalRequests: WithdrawalRequest[];
+
+  @OneToMany(() => Report, (report) => report.account)
+  reports: Report[];
 }
