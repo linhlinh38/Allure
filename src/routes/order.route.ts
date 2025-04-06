@@ -13,6 +13,7 @@ import {
   SearchOrderSchema,
   TakeReceivedActionSchema,
   UpdateOrderStatusSchema,
+  OrderRequestFilterSchema,
 } from '../dtos/request/order.request';
 import validate from '../utils/validate';
 
@@ -108,7 +109,8 @@ orderRouter.post(
   '/take-received-action/:orderId',
   validate(TakeReceivedActionSchema),
   // Author(['ADMIN']),
-  OrderController.takeReceivedAction);
+  OrderController.takeReceivedAction
+);
 orderRouter.post(
   '/get-my-requests',
   // Author(['ADMIN']),
@@ -122,4 +124,9 @@ orderRouter.post(
 );
 orderRouter.post('/create-pre-order', OrderController.createPreOrder);
 orderRouter.post('/create-group-order', OrderController.createGroupOrder);
+orderRouter.post(
+  '/filter-requests',
+  validate(OrderRequestFilterSchema),
+  OrderController.filterOrderRequests
+);
 export default orderRouter;
