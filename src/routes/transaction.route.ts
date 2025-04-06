@@ -38,4 +38,9 @@ transactionRouter.post(
   TransactionController.getBrandRevenueStatistics
 );
 
+transactionRouter.get(
+  '/get-financial-summary',
+  TransactionController.getFinancialSummary
+);
+
 export default transactionRouter;

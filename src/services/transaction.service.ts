@@ -35,6 +35,41 @@ import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
 
 const repository = AppDataSource.getRepository(Transaction);
 class TransactionService extends BaseService<Transaction> {
+  async getFinancialSummary(loginUser: string) {
+    const totalAmountFromWithDrawal =
+      (
+        await transactionRepository
+          .createQueryBuilder('transaction')
+          .select('SUM(transaction.amount)', 'totalAmountFromWithDrawal')
+          .where('transaction.type = :type', {
+            type: TransactionTypeEnum.WITHDRAW,
+          })
+          .andWhere('transaction.buyer = :loginUser', { loginUser })
+          .getRawOne()
+      )?.totalAmountFromWithDrawal || 0;
+    const totalAmountFromDeposit =
+      (
+        await transactionRepository
+          .createQueryBuilder('transaction')
+          .select('SUM(transaction.amount)', 'totalAmountFromDeposit')
+          .where('transaction.buyer = :loginUser', { loginUser })
+          .andWhere('transaction.type = :type', {
+            type: TransactionTypeEnum.DEPOSIT,
+          })
+          .getRawOne()
+      )?.totalAmountFromDeposit || 0;
+    const balance =
+      (
+        await walletRepository.findOne({
+          where: { owner: { id: loginUser } },
+        })
+      )?.balance || 0;
+    return {
+      totalAmountFromDeposit,
+      totalAmountFromWithDrawal,
+      balance,
+    };
+  }
   async pay(payRequest: PayRequest) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
@@ -589,7 +624,10 @@ class TransactionService extends BaseService<Transaction> {
     await queryRunner.manager.save(transaction);
   }
 
-  async transferToConsultantWallet(bookingId: string, queryRunner: QueryRunner) {
+  async transferToConsultantWallet(
+    bookingId: string,
+    queryRunner: QueryRunner
+  ) {
     const booking = await queryRunner.manager.findOne(Booking, {
       where: {
         id: bookingId,
