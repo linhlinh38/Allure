@@ -194,6 +194,7 @@ async function verifyAccount(
       const newWallet = new Wallet();
       newWallet.owner = { id: req.params.id } as Account;
       newWallet.balance = 0;
+      newWallet.availableBalance = 0;
       await walletRepository.save(newWallet);
     }
 

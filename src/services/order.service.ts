@@ -41,6 +41,7 @@ import {
   OrderRequestTypeEnum,
   ActionReceivedEnum,
   TransactionTypeEnum,
+  NotificationTypeEnum,
 } from '../utils/enum';
 import { validate as isUUID } from 'uuid';
 import { addressRepository } from '../repositories/address.repository';
@@ -65,6 +66,10 @@ import { OrderRequest } from '../entities/orderRequest.entity';
 import { File } from '../entities/file.entity';
 import { addUpdateRefundedStatusOrderToQueue } from '../utils/queue/updateRefundedStatusOrderQueue';
 import { addUpdateBrandReceiveStatusOrderToQueue } from '../utils/queue/updateBrandReceiveStatusOrderQueue';
+import { fcmTokenRepository } from '../repositories/fcmToken.repository';
+import { FCMService } from './FCM.service';
+import Logging from '../utils/Logging';
+import { addtransferToBrandWalletToQueue } from '../utils/queue/transferToBrandWalletQueue';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
@@ -102,7 +107,7 @@ class OrderService extends BaseService<Order> {
     return requests;
   }
 
-  async takeReceivedAction(action: ActionReceivedEnum, orderId: string) {
+  async takeReceivedAction(action: ActionReceivedEnum, orderId: string, loginUser: string) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -131,13 +136,14 @@ class OrderService extends BaseService<Order> {
           //create status tracking
           orderService.createStatusTracking(
             order,
-            order.account.id,
+            loginUser,
             ShippingStatusEnum.BRAND_RECEIVED,
             'Auto update',
             queryRunner
           ),
         ]);
         isReceived = true;
+        await addUpdateRefundedStatusOrderToQueue(orderId);
       } else {
         const masterConfig = await retrieveMasterConfig();
         order.expiredReceivedTime = new Date(
@@ -248,7 +254,7 @@ class OrderService extends BaseService<Order> {
                 owner: { id: order.account.id },
               },
             });
-            wallet.balance += order.totalPrice;
+            walletService.increaseBalance(wallet, order.totalPrice);
             await queryRunner.manager.save(wallet);
           })(),
         ]);
@@ -257,7 +263,8 @@ class OrderService extends BaseService<Order> {
         const transaction =
           await transactionService.createTransactionFromChildOrder(
             complaintRequest.order,
-            TransactionTypeEnum.ORDER_REFUND
+            TransactionTypeEnum.ORDER_REFUND,
+            queryRunner
           );
         await queryRunner.manager.save(Transaction, transaction);
 
@@ -292,6 +299,7 @@ class OrderService extends BaseService<Order> {
           ),
         ]);
 
+        await transactionService.transferToBrandWallet(order.id, queryRunner);
         isApproved = true;
       }
       await queryRunner.commitTransaction();
@@ -775,7 +783,8 @@ class OrderService extends BaseService<Order> {
           const transaction =
             await transactionService.createTransactionFromChildOrder(
               order,
-              TransactionTypeEnum.ORDER_CANCEL
+              TransactionTypeEnum.ORDER_CANCEL,
+              queryRunner
             );
           await queryRunner.manager.save(Transaction, transaction);
         }
@@ -918,15 +927,7 @@ class OrderService extends BaseService<Order> {
       ) {
       } else if (nextShippingStatusMap[order.status] != status)
         throw new BadRequestError('Can not update this status');
-      //update transaction if order status is WAIT_FOR_CONFIRMATION and payment method is not Cash
-      // if (
-      //   status == ShippingStatusEnum.WAIT_FOR_CONFIRMATION &&
-      //   order.paymentMethod != PaymentMethodEnum.CASH
-      // ) {
-      //   const transaction =
-      //     await transactionService.createTransactionFromChildOrder(order, TransactionTypeEnum.ORDER_PURCHASE);
-      //   await queryRunner.manager.save(Transaction, transaction);
-      // }
+      
       await Promise.all([
         //update order status and save
         (async () => {
@@ -959,15 +960,45 @@ class OrderService extends BaseService<Order> {
           },
         });
         if (!wallet) throw new BadRequestError(`Wallet not found`);
-        wallet.balance += order.totalPrice;
+        walletService.increaseBalance(wallet, order.totalPrice);
         await queryRunner.manager.save(wallet);
 
         const transaction =
           await transactionService.createTransactionFromChildOrder(
             order,
-            TransactionTypeEnum.ORDER_REFUND
+            TransactionTypeEnum.ORDER_REFUND,
+            queryRunner
           );
         await queryRunner.manager.save(Transaction, transaction);
+      } else if (status == ShippingStatusEnum.DELIVERED) {
+        await addtransferToBrandWalletToQueue(order.id);
+      }
+      const fcmTokens = await fcmTokenRepository.find({
+        where: {
+          account: {
+            id: order.account.id,
+          },
+        },
+      });
+      // Gửi thông báo cho người dùng
+      if (fcmTokens && fcmTokens.length > 0) {
+        try {
+          await FCMService.sendMulticastNotification(
+            fcmTokens.map((token) => token.token),
+            {
+              title: 'Đơn hàng đã được cập nhật trạng thái: ' + status,
+              body: `Đơn hàng #${order.id} của bạn đã được cập nhật trạng thái: ${status}`,
+              data: {
+                type: NotificationTypeEnum.UPDATE_ORDER_STATUS,
+                orderId: order.id,
+              },
+              accountIds: [order.account.id],
+              createdAt: new Date(),
+            }
+          );
+        } catch (err) {
+          Logging.error('Failed to send FCM notification:' + err);
+        }
       }
       await queryRunner.commitTransaction();
     } catch (error) {
@@ -1017,7 +1048,8 @@ class OrderService extends BaseService<Order> {
           const transaction =
             await transactionService.createTransactionFromChildOrder(
               order,
-              TransactionTypeEnum.ORDER_CANCEL
+              TransactionTypeEnum.ORDER_CANCEL,
+              queryRunner
             );
           await queryRunner.manager.save(Transaction, transaction);
         }
@@ -1135,7 +1167,8 @@ class OrderService extends BaseService<Order> {
           const transaction =
             await transactionService.createTransactionFromChildOrder(
               order,
-              TransactionTypeEnum.ORDER_CANCEL
+              TransactionTypeEnum.ORDER_CANCEL,
+              queryRunner
             );
           await queryRunner.manager.save(Transaction, transaction);
         }
@@ -1784,7 +1817,7 @@ class OrderService extends BaseService<Order> {
         },
       });
       //check balance if it is NOT enough
-      if (!wallet || wallet.balance < parentOrder.totalPrice) {
+      if (!wallet || wallet.availableBalance < parentOrder.totalPrice) {
         const statusTrackings = this.updateOrderStatusBeforeCreation(
           parentOrder,
           ShippingStatusEnum.TO_PAY
@@ -1796,13 +1829,14 @@ class OrderService extends BaseService<Order> {
         const transactions = [];
         // Create transactions for child orders
         for (const childOrder of parentOrder.children) {
-          wallet.balance -= childOrder.totalPrice;
+          walletService.decreaseBalance(wallet, childOrder.totalPrice);
           await queryRunner.manager.save(Wallet, wallet);
 
           const transaction =
             await transactionService.createTransactionFromChildOrder(
               childOrder,
-              TransactionTypeEnum.ORDER_PURCHASE
+              TransactionTypeEnum.ORDER_PURCHASE,
+              queryRunner
             );
           transactions.push(transaction);
         }

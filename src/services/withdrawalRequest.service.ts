@@ -10,6 +10,9 @@ import Logging from '../utils/Logging';
 import { bankAccountRepository } from '../repositories/bankAccount.repository';
 import { Account } from '../entities/account.entity';
 import { nextWithDrawStatusMap } from '../utils/queue/withDrawStatusMap';
+import { FilterWithdrawalRequest } from '../dtos/request/withdrawalRequest.request';
+import { transactionService } from './transaction.service';
+import { File } from '../entities/file.entity';
 
 export class WithdrawalRequestService {
   static async create(accountId: string, request: CreateWithdrawalRequest) {
@@ -104,28 +107,73 @@ export class WithdrawalRequestService {
           )
         ) {
           throw new BadRequestError(
-            'Only allowed status: ' +
+            'When current status is Pending, only allowed status: ' +
               nextWithDrawStatusMap[withdrawalRequest.status].join(', ')
           );
         }
+        if (request.status === WithdrawalStatusEnum.REJECTED) {
+          if (!request.rejectedReason) {
+            throw new BadRequestError('Rejected reason is required');
+          }
+          withdrawalRequest.rejectedReason = request.rejectedReason;
+          withdrawalRequest.processedBy = { id: loginUser } as Account;
+
+          wallet.availableBalance += withdrawalRequest.amount;
+        } else if (request.status === WithdrawalStatusEnum.APPROVED) {
+          withdrawalRequest.processedBy = { id: loginUser } as Account;
+        }
+      } else if (withdrawalRequest.status === WithdrawalStatusEnum.APPROVED) {
+        if (
+          !nextWithDrawStatusMap[withdrawalRequest.status].includes(
+            request.status
+          )
+        ) {
+          throw new BadRequestError(
+            'When current status is Approved, only allowed status: ' +
+              nextWithDrawStatusMap[withdrawalRequest.status].join(', ')
+          );
+        }
+        if (request.status === WithdrawalStatusEnum.COMPLETED) {
+          if (!request.evidences || request.evidences.length == 0) {
+            throw new BadRequestError('Evidences are required');
+          }
+          withdrawalRequest.processedBy = { id: loginUser } as Account;
+          withdrawalRequest.evidences = request.evidences.map((evidence) => {
+            const file = new File();
+            file.fileUrl = evidence;
+            return file;
+          });
+          wallet.balance -= withdrawalRequest.amount;
+
+          const transaction = transactionService.createTransactionFromWithDraw(
+            withdrawalRequest.amount,
+            wallet.balance,
+            withdrawalRequest.account.id
+          );
+          await queryRunner.manager.save(transaction);
+        } else if (request.status === WithdrawalStatusEnum.REJECTED) {
+          if (!request.rejectedReason) {
+            throw new BadRequestError('Rejected reason is required');
+          }
+          withdrawalRequest.rejectedReason = request.rejectedReason;
+          withdrawalRequest.processedBy = { id: loginUser } as Account;
+
+          wallet.availableBalance += withdrawalRequest.amount;
+        }
+      } else if (
+        [
+          WithdrawalStatusEnum.COMPLETED,
+          WithdrawalStatusEnum.REJECTED,
+          WithdrawalStatusEnum.CANCELLED,
+        ].includes(request.status)
+      ) {
+        throw new BadRequestError(
+          `Can not update anymore due to current status ${withdrawalRequest.status}`
+        );
       }
-
-      // Update status and processor
-      withdrawalRequest.status = request.status as WithdrawalStatusEnum;
-      withdrawalRequest.processedBy = { id: loginUser } as Account;
-
-      if (request.status === WithdrawalStatusEnum.CANCELLED) {
-        wallet.availableBalance += withdrawalRequest.amount;
-        withdrawalRequest.rejectedReason = request.rejectedReason;
-      }
-
-      if (request.status === WithdrawalStatusEnum.COMPLETED) {
-        wallet.balance -= withdrawalRequest.amount;
-      }
-
-      await queryRunner.manager.save(wallet);
+      withdrawalRequest.status = request.status;
       await queryRunner.manager.save(withdrawalRequest);
-
+      await queryRunner.manager.save(wallet);
       await queryRunner.commitTransaction();
       Logging.info(`Withdrawal request ${id} updated to ${request.status}`);
       return withdrawalRequest;
@@ -137,20 +185,55 @@ export class WithdrawalRequestService {
     }
   }
 
-  static async getWithdrawalRequests(accountId: string) {
-    const withdrawalRequests = await withdrawalRequestRepository.find({
-      where: { account: { id: accountId } },
-      relations: ['processedBy'],
-      order: { createdAt: 'DESC' },
-    });
+  static async getWithdrawalRequests(
+    accountId: string,
+    filter?: {
+      statuses?: WithdrawalStatusEnum[];
+      processedById?: string;
+    },
+    page: number = 1,
+    limit: number = 10
+  ) {
+    const queryBuilder = withdrawalRequestRepository
+      .createQueryBuilder('withdrawalRequest')
+      .leftJoinAndSelect('withdrawalRequest.processedBy', 'processedBy')
+      .leftJoinAndSelect('withdrawalRequest.evidences', 'evidence')
+      .where('withdrawalRequest.account.id = :accountId', { accountId });
 
-    return withdrawalRequests;
+    if (filter?.statuses && filter.statuses.length > 0) {
+      queryBuilder.andWhere('withdrawalRequest.status IN (:...statuses)', {
+        statuses: filter.statuses,
+      });
+    }
+
+    if (filter?.processedById) {
+      queryBuilder.andWhere('processedBy.id = :processedById', {
+        processedById: filter.processedById,
+      });
+    }
+
+    const [items, total] = await queryBuilder
+      .orderBy('withdrawalRequest.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      total,
+      totalPages,
+      items,
+    };
   }
 
-  static async getWithdrawalRequest(id: string, accountId: string) {
+  static async getById(id: string, accountId: string) {
     const withdrawalRequest = await withdrawalRequestRepository.findOne({
       where: { id, account: { id: accountId } },
-      relations: ['processedBy'],
+      relations: {
+        processedBy: { role: true },
+        evidences: true,
+      },
     });
 
     if (!withdrawalRequest) {
@@ -160,12 +243,47 @@ export class WithdrawalRequestService {
     return withdrawalRequest;
   }
 
-  static async getAllWithdrawalRequests() {
-    const withdrawalRequests = await withdrawalRequestRepository.find({
-      relations: ['account', 'processedBy'],
-      order: { createdAt: 'DESC' },
-    });
+  static async filter(
+    filter: FilterWithdrawalRequest,
+    page: number = 1,
+    limit: number = 10
+  ) {
+    const queryBuilder = withdrawalRequestRepository
+      .createQueryBuilder('withdrawalRequest')
+      .leftJoinAndSelect('withdrawalRequest.account', 'account')
+      .leftJoinAndSelect('withdrawalRequest.processedBy', 'processedBy')
+      .leftJoinAndSelect('withdrawalRequest.evidences', 'evidence');
 
-    return withdrawalRequests;
+    if (filter.accountId) {
+      queryBuilder.andWhere('account.id = :accountId', {
+        accountId: filter.accountId,
+      });
+    }
+
+    if (filter.processedById) {
+      queryBuilder.andWhere('processedBy.id = :processedById', {
+        processedById: filter.processedById,
+      });
+    }
+
+    if (filter.statuses && filter.statuses.length > 0) {
+      queryBuilder.andWhere('withdrawalRequest.status IN (:...statuses)', {
+        statuses: filter.statuses,
+      });
+    }
+
+    const [items, total] = await queryBuilder
+      .orderBy('withdrawalRequest.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      total,
+      totalPages,
+      items,
+    };
   }
 }

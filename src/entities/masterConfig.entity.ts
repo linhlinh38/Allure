@@ -217,6 +217,13 @@ export class MasterConfig extends BaseEntity {
   pendingCustomerShippingReturnTime: number;
 
   @Column({
+    name: 'commission_fee',
+    default: 0.1,
+    type: 'numeric'
+  })
+  commissionFee: number;
+
+  @Column({
     type: 'enum',
     enum: StatusEnum,
     default: StatusEnum.ACTIVE,

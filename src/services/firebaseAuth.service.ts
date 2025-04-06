@@ -16,34 +16,32 @@ class FirebaseAuthService {
       }
 
       try {
-        // Try to get existing user
-        await admin.auth().getUser(loginUser);
+        // Try to get existing user by email
+        const user = await admin.auth().getUserByEmail(account.email);
+        // Update user if exists
+        await admin.auth().updateUser(user.uid, {
+          displayName: account.username,
+          emailVerified: true,
+        });
+        return await admin.auth().createCustomToken(user.uid, {
+          email: account.email,
+          displayName: account.username,
+        });
       } catch (error) {
         if (error.code === 'auth/user-not-found') {
           // Create new user if not exists
-          await admin.auth().createUser({
-            uid: loginUser,
+          const newUser = await admin.auth().createUser({
             email: account.email,
             displayName: account.username,
             emailVerified: true,
           });
-        } else {
-          throw error;
+          return await admin.auth().createCustomToken(newUser.uid, {
+            email: account.email,
+            displayName: account.username,
+          });
         }
+        throw error;
       }
-
-      await admin.auth().updateUser(loginUser, {
-        email: account.email,
-        displayName: account.username,
-        emailVerified: true,
-      });
-
-      const customToken = await admin.auth().createCustomToken(loginUser, {
-        email: account.email,
-        displayName: account.username,
-      });
-
-      return customToken;
     } catch (error) {
       console.error('Error generating custom token:', error);
       throw new BadRequestError('Failed to generate authentication token');

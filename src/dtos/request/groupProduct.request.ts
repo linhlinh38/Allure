@@ -107,11 +107,7 @@ export const FilterGroupProductSchema = z.object({
     name: z.string().optional(),
     statuses: z.array(z.nativeEnum(StatusEnum)).optional(),
     brandId: z.string().uuid().optional(),
-  }),
-  query: z.object({
-    page: z.number().min(1).optional(),
-    limit: z.number().min(1).optional(),
-  }),
+  })
 });
 
 export class FilterGroupProductRequest {

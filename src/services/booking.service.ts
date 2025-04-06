@@ -21,9 +21,7 @@ import { BaseService } from "./base.service";
 import { accountRepository } from "../repositories/account.repository";
 import { brandRepository } from "../repositories/brand.repository";
 import { consultantServiceRepository } from "../repositories/consultantService.repository";
-import { Voucher } from "../entities/voucher.entity";
 import { walletRepository } from "../repositories/wallet.reposirory";
-import { statusTrackingRepository } from "../repositories/statusTracking.repository";
 import { StatusTracking } from "../entities/statusTracking.entity";
 import { Wallet } from "../entities/wallet.entity";
 import { Transaction } from "../entities/transaction.entity";
@@ -31,6 +29,8 @@ import { addBookingToQueue } from "../utils/queue/cancelBookingQueue";
 import { ConsultationResult } from "../entities/consultationResult.entity";
 import { BookingFormAnswer } from "../entities/bookingFormAnswer.entity";
 import { ProductClassification } from "../entities/productClassification.entity";
+import { walletService } from "./wallet.service";
+import { transactionService } from "./transaction.service";
 
 const repository = AppDataSource.getRepository(Booking);
 class BookingService extends BaseService<Booking> {
@@ -277,14 +277,33 @@ class BookingService extends BaseService<Booking> {
   }
 
   async updateStatus(id: string, status: BookingStatusEnum) {
-    const booking = await bookingRepository.findOne({
-      where: {
-        id,
-      },
-    });
-    if (!booking) throw new BadRequestError("Booking not found");
-    booking.status = status;
-    await booking.save();
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const booking = await bookingRepository.findOne({
+        where: {
+          id,
+        },
+      });
+      if (!booking) throw new BadRequestError('Booking not found');
+      booking.status = status;
+      if (status === BookingStatusEnum.COMPLETED && booking.type == BookingTypeEnum.SERVICE) {
+        await transactionService.transferToConsultantWallet(
+          booking.id,
+          queryRunner
+        );
+      }
+      await queryRunner.manager.save(booking);
+      await queryRunner.commitTransaction();
+      return { message: 'Booking service status updated successfully' };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async updateBookingServiceStatus(id: string, data: any, loginUser: string) {
@@ -394,6 +413,15 @@ class BookingService extends BaseService<Booking> {
           "Booking status updated"
         );
         await queryRunner.manager.save(StatusTracking, statusTracking);
+        if (
+          data.status === BookingStatusEnum.COMPLETED &&
+          booking.type == BookingTypeEnum.SERVICE
+        ) {
+          await transactionService.transferToConsultantWallet(
+            booking.id,
+            queryRunner
+          );
+        }
       }
 
       await queryRunner.commitTransaction();
@@ -567,14 +595,14 @@ class BookingService extends BaseService<Booking> {
               owner: { id: loginUser },
             },
           });
-          if (!wallet || wallet.balance < createdBooking.totalPrice) {
-            statusTrackings = await this.updateBookingStatus(
+          if (!wallet || wallet.availableBalance < createdBooking.totalPrice) {
+            statusTrackings = this.updateBookingStatus(
               createdBooking,
               BookingStatusEnum.TO_PAY,
               loginUser
             );
           } else {
-            wallet.balance -= createdBooking.totalPrice;
+            walletService.decreaseBalance(wallet, createdBooking.totalPrice);
             await queryRunner.manager.save(Wallet, wallet);
 
             createdBooking.status = BookingStatusEnum.WAIT_FOR_CONFIRMATION;
@@ -684,7 +712,7 @@ class BookingService extends BaseService<Booking> {
         });
         if (!wallet) throw new BadRequestError("Dont have wallet");
 
-        wallet.balance += booking.totalPrice;
+        walletService.increaseBalance(wallet, booking.totalPrice);
         await queryRunner.manager.save(Wallet, wallet);
 
         const transaction = this.createBookingTransaction(
