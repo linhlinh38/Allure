@@ -24,7 +24,11 @@ export default class livestreamController {
   ) {
     try {
       const livestreams = await livestreamService.getActiveLiveStreams();
-      res.status(200).json(livestreams);
+      return createNormalResponse(
+        res,
+        "Get all livestreams success",
+        livestreams
+      );
     } catch (error) {
       next(error);
     }

@@ -8,6 +8,7 @@ import { LiveStreamEnum } from "../utils/enum";
 import { RtcTokenBuilder } from "agora-access-token";
 import { config } from "../configs/envConfig";
 import { LivestreamTokenData } from "../dtos/request/livestreamToken.request";
+import { LivestreamProduct } from "../entities/livestreamProduct.entity";
 
 const repository = AppDataSource.getRepository(LiveStream);
 class LiveStreamService extends BaseService<LiveStream> {
@@ -21,14 +22,26 @@ class LiveStreamService extends BaseService<LiveStream> {
         { status: LiveStreamEnum.SCHEDULED },
         { status: LiveStreamEnum.LIVE },
       ],
-      relations: ["account", "products"],
+      relations: [
+        "account",
+        "livestreamProducts",
+        "livestreamProducts.product",
+        "livestreamProducts.product.productClassifications",
+        "livestreamProducts.product.productClassifications.images",
+      ],
     });
   }
 
   async findById(id: string): Promise<LiveStream> {
     return await this.repository.findOne({
       where: [{ id }],
-      relations: ["account", "products"],
+      relations: [
+        "account",
+        "livestreamProducts",
+        "livestreamProducts.product",
+        "livestreamProducts.product.productClassifications",
+        "livestreamProducts.product.productClassifications.images",
+      ],
     });
   }
 
@@ -44,15 +57,19 @@ class LiveStreamService extends BaseService<LiveStream> {
       await queryRunner.manager.save(livestream);
 
       if (products && products.length > 0) {
-        const productEntities = await productRepository.find({
-          where: { id: In(products) },
-        });
-
-        if (productEntities.length !== products.length) {
-          throw new BadRequestError("Some products not found");
+        for (const product of products) {
+          const productEntity = await productRepository.findOneBy({
+            id: product.id,
+          });
+          if (!productEntity) {
+            throw new BadRequestError("Product not found");
+          }
+          const livestreamProduct = new LivestreamProduct();
+          livestreamProduct.livestream = livestream;
+          livestreamProduct.product = productEntity;
+          livestreamProduct.discount = product.discount; // Set the discount
+          await queryRunner.manager.save(LivestreamProduct, livestreamProduct);
         }
-        livestream.products = productEntities;
-        await queryRunner.manager.save(livestream);
       }
 
       await queryRunner.commitTransaction();
@@ -75,26 +92,35 @@ class LiveStreamService extends BaseService<LiveStream> {
 
       const livestream = await queryRunner.manager.findOne(LiveStream, {
         where: { id },
-        relations: ["products"],
       });
       if (!livestream) {
         throw new BadRequestError("Livestream not found");
       }
 
-      livestream.products = [];
-
       if (products && products.length > 0) {
-        const productEntities = await productRepository.find({
-          where: { id: In(products) },
+        await queryRunner.manager.delete(LivestreamProduct, {
+          livestream: { id },
         });
 
-        if (productEntities.length !== products.length) {
-          throw new BadRequestError("Some products not found");
+        for (const product of products) {
+          const productEntity = await productRepository.findOneBy({
+            id: product.id,
+          });
+          if (!productEntity) {
+            throw new BadRequestError("Product not found");
+          }
+          const livestreamProduct = new LivestreamProduct();
+          livestreamProduct.livestream = livestream;
+          livestreamProduct.product = productEntity;
+          livestreamProduct.discount = product.discount; // Set the discount
+          const productAdd = await queryRunner.manager.save(
+            LivestreamProduct,
+            livestreamProduct
+          );
         }
-        livestreamInfo.products = productEntities;
       }
       queryRunner.manager.merge(LiveStream, livestream, livestreamInfo);
-      await queryRunner.manager.save(livestream);
+      await queryRunner.manager.save(LiveStream, livestream);
 
       await queryRunner.commitTransaction();
       return livestream;

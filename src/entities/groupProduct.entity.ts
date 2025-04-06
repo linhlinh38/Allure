@@ -6,23 +6,27 @@ import {
   ManyToMany,
   ManyToOne,
   OneToMany,
-} from 'typeorm';
-import { BaseEntity } from './base.entity';
-import { StatusEnum } from '../utils/enum';
-import { GroupBuyingCriteria } from './groupBuyingCriteria.entity';
-import { Product } from './product.entity';
-import { GroupBuying } from './groupBuying.entity';
-import { Brand } from './brand.entity';
+} from "typeorm";
+import { BaseEntity } from "./base.entity";
+import { StatusEnum } from "../utils/enum";
+import { GroupBuyingCriteria } from "./groupBuyingCriteria.entity";
+import { Product } from "./product.entity";
+import { GroupBuying } from "./groupBuying.entity";
+import { Brand } from "./brand.entity";
 
-@Entity('group_products')
+@Entity("group_products")
 export class GroupProduct extends BaseEntity {
-  @Column({ type: 'varchar', length: 255, nullable: false })
+  @Column({ type: "varchar", length: 255, nullable: false })
   name: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   description: string;
 
-  @Column({ type: 'integer', nullable: true })
+  @Column({
+    type: "integer",
+    nullable: true,
+    name: "max_buy_amount_each_person",
+  })
   maxBuyAmountEachPerson: number;
 
   @OneToMany(() => GroupBuyingCriteria, (criteria) => criteria.groupProduct, {
@@ -31,7 +35,7 @@ export class GroupProduct extends BaseEntity {
   criterias: GroupBuyingCriteria[];
 
   @Column({
-    type: 'enum',
+    type: "enum",
     enum: StatusEnum,
     default: StatusEnum.INACTIVE,
   })
@@ -41,14 +45,14 @@ export class GroupProduct extends BaseEntity {
     cascade: true,
   })
   @JoinTable({
-    name: 'group_product_to_product', // Tên bảng trung gian
+    name: "group_product_to_product", // Tên bảng trung gian
     joinColumn: {
-      name: 'groupProductId', // Tên cột tham chiếu GroupProduct
-      referencedColumnName: 'id', // Tên cột chính trong GroupProduct
+      name: "groupProductId", // Tên cột tham chiếu GroupProduct
+      referencedColumnName: "id", // Tên cột chính trong GroupProduct
     },
     inverseJoinColumn: {
-      name: 'productId', // Tên cột tham chiếu Product
-      referencedColumnName: 'id', // Tên cột chính trong Product
+      name: "productId", // Tên cột tham chiếu Product
+      referencedColumnName: "id", // Tên cột chính trong Product
     },
   })
   products: Product[];
@@ -57,6 +61,6 @@ export class GroupProduct extends BaseEntity {
   groupBuyings: GroupBuying;
 
   @ManyToOne(() => Brand, (brand) => brand.groupProducts, { nullable: true })
-  @JoinColumn({ name: 'brand_id' })
+  @JoinColumn({ name: "brand_id" })
   brand: Brand;
 }
