@@ -219,6 +219,7 @@ export class MasterConfig extends BaseEntity {
   @Column({
     name: 'commission_fee',
     default: 0.1,
+    type: 'numeric'
   })
   commissionFee: number;
 

@@ -242,6 +242,60 @@ class TransactionService extends BaseService<Transaction> {
     }
   }
 
+  async filterForConsultant(
+    filterTransactionRequest: FilterTransactionRequest,
+    paging: Paging,
+    loginUser: string
+  ) {
+    const limit = paging.limit;
+    const offset = (paging.page - 1) * paging.limit;
+    const total = await this.getTotalTransactionCountForConsultant(
+      filterTransactionRequest,
+      loginUser
+    );
+
+    const totalPages = Math.ceil(total / paging.limit);
+    const query = this.getTransactionsQueryForConsultant(
+      filterTransactionRequest,
+      loginUser
+    )
+      .take(limit)
+      .skip(offset);
+
+    return {
+      total,
+      totalPages,
+      items: await query.getMany(),
+    };
+  }
+
+  async filterForBrand(
+    filterTransactionRequest: FilterTransactionRequest,
+    paging: Paging,
+    brandId: string
+  ) {
+    const limit = paging.limit;
+    const offset = (paging.page - 1) * paging.limit;
+    const total = await this.getTotalTransactionCountForBrand(
+      filterTransactionRequest,
+      brandId
+    );
+
+    const totalPages = Math.ceil(total / paging.limit);
+    const query = this.getTransactionsQueryForBrand(
+      filterTransactionRequest,
+      brandId
+    )
+      .take(limit)
+      .skip(offset);
+
+    return {
+      total,
+      totalPages,
+      items: await query.getMany(),
+    };
+  }
+
   async filterForAdmin(
     filterTransactionRequest: FilterTransactionRequest,
     paging: Paging
@@ -284,6 +338,97 @@ class TransactionService extends BaseService<Transaction> {
       totalPages,
       items: await query.getMany(),
     };
+  }
+
+  getTransactionsQueryForConsultant(
+    filterTransactionRequest: FilterTransactionRequest,
+    consultantId: string
+  ) {
+    const { startDate, endDate } = filterTransactionRequest;
+
+    const query = transactionRepository
+      .createQueryBuilder('transaction')
+      .leftJoinAndSelect('transaction.buyer', 'buyer')
+      .leftJoinAndSelect('transaction.consultant', 'consultant')
+      .leftJoinAndSelect('transaction.booking', 'booking')
+      .orderBy('transaction.createdAt', 'DESC')
+      .where('transaction.type = :type', {
+        type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+      })
+      .andWhere('consultant.id = :consultantId', { consultantId });
+    if (startDate && endDate)
+      query.andWhere('transaction.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
+    return query;
+  }
+
+  async getTotalTransactionCountForConsultant(
+    filterTransactionRequest: FilterTransactionRequest,
+    consultantId: string
+  ) {
+    const { startDate, endDate } = filterTransactionRequest;
+    const query = transactionRepository
+      .createQueryBuilder('transaction')
+      .select('COUNT(*)', 'total')
+      .innerJoin('transaction.consultant', 'consultant')
+      .where('transaction.type = :type', {
+        type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+      })
+      .andWhere('consultant.id = :consultantId', { consultantId });
+    if (startDate && endDate)
+      query.andWhere('transaction.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
+    return (await query.getRawOne())?.total || 0;
+  }
+
+  getTransactionsQueryForBrand(
+    filterTransactionRequest: FilterTransactionRequest,
+    brandId: string
+  ) {
+    const { startDate, endDate } = filterTransactionRequest;
+
+    const query = transactionRepository
+      .createQueryBuilder('transaction')
+      .leftJoinAndSelect('transaction.buyer', 'buyer')
+      .leftJoinAndSelect('transaction.brand', 'brand')
+      .leftJoinAndSelect('transaction.order', 'order')
+      .orderBy('transaction.createdAt', 'DESC')
+      .where('transaction.type = :type', {
+        type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+      })
+      .andWhere('brand.id = :brandId', { brandId });
+    orderService.queryBuilderForOrder(query);
+    if (startDate && endDate)
+      query.andWhere('transaction.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
+    return query;
+  }
+
+  async getTotalTransactionCountForBrand(
+    filterTransactionRequest: FilterTransactionRequest,
+    brandId: string
+  ) {
+    const { startDate, endDate } = filterTransactionRequest;
+    const query = transactionRepository
+      .createQueryBuilder('transaction')
+      .select('COUNT(*)', 'total')
+      .innerJoin('transaction.brand', 'brand')
+      .where('transaction.type = :type', {
+        type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+      })
+      .andWhere('brand.id = :brandId', { brandId });
+    if (startDate && endDate)
+      query.andWhere('transaction.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
+    return (await query.getRawOne())?.total || 0;
   }
 
   getTransactionsQuery(
