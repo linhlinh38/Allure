@@ -185,17 +185,46 @@ export class WithdrawalRequestService {
     }
   }
 
-  static async getWithdrawalRequests(accountId: string) {
-    const withdrawalRequests = await withdrawalRequestRepository.find({
-      where: { account: { id: accountId } },
-      relations: {
-        processedBy: { role: true },
-        evidences: true,
-      },
-      order: { createdAt: 'DESC' },
-    });
+  static async getWithdrawalRequests(
+    accountId: string,
+    filter?: {
+      statuses?: WithdrawalStatusEnum[];
+      processedById?: string;
+    },
+    page: number = 1,
+    limit: number = 10
+  ) {
+    const queryBuilder = withdrawalRequestRepository
+      .createQueryBuilder('withdrawalRequest')
+      .leftJoinAndSelect('withdrawalRequest.processedBy', 'processedBy')
+      .leftJoinAndSelect('withdrawalRequest.evidences', 'evidence')
+      .where('withdrawalRequest.account.id = :accountId', { accountId });
 
-    return withdrawalRequests;
+    if (filter?.statuses && filter.statuses.length > 0) {
+      queryBuilder.andWhere('withdrawalRequest.status IN (:...statuses)', {
+        statuses: filter.statuses,
+      });
+    }
+
+    if (filter?.processedById) {
+      queryBuilder.andWhere('processedBy.id = :processedById', {
+        processedById: filter.processedById,
+      });
+    }
+
+    const [items, total] = await queryBuilder
+      .orderBy('withdrawalRequest.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      total,
+      totalPages,
+      items,
+    };
   }
 
   static async getById(id: string, accountId: string) {
