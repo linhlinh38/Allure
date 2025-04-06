@@ -5,6 +5,7 @@ import {
   ShippingStatusEnum,
   ActionReceivedEnum,
   OrderRequestTypeEnum,
+  OrderEnum,
 } from '../../utils/enum';
 import { Expose } from 'class-transformer';
 
@@ -129,6 +130,33 @@ export const GetMyRequestsSchema = z.object({
     types: z.array(z.nativeEnum(OrderRequestTypeEnum)).optional(),
   }),
 });
+
+export const OrderFilterRequestSchema = z.object({
+  body: z.object({
+    search: z.string().optional(),
+    types: z.array(z.nativeEnum(OrderEnum)).optional(),
+    statuses: z.array(z.nativeEnum(ShippingStatusEnum)).optional(),
+    paymentMethods: z.array(z.nativeEnum(PaymentMethodEnum)).optional(),
+    productIds: z.array(z.string()).optional(),
+  }),
+});
+
+export class OrderFilterRequest {
+  @Expose()
+  search: string;
+
+  @Expose()
+  types: OrderEnum[];
+
+  @Expose()
+  statuses: ShippingStatusEnum[];
+
+  @Expose()
+  paymentMethods: PaymentMethodEnum[];
+
+  @Expose()
+  productIds: string[];
+}
 
 export class GetMyRequestsRequest {
   @Expose()
