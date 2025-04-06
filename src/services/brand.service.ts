@@ -133,7 +133,7 @@ class BrandService extends BaseService<Brand> {
           throw new BadRequestError('No booking found');
         }
         booking.status = BookingStatusEnum.COMPLETED;
-        await bookingRepository.save(booking);
+        await queryRunner.manager.save(booking);
       }
       if (brandUpdateStatusRequest.status == BrandStatusEnum.ACTIVE) {
         if (!brandUpdateStatusRequest.url)
