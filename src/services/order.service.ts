@@ -107,7 +107,7 @@ class OrderService extends BaseService<Order> {
     return requests;
   }
 
-  async takeReceivedAction(action: ActionReceivedEnum, orderId: string) {
+  async takeReceivedAction(action: ActionReceivedEnum, orderId: string, loginUser: string) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -136,13 +136,14 @@ class OrderService extends BaseService<Order> {
           //create status tracking
           orderService.createStatusTracking(
             order,
-            order.account.id,
+            loginUser,
             ShippingStatusEnum.BRAND_RECEIVED,
             'Auto update',
             queryRunner
           ),
         ]);
         isReceived = true;
+        await addUpdateRefundedStatusOrderToQueue(orderId);
       } else {
         const masterConfig = await retrieveMasterConfig();
         order.expiredReceivedTime = new Date(
@@ -926,15 +927,7 @@ class OrderService extends BaseService<Order> {
       ) {
       } else if (nextShippingStatusMap[order.status] != status)
         throw new BadRequestError('Can not update this status');
-      //update transaction if order status is WAIT_FOR_CONFIRMATION and payment method is not Cash
-      // if (
-      //   status == ShippingStatusEnum.WAIT_FOR_CONFIRMATION &&
-      //   order.paymentMethod != PaymentMethodEnum.CASH
-      // ) {
-      //   const transaction =
-      //     await transactionService.createTransactionFromChildOrder(order, TransactionTypeEnum.ORDER_PURCHASE);
-      //   await queryRunner.manager.save(Transaction, transaction);
-      // }
+      
       await Promise.all([
         //update order status and save
         (async () => {

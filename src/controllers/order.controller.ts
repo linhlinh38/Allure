@@ -49,7 +49,8 @@ export default class OrderController {
     try {
       const isReceived = await orderService.takeReceivedAction(
         req.body.action as ActionReceivedEnum,
-        req.params.orderId
+        req.params.orderId,
+        req.loginUser
       );
       return createNormalResponse(
         res,

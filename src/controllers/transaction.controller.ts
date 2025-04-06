@@ -51,6 +51,66 @@ export default class TransactionController {
       next(err);
     }
   }
+  static async filterForConsultant(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const paging = {
+        page: Number(req.query.page) ? Number(req.query.page) : 1,
+        limit: Number(req.query.limit) ? Number(req.query.limit) : 10,
+      } as Paging;
+      const filterTransactionRequest = plainToInstance(
+        FilterTransactionRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Filter transactions successfully',
+        await transactionService.filterForConsultant(
+          filterTransactionRequest,
+          paging,
+          req.loginUser
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async filterForBrand(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const paging = {
+        page: Number(req.query.page) ? Number(req.query.page) : 1,
+        limit: Number(req.query.limit) ? Number(req.query.limit) : 10,
+      } as Paging;
+      const filterTransactionRequest = plainToInstance(
+        FilterTransactionRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Filter transactions successfully',
+        await transactionService.filterForBrand(
+          filterTransactionRequest,
+          paging,
+          req.params.brandId
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async filterForAdmin(
     req: AuthRequest,
     res: Response,

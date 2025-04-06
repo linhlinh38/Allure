@@ -21,6 +21,18 @@ transactionRouter.post(
 );
 
 transactionRouter.post(
+  '/filter-for-brand/:brandId',
+  validate(FilterTransactionSchema),
+  TransactionController.filterForBrand
+);
+
+transactionRouter.post(
+  '/filter-for-consultant',
+  validate(FilterTransactionSchema),
+  TransactionController.filterForConsultant
+);
+
+transactionRouter.post(
   '/filter-for-admin',
   validate(FilterTransactionSchema),
   TransactionController.filterForAdmin

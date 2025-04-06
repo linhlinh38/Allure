@@ -89,7 +89,7 @@ const updateRefundedStatusOrderQueueWorker = new Worker(
           //create status tracking
           orderService.createStatusTracking(
             order,
-            order.account.id,
+            null,
             ShippingStatusEnum.REFUNDED,
             'Auto update',
             queryRunner
