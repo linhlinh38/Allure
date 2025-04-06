@@ -23,6 +23,7 @@ import {
   SearchOrderRequest,
   GetMyRequestsRequest,
   OrderFilterRequest,
+  OrderRequestFilterRequest,
 } from '../dtos/request/order.request';
 import { voucherRepository } from '../repositories/voucher.repository';
 import { productClassificationRepository } from '../repositories/productClassification.repository';
@@ -95,7 +96,8 @@ class OrderService extends BaseService<Order> {
     const queryBuilder = repository
       .createQueryBuilder('order')
       .leftJoinAndSelect('order.account', 'account')
-      .leftJoinAndSelect('order.brand', 'brand');
+      .leftJoinAndSelect('order.brand', 'brand')
+      .orderBy('order.createdAt', 'DESC');
     this.queryBuilderForOrder(queryBuilder);
     if (account.role.role == RoleEnum.CUSTOMER) {
       queryBuilder.where('account.id = :loginUser', { loginUser });
@@ -151,6 +153,75 @@ class OrderService extends BaseService<Order> {
       items,
     };
   }
+
+  async filterOrderRequests(
+    orderRequestFilter: OrderRequestFilterRequest,
+    paging: Paging,
+    loginUser: string
+  ) {
+    const account = await accountRepository.findOne({
+      where: {
+        id: loginUser,
+      },
+      relations: {
+        role: true,
+        brands: true,
+      },
+    });
+    const { statuses, types } = orderRequestFilter;
+    const queryBuilder = orderRequestRepository
+      .createQueryBuilder('orderRequest')
+      .leftJoinAndSelect('orderRequest.order', 'order')
+      .leftJoinAndSelect('order.account', 'account')
+      .leftJoinAndSelect('order.brand', 'brand')
+      .leftJoinAndSelect('orderRequest.updatedBy', 'updatedBy')
+      .leftJoinAndSelect('updatedBy.role', 'role')
+      .leftJoinAndSelect('orderRequest.mediaFiles', 'mediaFiles')
+      .leftJoinAndSelect(
+        'orderRequest.rejectedRefundRequest',
+        'rejectedRefundRequest'
+      )
+      .leftJoinAndSelect(
+        'rejectedRefundRequest.mediaFiles',
+        'rejectedRefundRequestMediaFiles'
+      )
+      .orderBy('orderRequest.createdAt', 'DESC');
+    if (account.role.role == RoleEnum.CUSTOMER) {
+      queryBuilder.where('account.id = :loginUser', { loginUser });
+    } else if (account.role.role == RoleEnum.MANAGER) {
+      const brand = account.brands[0];
+      queryBuilder.where('brand.id = :brandId', { brandId: brand.id });
+    } else if (account.role.role == RoleEnum.ADMIN) {
+    } else {
+      throw new BadRequestError(
+        'You do not have permission to access this resource'
+      );
+    }
+    if (statuses && statuses.length > 0) {
+      queryBuilder.andWhere('orderRequest.status IN (:...statuses)', {
+        statuses,
+      });
+    }
+
+    if (types && types.length > 0) {
+      queryBuilder.andWhere('orderRequest.type IN (:...types)', { types });
+    }
+
+    const [items, total] = await queryBuilder
+      .orderBy('orderRequest.createdAt', 'DESC')
+      .skip((paging.page - 1) * paging.limit)
+      .take(paging.limit)
+      .getManyAndCount();
+
+    const totalPages = Math.ceil(total / paging.limit);
+
+    return {
+      total,
+      totalPages,
+      items,
+    };
+  }
+
   async getMyRequests(
     loginUser: string,
     getMyRequestsRequest: GetMyRequestsRequest
