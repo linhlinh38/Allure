@@ -174,8 +174,8 @@ export default class GroupProductController {
 
       // Set default values for paging
       const paging = {
-        page: Number(req.query.page) || 1,
-        limit: Number(req.query.limit) || 10,
+        page: parseInt(req.query.page as string) || 1,
+        limit: parseInt(req.query.limit as string) || 10,
       } as FilterGroupProductPaging;
 
       const result = await groupProductService.filter(filterRequest, paging);

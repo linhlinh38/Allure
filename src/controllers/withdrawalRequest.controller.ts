@@ -52,13 +52,21 @@ export class WithdrawalRequestController {
   }
 
   static async getWithdrawalRequests(req: AuthRequest, res: Response) {
-    const withdrawalRequests =
-      await WithdrawalRequestService.getWithdrawalRequests(req.loginUser);
-    return createNormalResponse(
-      res,
-      'Get withdrawal requests success',
-      withdrawalRequests
+    const filter = plainToInstance(FilterWithdrawalRequest, req.body, {
+      excludeExtraneousValues: true,
+    });
+
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    const result = await WithdrawalRequestService.getWithdrawalRequests(
+      req.loginUser,
+      filter,
+      page,
+      limit
     );
+
+    return createNormalResponse(res, 'Get withdrawal requests success', result);
   }
 
   static async getById(req: AuthRequest, res: Response) {

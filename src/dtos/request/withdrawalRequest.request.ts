@@ -25,6 +25,17 @@ export const FilterWithdrawalRequestSchema = z.object({
   }),
 });
 
+export const GetMyWithdrawalRequestsSchema = z.object({
+  query: z.object({
+    page: z.string().optional().default('1'),
+    limit: z.string().optional().default('10'),
+  }),
+  body: z.object({
+    statuses: z.array(z.nativeEnum(WithdrawalStatusEnum)).optional(),
+    processedById: z.string().uuid().optional(),
+  }),
+});
+
 export class CreateWithdrawalRequest {
   @Expose()
   amount: number;

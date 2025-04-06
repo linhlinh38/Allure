@@ -5,6 +5,7 @@ import {
   CreateWithdrawalRequestSchema,
   UpdateWithdrawalRequestSchema,
   FilterWithdrawalRequestSchema,
+  GetMyWithdrawalRequestsSchema,
 } from '../dtos/request/withdrawalRequest.request';
 import validate from '../utils/validate';
 
@@ -17,8 +18,9 @@ withdrawalRequestrouter.post(
   validate(CreateWithdrawalRequestSchema),
   WithdrawalRequestController.create
 );
-withdrawalRequestrouter.get(
+withdrawalRequestrouter.post(
   '/get-my-withdrawal-requests',
+  validate(GetMyWithdrawalRequestsSchema),
   WithdrawalRequestController.getWithdrawalRequests
 );
 withdrawalRequestrouter.get('/:id', WithdrawalRequestController.getById);
