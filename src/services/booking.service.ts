@@ -30,6 +30,7 @@ import { ConsultationResult } from "../entities/consultationResult.entity";
 import { BookingFormAnswer } from "../entities/bookingFormAnswer.entity";
 import { ProductClassification } from "../entities/productClassification.entity";
 import { walletService } from "./wallet.service";
+import { transactionService } from "./transaction.service";
 
 const repository = AppDataSource.getRepository(Booking);
 class BookingService extends BaseService<Booking> {
@@ -276,14 +277,33 @@ class BookingService extends BaseService<Booking> {
   }
 
   async updateStatus(id: string, status: BookingStatusEnum) {
-    const booking = await bookingRepository.findOne({
-      where: {
-        id,
-      },
-    });
-    if (!booking) throw new BadRequestError("Booking not found");
-    booking.status = status;
-    await booking.save();
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const booking = await bookingRepository.findOne({
+        where: {
+          id,
+        },
+      });
+      if (!booking) throw new BadRequestError('Booking not found');
+      booking.status = status;
+      if (status === BookingStatusEnum.COMPLETED && booking.type == BookingTypeEnum.SERVICE) {
+        await transactionService.transferToConsultantWallet(
+          booking.id,
+          queryRunner
+        );
+      }
+      await queryRunner.manager.save(booking);
+      await queryRunner.commitTransaction();
+      return { message: 'Booking service status updated successfully' };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async updateBookingServiceStatus(id: string, data: any, loginUser: string) {
@@ -393,6 +413,15 @@ class BookingService extends BaseService<Booking> {
           "Booking status updated"
         );
         await queryRunner.manager.save(StatusTracking, statusTracking);
+        if (
+          data.status === BookingStatusEnum.COMPLETED &&
+          booking.type == BookingTypeEnum.SERVICE
+        ) {
+          await transactionService.transferToConsultantWallet(
+            booking.id,
+            queryRunner
+          );
+        }
       }
 
       await queryRunner.commitTransaction();
