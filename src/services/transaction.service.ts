@@ -504,16 +504,13 @@ class TransactionService extends BaseService<Transaction> {
       .where('b.id = :brandId', {
         brandId,
       })
-      .andWhere(
-        'o.status NOT IN (:...excludedStatuses) AND o.parent_id IS NOT NULL',
-        {
-          excludedStatuses: [
-            ShippingStatusEnum.CANCELLED,
-            ShippingStatusEnum.TO_PAY,
-            ShippingStatusEnum.JOIN_GROUP_BUYING,
-          ],
-        }
-      )
+      .andWhere('o.status IN (:...statuses) AND o.parent_id IS NOT NULL', {
+        statuses: [
+          ShippingStatusEnum.DELIVERED,
+          ShippingStatusEnum.COMPLETED,
+          ShippingStatusEnum.RETURNED_FAIL,
+        ],
+      })
       .groupBy('b.id');
     if (
       getBrandRevenueStatisticsRequest.type == StatisticsTimeEnum.SPECIFIC_TIME
@@ -530,14 +527,14 @@ class TransactionService extends BaseService<Transaction> {
     const result = await queryBuilder.getRawOne();
     if (!result)
       return {
-        order_quantity: 0,
+        orderQuantityCompleted: 0,
         total: 0,
         subTotal: 0,
         discount: 0,
       };
 
     return {
-      orderQuantity: result.order_quantity,
+      orderQuantityCompleted: parseInt(result.order_quantity),
       total: result.total,
       subTotal: result.sub_total,
       discount: result.discount,
@@ -551,6 +548,7 @@ class TransactionService extends BaseService<Transaction> {
       .createQueryBuilder('o')
       .innerJoin('o.account', 'a')
       .select([
+        'COALESCE(COUNT(o.id), 0) AS order_quantity',
         'COALESCE(SUM(o.totalPrice), 0) AS total',
         'COALESCE(SUM(o."subTotal"), 0) AS sub_total',
         'COALESCE(SUM(o."subTotal"- o.totalPrice), 0) AS discount',
@@ -558,16 +556,13 @@ class TransactionService extends BaseService<Transaction> {
       .where('a.id = :loginUser', {
         loginUser,
       })
-      .andWhere(
-        'o.status NOT IN (:...excludedStatuses) AND o.parent_id IS NOT NULL',
-        {
-          excludedStatuses: [
-            ShippingStatusEnum.CANCELLED,
-            ShippingStatusEnum.TO_PAY,
-            ShippingStatusEnum.JOIN_GROUP_BUYING,
-          ],
-        }
-      )
+      .andWhere('o.status IN (:...statuses) AND o.parent_id IS NOT NULL', {
+        statuses: [
+          ShippingStatusEnum.DELIVERED,
+          ShippingStatusEnum.COMPLETED,
+          ShippingStatusEnum.RETURNED_FAIL,
+        ],
+      })
       .groupBy('a.id');
     if (
       getUserSpendingStatisticsRequest.type == StatisticsTimeEnum.SPECIFIC_TIME
@@ -584,11 +579,13 @@ class TransactionService extends BaseService<Transaction> {
     const result = await queryBuilder.getRawOne();
     if (!result)
       return {
+        orderQuantityCompleted: 0,
         total: 0,
         subTotal: 0,
         discount: 0,
       };
     return {
+      orderQuantityCompleted: parseInt(result.order_quantity),
       total: result.total,
       subTotal: result.sub_total,
       discount: result.discount,
