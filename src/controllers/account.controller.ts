@@ -48,7 +48,7 @@ async function getAccountBy(req: Request, res: Response, next: NextFunction) {
     // );
     return res
       .status(200)
-      .send({ message: 'Get all account success', account });
+      .send({ message: 'Get all account success', data: account });
   } catch (error) {
     next(error);
   }
