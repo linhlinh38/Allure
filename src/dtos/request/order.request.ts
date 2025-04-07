@@ -256,3 +256,18 @@ export class PreOrderRequest {
   @Expose()
   platformVoucherId?: string;
 }
+
+export const OrderRequestFilterSchema = z.object({
+  body: z.object({
+    statuses: z.array(z.nativeEnum(RequestStatusEnum)).optional(),
+    types: z.array(z.nativeEnum(OrderRequestTypeEnum)).optional(),
+  }),
+});
+
+export class OrderRequestFilterRequest {
+  @Expose()
+  statuses: RequestStatusEnum[];
+
+  @Expose()
+  types: OrderRequestTypeEnum[];
+}

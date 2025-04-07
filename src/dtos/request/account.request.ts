@@ -18,8 +18,12 @@ export const AccountCreateSchema = z.object({
       .optional(),
     username: z
       .string()
-      .min(1, "Username is required")
-      .max(100, "Username cannot exceed 100 characters")
+      .min(3, "Username is required and must be at least 3 characters long")
+      .max(20, "Username cannot exceed 20 characters")
+      .regex(
+        /^[a-zA-Z][a-zA-Z0-9_]{2,19}$/,
+        "User name should starting with a letter, 3-20 characters and can contain letters, numbers and underscores"
+      )
       .optional(),
     email: z.string().email("Invalid email address"),
     password: z
