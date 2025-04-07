@@ -18,7 +18,7 @@ export enum StatusEnum {
   ACTIVE = "ACTIVE",
   INACTIVE = "INACTIVE",
   BANNED = "BANNED",
-} 
+}
 
 export enum AccountStatusEnum {
   PENDING = "PENDING",
@@ -202,15 +202,15 @@ export enum WeekDay {
 }
 
 export enum TransactionTypeEnum {
-  ORDER_PURCHASE = 'ORDER_PURCHASE', // Mua sản phẩm
-  BOOKING_PURCHASE = 'BOOKING_PURCHASE', // Đặt booking
-  DEPOSIT = 'DEPOSIT', // Nạp tiền
-  WITHDRAW = 'WITHDRAW', // Rút tiền
-  ORDER_REFUND = 'ORDER_REFUND', // Hoàn tiền sản phẩm (đã nhận hàng)
-  BOOKING_REFUND = 'BOOKING_REFUND', // Hoàn tiền booking (đã sử dụng)
-  ORDER_CANCEL = 'ORDER_CANCEL', // Hủy đơn sản phẩm (chưa nhận hàng)
-  BOOKING_CANCEL = 'BOOKING_CANCEL',
-  TRANSFER_TO_WALLET = 'TRANSFER_TO_WALLET',
+  ORDER_PURCHASE = "ORDER_PURCHASE", // Mua sản phẩm
+  BOOKING_PURCHASE = "BOOKING_PURCHASE", // Đặt booking
+  DEPOSIT = "DEPOSIT", // Nạp tiền
+  WITHDRAW = "WITHDRAW", // Rút tiền
+  ORDER_REFUND = "ORDER_REFUND", // Hoàn tiền sản phẩm (đã nhận hàng)
+  BOOKING_REFUND = "BOOKING_REFUND", // Hoàn tiền booking (đã sử dụng)
+  ORDER_CANCEL = "ORDER_CANCEL", // Hủy đơn sản phẩm (chưa nhận hàng)
+  BOOKING_CANCEL = "BOOKING_CANCEL",
+  TRANSFER_TO_WALLET = "TRANSFER_TO_WALLET",
 }
 
 export enum TransactionStatusEnum {
@@ -288,10 +288,11 @@ export enum WithdrawalStatusEnum {
 }
 
 export enum NotificationTypeEnum {
-  GROUP_BUYING_ORDER_SUCCESS = 'GROUP_BUYING_ORDER_SUCCESS',
-  GROUP_BUYING_ORDER_FAILED = 'GROUP_BUYING_ORDER_FAILED',
-  BOOKING_CANCELLED = 'BOOKING_CANCELLED',
-  GROUP_BUYING_ENDING = 'GROUP_BUYING_ENDING',
-  UPDATE_ORDER_STATUS = 'UPDATE_ORDER_STATUS',
-  TRANSFER_TO_WALLET = 'TRANSFER_TO_WALLET',
+  LIVESTREAM_START = "LIVESTREAM_START",
+  GROUP_BUYING_ORDER_SUCCESS = "GROUP_BUYING_ORDER_SUCCESS",
+  GROUP_BUYING_ORDER_FAILED = "GROUP_BUYING_ORDER_FAILED",
+  BOOKING_CANCELLED = "BOOKING_CANCELLED",
+  GROUP_BUYING_ENDING = "GROUP_BUYING_ENDING",
+  UPDATE_ORDER_STATUS = "UPDATE_ORDER_STATUS",
+  TRANSFER_TO_WALLET = "TRANSFER_TO_WALLET",
 }

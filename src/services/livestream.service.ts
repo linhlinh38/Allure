@@ -4,11 +4,19 @@ import { LiveStream } from "../entities/livestream.entity";
 import { BadRequestError } from "../errors/error";
 import { productRepository } from "../repositories/product.repository";
 import { BaseService } from "./base.service";
-import { LiveStreamEnum } from "../utils/enum";
+import {
+  AccountStatusEnum,
+  LiveStreamEnum,
+  NotificationTypeEnum,
+  RoleEnum,
+} from "../utils/enum";
 import { RtcTokenBuilder } from "agora-access-token";
 import { config } from "../configs/envConfig";
 import { LivestreamTokenData } from "../dtos/request/livestreamToken.request";
 import { LivestreamProduct } from "../entities/livestreamProduct.entity";
+import { fcmTokenRepository } from "../repositories/fcmToken.repository";
+import { FCMService } from "./FCM.service";
+import { Account } from "../entities/account.entity";
 
 const repository = AppDataSource.getRepository(LiveStream);
 class LiveStreamService extends BaseService<LiveStream> {
@@ -118,6 +126,40 @@ class LiveStreamService extends BaseService<LiveStream> {
             livestreamProduct
           );
         }
+      }
+
+      if (
+        livestreamInfo.status &&
+        livestreamInfo.status === LiveStreamEnum.LIVE
+      ) {
+        const customer = await queryRunner.manager.find(Account, {
+          where: {
+            status: AccountStatusEnum.ACTIVE,
+            role: { role: RoleEnum.CUSTOMER },
+          },
+          relations: { role: true },
+        });
+        //send notification to account
+        const tokens = (
+          await fcmTokenRepository.find({
+            where: {
+              account: {
+                id: In(customer.map((cus) => cus.id)),
+              },
+            },
+          })
+        ).map((token) => token.token);
+        const notificationData = {
+          title: "Livestream start!",
+          body: `Join Livestream ${livestream.title} now`,
+          data: {
+            type: NotificationTypeEnum.LIVESTREAM_START,
+            liveId: livestream.id,
+          },
+          accountIds: tokens,
+          createdAt: new Date(),
+        };
+        await FCMService.sendMulticastNotification(tokens, notificationData);
       }
       queryRunner.manager.merge(LiveStream, livestream, livestreamInfo);
       await queryRunner.manager.save(LiveStream, livestream);
