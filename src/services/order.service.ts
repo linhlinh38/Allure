@@ -1949,6 +1949,7 @@ class OrderService extends BaseService<Order> {
     } else {
       orderDetail.type = OrderEnum.NORMAL;
       if (item.livestreamId) {
+        orderDetail.type = OrderEnum.LIVE_STREAM;
         const livestreamProduct = await livestreamProductRepository.findOne({
           where: {
             livestream: { id: item.livestreamId },
