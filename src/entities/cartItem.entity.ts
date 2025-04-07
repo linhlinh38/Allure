@@ -4,6 +4,7 @@ import { StatusEnum } from "../utils/enum";
 import { Account } from "./account.entity";
 import { ProductClassification } from "./productClassification.entity";
 import { GroupBuying } from "./groupBuying.entity";
+import { LiveStream } from "./livestream.entity";
 
 @Entity("cart_items")
 export class CartItem extends BaseEntity {
@@ -19,6 +20,10 @@ export class CartItem extends BaseEntity {
   @ManyToOne(() => GroupBuying, { nullable: true })
   @JoinColumn({ name: "group_buying_id" })
   groupBuying: string;
+
+  @ManyToOne(() => LiveStream, { nullable: true })
+  @JoinColumn({ name: "livestream_id" })
+  livestream: string;
 
   @Column({
     type: "enum",
