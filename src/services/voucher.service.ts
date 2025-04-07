@@ -40,6 +40,8 @@ import { VoucherWallet } from '../entities/voucherWallet.entity';
 import { productClassificationRepository } from '../repositories/productClassification.repository';
 import { ProductClassification } from '../entities/productClassification.entity';
 import { Account } from '../entities/account.entity';
+import { FilterVouchersRequest } from '../dtos/request/voucher.request';
+import { Paging } from '../dtos/other/paging.dto';
 
 class VoucherService extends BaseService<Voucher> {
   async canApplyVoucher(
@@ -1272,6 +1274,75 @@ class VoucherService extends BaseService<Voucher> {
     });
     if (!voucher) throw new BadRequestError('Voucher not found');
     return plainToInstance(VoucherResponse, voucher);
+  }
+
+  async filterVouchers(filter: FilterVouchersRequest, paging: Paging) {
+    const {
+      statuses,
+      applyType,
+      visibility,
+      brandId,
+      startTime,
+      endTime,
+      applyProductIds,
+    } = filter;
+
+    const queryBuilder = voucherRepository
+      .createQueryBuilder('voucher')
+      .leftJoinAndSelect('voucher.brand', 'brand')
+      .leftJoinAndSelect('voucher.applyProducts', 'applyProducts')
+      .leftJoinAndSelect('voucher.criterias', 'criterias');
+
+    if (statuses && statuses.length > 0) {
+      queryBuilder.andWhere('voucher.status IN (:...statuses)', {
+        statuses,
+      });
+    }
+
+    if (applyType) {
+      queryBuilder.andWhere('voucher.applyType = :applyType', { applyType });
+    }
+
+    if (visibility) {
+      queryBuilder.andWhere('voucher.visibility = :visibility', { visibility });
+    }
+
+    if (brandId) {
+      queryBuilder.andWhere('voucher.brand_id = :brandId', { brandId });
+    }
+
+    if (startTime) {
+      queryBuilder.andWhere('voucher.startTime >= :startTime', { startTime });
+    }
+
+    if (endTime) {
+      queryBuilder.andWhere('voucher.endTime <= :endTime', { endTime });
+    }
+
+    if (
+      applyType == VoucherApplyTypeEnum.SPECIFIC &&
+      applyProductIds &&
+      applyProductIds.length > 0
+    ) {
+      queryBuilder.andWhere('applyProducts.id IN (:...applyProductIds)', {
+        applyProductIds,
+      });
+    }
+
+    queryBuilder.orderBy('voucher.createdAt', 'DESC');
+
+    const [items, total] = await queryBuilder
+      .skip((paging.page - 1) * paging.limit)
+      .take(paging.limit)
+      .getManyAndCount();
+
+    const totalPages = Math.ceil(total / paging.limit);
+
+    return {
+      total,
+      totalPages,
+      items,
+    };
   }
 }
 

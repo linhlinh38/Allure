@@ -69,7 +69,7 @@ export class Brand extends BaseEntity {
     type: "varchar",
     length: 100,
     name: "business_registration_code",
-    nullable: false,
+    nullable: true,
   })
   businessRegistrationCode: string;
 

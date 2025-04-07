@@ -1,6 +1,7 @@
 import { Expose } from 'class-transformer';
 import { z } from 'zod';
 import {
+  OrderEnum,
   PayTypeEnum,
   StatisticsTimeEnum,
   TransactionTypeEnum,
@@ -64,6 +65,45 @@ export const FilterTransactionSchema = z.object({
       .optional(),
   }),
 });
+
+export const GetDailyOrderStatisticsSchema = z.object({
+  body: z.object({
+    startDate: z
+      .string()
+      .refine(
+        (value) => !isNaN(Date.parse(value)),
+        'Start date must be a valid date string'
+      )
+      .optional(),
+    endDate: z
+      .string()
+      .refine(
+        (value) => !isNaN(Date.parse(value)),
+        'End date must be a valid date string'
+      )
+      .optional(),
+    orderType: z.nativeEnum(OrderEnum).optional(),
+    productIds: z.array(z.string().uuid()).optional(),
+    brandId: z.string().uuid().optional(),
+  }),
+});
+
+export class GetDailyOrderStatisticsRequest {
+  @Expose()
+  startDate: Date;
+
+  @Expose()
+  endDate: Date;
+
+  @Expose()
+  orderType: OrderEnum;
+
+  @Expose()
+  productIds: string[];
+
+  @Expose()
+  brandId: string;
+}
 
 export class FilterTransactionRequest {
   @Expose()

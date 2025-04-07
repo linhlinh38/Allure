@@ -106,9 +106,12 @@ class OrderService extends BaseService<Order> {
       queryBuilder.andWhere('account.id = :loginUser', { loginUser });
     } else if (account.role.role == RoleEnum.MANAGER) {
       const brand = account.brands[0];
-      queryBuilder.andWhere('brand.id = :brandId OR groupProduct.brand_id = :brandId', {
-        brandId: brand.id,
-      });
+      queryBuilder.andWhere(
+        '(brand.id = :brandId OR groupProduct.brand_id = :brandId)',
+        {
+          brandId: brand.id,
+        }
+      );
     } else if (account.role.role == RoleEnum.ADMIN) {
     } else {
       throw new BadRequestError(
@@ -182,21 +185,31 @@ class OrderService extends BaseService<Order> {
       .leftJoinAndSelect('orderRequest.updatedBy', 'updatedBy')
       .leftJoinAndSelect('updatedBy.role', 'role')
       .leftJoinAndSelect('orderRequest.mediaFiles', 'mediaFiles')
-      .leftJoinAndSelect(
-        'orderRequest.rejectedRefundRequest',
-        'rejectedRefundRequest'
-      )
+      .leftJoinAndSelect('orderRequest.rejectedRefundRequest', 'rejectedRefundRequest')
       .leftJoinAndSelect(
         'rejectedRefundRequest.mediaFiles',
         'rejectedRefundRequestMediaFiles'
       )
       .orderBy('orderRequest.createdAt', 'DESC');
-    if (account.role.role == RoleEnum.CUSTOMER) {
-      queryBuilder.where('account.id = :loginUser', { loginUser });
-    } else if (account.role.role == RoleEnum.MANAGER) {
+    this.queryBuilderForOrder(queryBuilder);
+    // if (account.role.role == RoleEnum.CUSTOMER) {
+    //   queryBuilder.where('account.id = :loginUser', { loginUser });
+    //   queryBuilder.andWhere('orderRequest.type IN (:...types)', {
+    //     types: [OrderRequestTypeEnum.CANCEL, OrderRequestTypeEnum.REFUND],
+    //   });
+    if (account.role.role == RoleEnum.MANAGER) {
       const brand = account.brands[0];
       queryBuilder.where('brand.id = :brandId', { brandId: brand.id });
+      queryBuilder.andWhere('orderRequest.type IN (:...types)', {
+        types: [OrderRequestTypeEnum.CANCEL, OrderRequestTypeEnum.REFUND],
+      });
     } else if (account.role.role == RoleEnum.ADMIN) {
+      queryBuilder.andWhere('orderRequest.type IN (:...types)', {
+        types: [
+          OrderRequestTypeEnum.COMPLAINT,
+          OrderRequestTypeEnum.REJECT_REFUND,
+        ],
+      });
     } else {
       throw new BadRequestError(
         'You do not have permission to access this resource'
@@ -647,6 +660,7 @@ class OrderService extends BaseService<Order> {
 
         //create reject refund request
         const rejectRefundRequest = new OrderRequest();
+        rejectRefundRequest.order = refundRequest.order;
         rejectRefundRequest.type = OrderRequestTypeEnum.REJECT_REFUND;
         rejectRefundRequest.refundRequest = refundRequest;
         rejectRefundRequest.reason = reasonRejected;

@@ -219,7 +219,6 @@ export class VoucherRequest {
   brandId: string;
 }
 
-
 export class VoucherUpdateRequest {
   @Expose()
   name: string;
@@ -266,3 +265,29 @@ export class VoucherUpdateRequest {
   @Expose()
   brandId: string;
 }
+
+export const FilterVouchersSchema = z.object({
+  query: z.object({
+    page: z.string().optional().default('1'),
+    limit: z.string().optional().default('10'),
+  }),
+  body: z.object({
+    statuses: z.array(z.nativeEnum(StatusEnum)).optional(),
+    applyType: z.nativeEnum(VoucherApplyTypeEnum).optional(),
+    visibility: z.nativeEnum(VoucherVisibilityEnum).optional(),
+    brandId: z.string().uuid().optional(),
+    startTime: z.string().datetime().optional(),
+    endTime: z.string().datetime().optional(),
+    applyProductIds: z.array(z.string().uuid()).optional(),
+  }),
+});
+
+export type FilterVouchersRequest = {
+  statuses?: StatusEnum[];
+  applyType?: VoucherApplyTypeEnum;
+  visibility?: VoucherVisibilityEnum;
+  brandId?: string;
+  startTime?: string;
+  endTime?: string;
+  applyProductIds?: string[];
+};

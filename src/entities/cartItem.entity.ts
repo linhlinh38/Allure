@@ -1,21 +1,18 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-} from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
 import { BaseEntity } from "./base.entity";
-import {
-  StatusEnum,
-} from "../utils/enum";
+import { StatusEnum } from "../utils/enum";
 import { Account } from "./account.entity";
 import { ProductClassification } from "./productClassification.entity";
 import { GroupBuying } from "./groupBuying.entity";
+import { LiveStream } from "./livestream.entity";
 
 @Entity("cart_items")
 export class CartItem extends BaseEntity {
   @Column({ type: "int", nullable: false })
   quantity: number;
+
+  @Column({ type: "double precision", default: 0, name: "livestream_discount" })
+  livestreamDiscount: number;
 
   @Column({ type: "varchar", length: 100, nullable: false })
   classification: string;
@@ -23,6 +20,10 @@ export class CartItem extends BaseEntity {
   @ManyToOne(() => GroupBuying, { nullable: true })
   @JoinColumn({ name: "group_buying_id" })
   groupBuying: string;
+
+  @ManyToOne(() => LiveStream, { nullable: true })
+  @JoinColumn({ name: "livestream_id" })
+  livestream: string;
 
   @Column({
     type: "enum",
