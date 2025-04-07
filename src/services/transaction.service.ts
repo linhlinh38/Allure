@@ -32,6 +32,7 @@ import { Booking } from '../entities/booking.entity';
 import { Wallet } from '../entities/wallet.entity';
 import { walletService } from './wallet.service';
 import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
+import { accountRepository } from '../repositories/account.repository';
 
 const repository = AppDataSource.getRepository(Transaction);
 class TransactionService extends BaseService<Transaction> {
@@ -321,22 +322,67 @@ class TransactionService extends BaseService<Transaction> {
     loginUser: string,
     paging: Paging
   ) {
+    const account = await accountRepository.findOne({
+      where: {
+        id: loginUser,
+      },
+      relations: {
+        role: true,
+      },
+    });
     const limit = paging.limit;
     const offset = (paging.page - 1) * paging.limit;
-    const total = await this.getTotalTransactionCount(
-      filterTransactionRequest,
-      loginUser
-    );
+    const { types, startDate, endDate } = filterTransactionRequest;
 
-    const totalPages = Math.ceil(total / paging.limit);
-    const query = this.getTransactionsQuery(filterTransactionRequest, loginUser)
+    const query = transactionRepository
+      .createQueryBuilder('transaction')
+      .leftJoinAndSelect('transaction.buyer', 'buyer')
+      .leftJoinAndSelect('transaction.brand', 'brand')
+      .leftJoinAndSelect('transaction.order', 'order')
+      .leftJoinAndSelect('transaction.consultant', 'consultant')
+      .orderBy('transaction.createdAt', 'DESC');
+    orderService.queryBuilderForOrder(query);
+    if (account.role.role == RoleEnum.CUSTOMER) {
+      query.where('buyer.id = :loginUser', { loginUser });
+    } else if (account.role.role == RoleEnum.MANAGER) {
+      const brand = account.brands[0];
+      query
+        .where('brand.id = :brandId', { brandId: brand.id })
+        .andWhere('transaction.type = :type', {
+          type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+        });
+    } else if (account.role.role == RoleEnum.CONSULTANT) {
+      query
+        .where(
+          '(consultant.id = :loginUser AND transaction.type = :type) OR buyer.id = :loginUser',
+          {
+            loginUser,
+            type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+          }
+        )
+    } else if (account.role.role == RoleEnum.ADMIN) {
+    } else
+      throw new BadRequestError(
+        'You dont have permission to access this resource'
+      );
+    if (types && types.length > 0)
+      query.andWhere('transaction.type IN (:...types)', { types });
+    if (startDate && endDate)
+      query.andWhere('transaction.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
+    const [items, total] = await query
+      .skip(offset)
       .take(limit)
-      .skip(offset);
+      .getManyAndCount();
+
+    const totalPages = Math.ceil(total / limit);
 
     return {
       total,
       totalPages,
-      items: await query.getMany(),
+      items,
     };
   }
 
