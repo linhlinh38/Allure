@@ -107,7 +107,7 @@ class OrderService extends BaseService<Order> {
     } else if (account.role.role == RoleEnum.MANAGER) {
       const brand = account.brands[0];
       queryBuilder.andWhere(
-        'brand.id = :brandId OR groupProduct.brand_id = :brandId',
+        '(brand.id = :brandId OR groupProduct.brand_id = :brandId)',
         {
           brandId: brand.id,
         }
