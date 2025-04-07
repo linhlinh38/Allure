@@ -507,6 +507,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       parentOrder.phone = address.phone;
       parentOrder.notes = address.notes;
       parentOrder.recipientName = address.fullName;
+      parentOrder.type = OrderEnum.GROUP_BUYING;
 
       parentOrder.account = account;
       parentOrder.status = ShippingStatusEnum.JOIN_GROUP_BUYING;
@@ -518,7 +519,8 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       childOrder.shippingAddress = address.fullAddress;
       childOrder.phone = address.phone;
       childOrder.notes = address.notes;
-
+      
+      childOrder.type = OrderEnum.GROUP_BUYING;
       childOrder.orderDetails = [];
       childOrder.account = account;
       childOrder.recipientName = address.fullName;
