@@ -3,6 +3,7 @@ import { AppDataSource } from '../dataSource';
 import { Transaction } from '../entities/transaction.entity';
 import {
   BookingStatusEnum,
+  OrderEnum,
   PaymentMethodEnum,
   PayTypeEnum,
   RoleEnum,
@@ -15,6 +16,7 @@ import { Order } from '../entities/order.entity';
 import { GroupBuying } from '../entities/groupBuying.entity';
 import {
   FilterTransactionRequest,
+  GetDailyOrderStatisticsRequest,
   GetStatisticsRequest,
   PayRequest,
 } from '../dtos/request/transaction.request';
@@ -33,6 +35,7 @@ import { Wallet } from '../entities/wallet.entity';
 import { walletService } from './wallet.service';
 import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
 import { accountRepository } from '../repositories/account.repository';
+import { orderDetailRepository } from '../repositories/orderDetail.repository';
 
 const repository = AppDataSource.getRepository(Transaction);
 class TransactionService extends BaseService<Transaction> {
@@ -352,14 +355,13 @@ class TransactionService extends BaseService<Transaction> {
           type: TransactionTypeEnum.TRANSFER_TO_WALLET,
         });
     } else if (account.role.role == RoleEnum.CONSULTANT) {
-      query
-        .where(
-          '(consultant.id = :loginUser AND transaction.type = :type) OR buyer.id = :loginUser',
-          {
-            loginUser,
-            type: TransactionTypeEnum.TRANSFER_TO_WALLET,
-          }
-        )
+      query.where(
+        '(consultant.id = :loginUser AND transaction.type = :type) OR buyer.id = :loginUser',
+        {
+          loginUser,
+          type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+        }
+      );
     } else if (account.role.role == RoleEnum.ADMIN) {
     } else
       throw new BadRequestError(
@@ -901,6 +903,116 @@ class TransactionService extends BaseService<Transaction> {
       }
     }
     return transaction;
+  }
+
+  async getDailyOrderStatistics(
+    getDailyOrderStatisticsRequest: GetDailyOrderStatisticsRequest,
+    brandId: string
+  ) {
+    const { startDate, endDate, productIds, orderType } =
+      getDailyOrderStatisticsRequest;
+
+    const queryBuilder = orderDetailRepository
+      .createQueryBuilder('orderDetail')
+      .leftJoinAndSelect('orderDetail.order', 'order')
+      .innerJoin(
+        'order.statusTrackings',
+        'statusTracking',
+        'statusTracking.status = :status AND statusTracking.createdAt BETWEEN :startDate AND :endDate',
+        { status: ShippingStatusEnum.WAIT_FOR_CONFIRMATION, startDate, endDate }
+      )
+      .leftJoinAndSelect('order.account', 'account')
+      .leftJoinAndSelect('order.groupBuying', 'groupBuying')
+      .leftJoinAndSelect('groupBuying.groupProduct', 'groupProduct')
+      .leftJoinAndSelect(
+        'orderDetail.productClassification',
+        'productClassification'
+      )
+      .leftJoinAndSelect('productClassification.product', 'product')
+      .leftJoinAndSelect(
+        'productClassification.productDiscount',
+        'productDiscount'
+      )
+      .leftJoinAndSelect('productDiscount.product', 'discountProduct')
+      .leftJoinAndSelect(
+        'productClassification.preOrderProduct',
+        'preOrderProduct'
+      )
+      .leftJoinAndSelect('preOrderProduct.product', 'preOrderProductItem')
+      .select([
+        "DATE_TRUNC('day', statusTracking.createdAt) as date",
+        'SUM(orderDetail.totalPrice) as totalRevenue',
+        'SUM(orderDetail.quantity) as totalQuantity',
+      ])
+      .where('order.parent_id IS NOT NULL')
+      .andWhere(
+        '(order.brand_id = :brandId OR groupProduct.brand_id = :brandId)',
+        {
+          brandId,
+        }
+      )
+      .andWhere('order.status != :cancelledStatus', {
+        cancelledStatus: ShippingStatusEnum.CANCELLED,
+      })
+      .groupBy("DATE_TRUNC('day', statusTracking.createdAt)")
+      .orderBy('date', 'DESC');
+    if (orderType) {
+      if (!productIds || productIds.length == 0) {
+        throw new BadRequestError('Product ids are required');
+      }
+      if (orderType == OrderEnum.PRE_ORDER) {
+        queryBuilder.andWhere(
+          'orderDetail.type = :type AND preOrderProduct.id IN (:...productIds)',
+          { type: OrderEnum.PRE_ORDER, productIds }
+        );
+      } else if (orderType == OrderEnum.FLASH_SALE) {
+        queryBuilder.andWhere(
+          'orderDetail.type = :type AND productDiscount.id IN (:...productIds)',
+          {
+            type: OrderEnum.FLASH_SALE,
+            productIds,
+          }
+        );
+      } else if (orderType == OrderEnum.NORMAL) {
+        queryBuilder.andWhere(
+          '(product.id IN (:...productIds) OR discountProduct.id IN (:...productIds) OR preOrderProductItem.id IN (:...productIds))',
+          {
+            productIds,
+          }
+        );
+      }
+    }
+
+    const results = await queryBuilder.getRawMany();
+    const dateRange = this.generateDateRange(startDate, endDate);
+
+    const statistics = dateRange.map((date) => {
+      const result = results.find(
+        (r) => r.date.toISOString().split('T')[0] == date
+      );
+      return {
+        date,
+        totalRevenue: result ? parseFloat(result.totalrevenue) : 0,
+        totalQuantity: result ? parseInt(result.totalquantity) : 0,
+      };
+    });
+
+    return {
+      message: 'Statistic successfully',
+      data: statistics,
+    };
+  }
+
+  generateDateRange(startDate: Date, endDate: Date): string[] {
+    const dates = [];
+    let currentDate = new Date(startDate);
+    const end = new Date(endDate);
+
+    while (currentDate <= end) {
+      dates.push(currentDate.toISOString().split('T')[0]); // Chỉ lấy phần ngày (yyyy-mm-dd)
+      currentDate.setDate(currentDate.getDate() + 1); // Tăng thêm một ngày
+    }
+    return dates;
   }
 
   constructor() {
