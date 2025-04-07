@@ -952,6 +952,8 @@ class TransactionService extends BaseService<Transaction> {
         "DATE_TRUNC('day', statusTracking.createdAt) as date",
         'SUM(orderDetail.totalPrice) as totalRevenue',
         'SUM(orderDetail.quantity) as totalQuantity',
+        'SUM(orderDetail.platformVoucherDiscount) as totalPlatformVoucherDiscount',
+        'SUM(orderDetail.shopVoucherDiscount) as totalShopVoucherDiscount',
       ])
       .where('order.parent_id IS NOT NULL')
       .andWhere('order.status != :cancelledStatus', {
@@ -1005,6 +1007,12 @@ class TransactionService extends BaseService<Transaction> {
         date,
         totalRevenue: result ? parseFloat(result.totalrevenue) : 0,
         totalQuantity: result ? parseInt(result.totalquantity) : 0,
+        totalPlatformVoucherDiscount: result
+          ? parseFloat(result.totalplatformvoucherdiscount)
+          : 0,
+        totalShopVoucherDiscount: result
+          ? parseFloat(result.totalshopvoucherdiscount)
+          : 0,
       };
     });
 
@@ -1012,9 +1020,16 @@ class TransactionService extends BaseService<Transaction> {
       (acc, curr) => {
         acc.totalRevenue += curr.totalRevenue;
         acc.totalQuantity += curr.totalQuantity;
+        acc.totalPlatformVoucherDiscount += curr.totalPlatformVoucherDiscount;
+        acc.totalShopVoucherDiscount += curr.totalShopVoucherDiscount;
         return acc;
       },
-      { totalRevenue: 0, totalQuantity: 0 }
+      {
+        totalRevenue: 0,
+        totalQuantity: 0,
+        totalPlatformVoucherDiscount: 0,
+        totalShopVoucherDiscount: 0,
+      }
     );
 
     return {
