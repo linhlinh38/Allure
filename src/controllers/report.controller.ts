@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Response } from 'express';
 import { createNormalResponse } from '../utils/response';
 import { plainToInstance } from 'class-transformer';
 import {
@@ -73,22 +73,20 @@ export default class ReportController {
       next(err);
     }
   }
-  static async filterReports(req: Request, res: Response, next: NextFunction) {
-    try {
-      const filterReportsRequest = plainToInstance(
-        FilterReportsRequest,
-        req.body,
-        {
-          excludeExtraneousValues: true,
-        }
-      );
-      return createNormalResponse(
-        res,
-        'Filter reports success',
-        await reportService.filterReports(filterReportsRequest)
-      );
-    } catch (err) {
-      next(err);
-    }
+  static async filterReports(req: AuthRequest, res: Response) {
+    const filter = plainToInstance(FilterReportsRequest, req.body, {
+      excludeExtraneousValues: true,
+    });
+
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    const result = await reportService.filterReports(
+      filter,
+      { page, limit },
+      req.loginUser
+    );
+
+    return createNormalResponse(res, 'Get reports success', result);
   }
 }

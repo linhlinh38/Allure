@@ -11,7 +11,7 @@ import {
 const reportRouter = express.Router();
 reportRouter.use(authentication);
 reportRouter.post(
-  '/filter-reports',
+  '/filter',
   validate(FilterReportsSchema),
   ReportController.filterReports
 );
