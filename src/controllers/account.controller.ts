@@ -43,12 +43,12 @@ async function getAccountBy(req: Request, res: Response, next: NextFunction) {
       req.params.option as unknown as string
     );
 
-    const responseData = account.map((acc) =>
-      plainToClass(AccountResponse, acc)
-    );
+    // const responseData = account.map((acc) =>
+    //   plainToClass(AccountResponse, acc)
+    // );
     return res
       .status(200)
-      .send({ message: "Get all account success", data: responseData });
+      .send({ message: 'Get all account success', account });
   } catch (error) {
     next(error);
   }
