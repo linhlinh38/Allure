@@ -97,13 +97,14 @@ class OrderService extends BaseService<Order> {
       .createQueryBuilder('order')
       .leftJoinAndSelect('order.account', 'account')
       .leftJoinAndSelect('order.brand', 'brand')
+      .where('order.parent_id IS NOT NULL')
       .orderBy('order.createdAt', 'DESC');
     this.queryBuilderForOrder(queryBuilder);
     if (account.role.role == RoleEnum.CUSTOMER) {
-      queryBuilder.where('account.id = :loginUser', { loginUser });
+      queryBuilder.andWhere('account.id = :loginUser', { loginUser });
     } else if (account.role.role == RoleEnum.MANAGER) {
       const brand = account.brands[0];
-      queryBuilder.where('brand.id = :brandId', { brandId: brand.id });
+      queryBuilder.andWhere('brand.id = :brandId', { brandId: brand.id });
     } else if (account.role.role == RoleEnum.ADMIN) {
     } else {
       throw new BadRequestError(
