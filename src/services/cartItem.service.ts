@@ -4,9 +4,10 @@ import { PreOrderProduct } from "../entities/preOrderProduct.entity";
 import { Product } from "../entities/product.entity";
 import { ProductDiscount } from "../entities/productDiscount.entity";
 import { BadRequestError } from "../errors/error";
-import { ProductDiscountEnum, StatusEnum } from "../utils/enum";
+import { LiveStreamEnum, ProductDiscountEnum, StatusEnum } from "../utils/enum";
 import { BaseService } from "./base.service";
 import { groupBuyingService } from "./groupBuying.service";
+import { livestreamService } from "./livestream.service";
 import { productClassificationService } from "./productClassification.service";
 
 const repository = AppDataSource.getRepository(CartItem);
@@ -40,6 +41,11 @@ class CartItemService extends BaseService<CartItem> {
       );
       if (!checkGroupBuying || checkGroupBuying.status === StatusEnum.INACTIVE)
         throw new BadRequestError("Group Buying invalid");
+    }
+    if (data.livestream) {
+      const checkLive = await livestreamService.findById(data.livestream);
+      if (!checkLive || checkLive.status !== LiveStreamEnum.LIVE)
+        throw new BadRequestError("Livestream invalid");
     }
   }
 
@@ -76,6 +82,7 @@ class CartItemService extends BaseService<CartItem> {
         "cartItem.productClassification",
         "productClassification"
       )
+      .leftJoinAndSelect("cartItem.livestream", "livestream")
       .leftJoinAndSelect("cartItem.groupBuying", "groupBuying")
       .leftJoinAndSelect(
         "productClassification.images",
@@ -230,6 +237,13 @@ class CartItemService extends BaseService<CartItem> {
       });
     } else {
       queryBuilder.andWhere("cartItem.group_buying_id is NULL");
+    }
+    if (body.livestream) {
+      queryBuilder.andWhere("cartItem.livestream_id = :livestreamId", {
+        livestreamId: body.livestream,
+      });
+    } else {
+      queryBuilder.andWhere("cartItem.livestream_id is NULL");
     }
     const check = await queryBuilder.getMany();
 

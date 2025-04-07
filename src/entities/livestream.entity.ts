@@ -13,6 +13,7 @@ import { Account } from "./account.entity";
 import { Order } from "./order.entity";
 import { Product } from "./product.entity";
 import { LivestreamProduct } from "./livestreamProduct.entity";
+import { CartItem } from "./cartItem.entity";
 
 @Entity("livestreams")
 export class LiveStream extends BaseEntity {
@@ -57,4 +58,7 @@ export class LiveStream extends BaseEntity {
     }
   )
   livestreamProducts: LivestreamProduct[];
+
+  @OneToMany(() => CartItem, (cart) => cart.livestream)
+  cartItems: CartItem[];
 }
