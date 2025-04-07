@@ -185,6 +185,11 @@ class OrderService extends BaseService<Order> {
       .leftJoinAndSelect('orderRequest.updatedBy', 'updatedBy')
       .leftJoinAndSelect('updatedBy.role', 'role')
       .leftJoinAndSelect('orderRequest.mediaFiles', 'mediaFiles')
+      .leftJoinAndSelect('orderRequest.rejectedRefundRequest', 'rejectedRefundRequest')
+      .leftJoinAndSelect(
+        'rejectedRefundRequest.mediaFiles',
+        'rejectedRefundRequestMediaFiles'
+      )
       .orderBy('orderRequest.createdAt', 'DESC');
     this.queryBuilderForOrder(queryBuilder);
     // if (account.role.role == RoleEnum.CUSTOMER) {
