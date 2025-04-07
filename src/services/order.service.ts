@@ -135,7 +135,7 @@ class OrderService extends BaseService<Order> {
         queryBuilder.andWhere('order.id = :search', { search });
       } else
         queryBuilder.andWhere(
-          'product.name LIKE :search OR brand.name LIKE :search OR discountProduct.name LIKE :search OR preOrderProductItem.name LIKE :search',
+          'order.recipientName LIKE :search OR product.name LIKE :search OR brand.name LIKE :search OR discountProduct.name LIKE :search OR preOrderProductItem.name LIKE :search',
           { search: `%${search}%` }
         );
     }
