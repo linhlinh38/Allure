@@ -65,6 +65,7 @@ class AccountService extends BaseService<Account> {
         },
         cartItems: true,
         addresses: true,
+        bankAccounts: true,
       },
     });
 
@@ -82,7 +83,7 @@ class AccountService extends BaseService<Account> {
       where: {
         [option]: value,
       },
-      relations: ["role", "brands", "cartItems"],
+      relations: ["role", "brands", "cartItems", "addresses", "bankAccounts"],
     });
 
     return (await accounts).map((account) => ({
