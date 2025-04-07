@@ -495,20 +495,28 @@ export default class OrderController {
     }
   }
 
-  static async filterOrderRequests(req: AuthRequest, res: Response) {
-    const filter = plainToInstance(OrderRequestFilterRequest, req.body, {
-      excludeExtraneousValues: true,
-    });
+  static async filterOrderRequests(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const filter = plainToInstance(OrderRequestFilterRequest, req.body, {
+        excludeExtraneousValues: true,
+      });
 
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
 
-    const result = await orderService.filterOrderRequests(
-      filter,
-      { page, limit },
-      req.loginUser
-    );
+      const result = await orderService.filterOrderRequests(
+        filter,
+        { page, limit },
+        req.loginUser
+      );
 
-    return createNormalResponse(res, 'Get order requests success', result);
+      return createNormalResponse(res, 'Get order requests success', result);
+    } catch (err) {
+      next(err);
+    }
   }
 }
