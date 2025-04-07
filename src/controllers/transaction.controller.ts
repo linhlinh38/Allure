@@ -4,6 +4,7 @@ import { AuthRequest } from '../middleware/authentication';
 import { NextFunction, Response } from 'express';
 import {
   FilterTransactionRequest,
+  GetDailyOrderStatisticsRequest,
   GetStatisticsRequest,
   PayRequest,
 } from '../dtos/request/transaction.request';
@@ -184,6 +185,31 @@ export default class TransactionController {
         'Statistic successfully',
         await transactionService.getBrandRevenueStatistics(
           getBrandRevenueStatisticsRequest,
+          req.params.brandId
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async getDailyOrderStatistics(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const getDailyOrderStatisticsRequest = plainToInstance(
+        GetDailyOrderStatisticsRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Statistic successfully',
+        await transactionService.getDailyOrderStatistics(
+          getDailyOrderStatisticsRequest,
           req.params.brandId
         )
       );

@@ -295,4 +295,3 @@ export enum NotificationTypeEnum {
   UPDATE_ORDER_STATUS = 'UPDATE_ORDER_STATUS',
   TRANSFER_TO_WALLET = 'TRANSFER_TO_WALLET',
 }
-
