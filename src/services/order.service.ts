@@ -22,6 +22,8 @@ import {
   MakeDicisionComplaintRequest as MakeDicisionComplaintRequest,
   SearchOrderRequest,
   GetMyRequestsRequest,
+  OrderFilterRequest,
+  OrderRequestFilterRequest,
 } from '../dtos/request/order.request';
 import { voucherRepository } from '../repositories/voucher.repository';
 import { productClassificationRepository } from '../repositories/productClassification.repository';
@@ -42,6 +44,7 @@ import {
   ActionReceivedEnum,
   TransactionTypeEnum,
   NotificationTypeEnum,
+  RoleEnum,
 } from '../utils/enum';
 import { validate as isUUID } from 'uuid';
 import { addressRepository } from '../repositories/address.repository';
@@ -70,9 +73,160 @@ import { fcmTokenRepository } from '../repositories/fcmToken.repository';
 import { FCMService } from './FCM.service';
 import Logging from '../utils/Logging';
 import { addtransferToBrandWalletToQueue } from '../utils/queue/transferToBrandWalletQueue';
+import { Paging } from '../dtos/other/paging.dto';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
+  async filter(
+    orderFilterRequest: OrderFilterRequest,
+    paging: Paging,
+    loginUser: string
+  ) {
+    const account = await accountRepository.findOne({
+      where: {
+        id: loginUser,
+      },
+      relations: {
+        role: true,
+        brands: true,
+      },
+    });
+    const { statuses, types, search, productIds, paymentMethods } =
+      orderFilterRequest;
+    const queryBuilder = repository
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.account', 'account')
+      .leftJoinAndSelect('order.brand', 'brand')
+      .leftJoinAndSelect('order.groupBuying', 'groupBuying')
+      .leftJoinAndSelect('groupBuying.groupProduct', 'groupProduct')
+      .where('order.parent_id IS NOT NULL')
+      .orderBy('order.createdAt', 'DESC');
+    this.queryBuilderForOrder(queryBuilder);
+    if (account.role.role == RoleEnum.CUSTOMER) {
+      queryBuilder.andWhere('account.id = :loginUser', { loginUser });
+    } else if (account.role.role == RoleEnum.MANAGER) {
+      const brand = account.brands[0];
+      queryBuilder.andWhere('brand.id = :brandId OR groupProduct.brand_id = :brandId', {
+        brandId: brand.id,
+      });
+    } else if (account.role.role == RoleEnum.ADMIN) {
+    } else {
+      throw new BadRequestError(
+        'You do not have permission to access this resource'
+      );
+    }
+    if (statuses && statuses.length > 0) {
+      queryBuilder.andWhere('order.status IN (:...statuses)', { statuses });
+    }
+    if (types && types.length > 0) {
+      queryBuilder.andWhere('order.type IN (:...types)', { types });
+    }
+    if (paymentMethods && paymentMethods.length > 0) {
+      queryBuilder.andWhere('order.paymentMethod IN (:...paymentMethods)', {
+        paymentMethods,
+      });
+    }
+    if (productIds && productIds.length > 0) {
+      queryBuilder.andWhere(
+        'product.id IN (:...productIds) OR discountProduct.id IN (:...productIds) OR preOrderProductItem.id IN (:...productIds)',
+        {
+          productIds,
+        }
+      );
+    }
+    if (search) {
+      if (isUUID(search)) {
+        queryBuilder.andWhere('order.id = :search', { search });
+      } else
+        queryBuilder.andWhere(
+          'order.recipientName LIKE :search OR product.name LIKE :search OR brand.name LIKE :search OR discountProduct.name LIKE :search OR preOrderProductItem.name LIKE :search',
+          { search: `%${search}%` }
+        );
+    }
+
+    const [items, total] = await queryBuilder
+      .orderBy('order.createdAt', 'DESC')
+      .skip((paging.page - 1) * paging.limit)
+      .take(paging.limit)
+      .getManyAndCount();
+
+    const totalPages = Math.ceil(total / paging.limit);
+
+    return {
+      total,
+      totalPages,
+      items,
+    };
+  }
+
+  async filterOrderRequests(
+    orderRequestFilter: OrderRequestFilterRequest,
+    paging: Paging,
+    loginUser: string
+  ) {
+    const account = await accountRepository.findOne({
+      where: {
+        id: loginUser,
+      },
+      relations: {
+        role: true,
+        brands: true,
+      },
+    });
+    const { statuses, types } = orderRequestFilter;
+    const queryBuilder = orderRequestRepository
+      .createQueryBuilder('orderRequest')
+      .leftJoinAndSelect('orderRequest.order', 'order')
+      .leftJoinAndSelect('order.account', 'account')
+      .leftJoinAndSelect('order.brand', 'brand')
+      .leftJoinAndSelect('orderRequest.updatedBy', 'updatedBy')
+      .leftJoinAndSelect('updatedBy.role', 'role')
+      .leftJoinAndSelect('orderRequest.mediaFiles', 'mediaFiles')
+      .leftJoinAndSelect(
+        'orderRequest.rejectedRefundRequest',
+        'rejectedRefundRequest'
+      )
+      .leftJoinAndSelect(
+        'rejectedRefundRequest.mediaFiles',
+        'rejectedRefundRequestMediaFiles'
+      )
+      .orderBy('orderRequest.createdAt', 'DESC');
+    if (account.role.role == RoleEnum.CUSTOMER) {
+      queryBuilder.where('account.id = :loginUser', { loginUser });
+    } else if (account.role.role == RoleEnum.MANAGER) {
+      const brand = account.brands[0];
+      queryBuilder.where('brand.id = :brandId', { brandId: brand.id });
+    } else if (account.role.role == RoleEnum.ADMIN) {
+    } else {
+      throw new BadRequestError(
+        'You do not have permission to access this resource'
+      );
+    }
+    if (statuses && statuses.length > 0) {
+      queryBuilder.andWhere('orderRequest.status IN (:...statuses)', {
+        statuses,
+      });
+    }
+
+    if (types && types.length > 0) {
+      queryBuilder.andWhere('orderRequest.type IN (:...types)', { types });
+    }
+
+    const [items, total] = await queryBuilder
+      .orderBy('orderRequest.createdAt', 'DESC')
+      .skip((paging.page - 1) * paging.limit)
+      .take(paging.limit)
+      .getManyAndCount();
+
+    const totalPages = Math.ceil(total / paging.limit);
+
+    return {
+      total,
+      totalPages,
+      items,
+    };
+  }
+
   async getMyRequests(
     loginUser: string,
     getMyRequestsRequest: GetMyRequestsRequest
@@ -107,7 +261,11 @@ class OrderService extends BaseService<Order> {
     return requests;
   }
 
-  async takeReceivedAction(action: ActionReceivedEnum, orderId: string, loginUser: string) {
+  async takeReceivedAction(
+    action: ActionReceivedEnum,
+    orderId: string,
+    loginUser: string
+  ) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -927,7 +1085,7 @@ class OrderService extends BaseService<Order> {
       ) {
       } else if (nextShippingStatusMap[order.status] != status)
         throw new BadRequestError('Can not update this status');
-      
+
       await Promise.all([
         //update order status and save
         (async () => {

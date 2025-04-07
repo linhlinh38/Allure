@@ -13,11 +13,32 @@ import {
   MakeDicisionComplaintRequest,
   SearchOrderRequest,
   GetMyRequestsRequest,
+  OrderFilterRequest,
+  OrderRequestFilterRequest,
 } from '../dtos/request/order.request';
 import { AuthRequest } from '../middleware/authentication';
 import { ActionReceivedEnum } from '../utils/enum';
+import { Paging } from '../dtos/other/paging.dto';
 
 export default class OrderController {
+  static async filter(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const paging = {
+        page: Number(req.query.page) ? Number(req.query.page) : 1,
+        limit: Number(req.query.limit) ? Number(req.query.limit) : 10,
+      } as Paging;
+      const orderFilterRequest = plainToInstance(OrderFilterRequest, req.body, {
+        excludeExtraneousValues: true,
+      });
+      return createNormalResponse(
+        res,
+        'Filter orders success',
+        await orderService.filter(orderFilterRequest, paging, req.loginUser)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async getMyRequests(
     req: AuthRequest,
     res: Response,
@@ -472,5 +493,22 @@ export default class OrderController {
     } catch (err) {
       next(err);
     }
+  }
+
+  static async filterOrderRequests(req: AuthRequest, res: Response) {
+    const filter = plainToInstance(OrderRequestFilterRequest, req.body, {
+      excludeExtraneousValues: true,
+    });
+
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    const result = await orderService.filterOrderRequests(
+      filter,
+      { page, limit },
+      req.loginUser
+    );
+
+    return createNormalResponse(res, 'Get order requests success', result);
   }
 }

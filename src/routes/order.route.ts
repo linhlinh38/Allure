@@ -5,6 +5,7 @@ import {
   CancelOrderSchema,
   CancelOrderStatusSchema,
   GetMyRequestsSchema,
+  OrderFilterRequestSchema,
   OrderNormalCreateSchema,
   RequestComlaintSchema,
   RequestRefundSchema,
@@ -12,6 +13,7 @@ import {
   SearchOrderSchema,
   TakeReceivedActionSchema,
   UpdateOrderStatusSchema,
+  OrderRequestFilterSchema,
 } from '../dtos/request/order.request';
 import validate from '../utils/validate';
 
@@ -107,13 +109,24 @@ orderRouter.post(
   '/take-received-action/:orderId',
   validate(TakeReceivedActionSchema),
   // Author(['ADMIN']),
-  OrderController.takeReceivedAction);
+  OrderController.takeReceivedAction
+);
 orderRouter.post(
   '/get-my-requests',
   // Author(['ADMIN']),
   validate(GetMyRequestsSchema),
   OrderController.getMyRequests
 );
+orderRouter.post(
+  '/filter',
+  validate(OrderFilterRequestSchema),
+  OrderController.filter
+);
 orderRouter.post('/create-pre-order', OrderController.createPreOrder);
 orderRouter.post('/create-group-order', OrderController.createGroupOrder);
+orderRouter.post(
+  '/filter-requests',
+  validate(OrderRequestFilterSchema),
+  OrderController.filterOrderRequests
+);
 export default orderRouter;
