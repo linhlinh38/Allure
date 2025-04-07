@@ -660,6 +660,7 @@ class OrderService extends BaseService<Order> {
 
         //create reject refund request
         const rejectRefundRequest = new OrderRequest();
+        rejectRefundRequest.order = refundRequest.order;
         rejectRefundRequest.type = OrderRequestTypeEnum.REJECT_REFUND;
         rejectRefundRequest.refundRequest = refundRequest;
         rejectRefundRequest.reason = reasonRejected;
