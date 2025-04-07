@@ -439,7 +439,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       const groupBuying = await groupBuyingRepository.findOne({
         where: { id: groupBuyingId },
         relations: {
-          groupProduct: { products: true },
+          groupProduct: { products: true, brand: true },
         },
       });
       if (!groupBuying) {
@@ -508,6 +508,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       parentOrder.notes = address.notes;
       parentOrder.recipientName = address.fullName;
       parentOrder.type = OrderEnum.GROUP_BUYING;
+      parentOrder.brand = groupBuying.groupProduct.brand;
 
       parentOrder.account = account;
       parentOrder.status = ShippingStatusEnum.JOIN_GROUP_BUYING;
@@ -526,6 +527,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       childOrder.recipientName = address.fullName;
       childOrder.status = ShippingStatusEnum.JOIN_GROUP_BUYING;
       parentOrder.children = [childOrder];
+      childOrder.brand = groupBuying.groupProduct.brand;
       childOrder.groupBuying = groupBuying;
 
       for (const item of groupBuyingJoinEventBody.items) {
