@@ -73,15 +73,18 @@ export const GetDailyOrderStatisticsSchema = z.object({
       .refine(
         (value) => !isNaN(Date.parse(value)),
         'Start date must be a valid date string'
-      ),
+      )
+      .optional(),
     endDate: z
       .string()
       .refine(
         (value) => !isNaN(Date.parse(value)),
         'End date must be a valid date string'
-      ),
+      )
+      .optional(),
     orderType: z.nativeEnum(OrderEnum).optional(),
     productIds: z.array(z.string().uuid()).optional(),
+    brandId: z.string().uuid().optional(),
   }),
 });
 
@@ -97,6 +100,9 @@ export class GetDailyOrderStatisticsRequest {
 
   @Expose()
   productIds: string[];
+
+  @Expose()
+  brandId: string;
 }
 
 export class FilterTransactionRequest {

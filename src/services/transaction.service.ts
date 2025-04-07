@@ -906,11 +906,20 @@ class TransactionService extends BaseService<Transaction> {
   }
 
   async getDailyOrderStatistics(
-    getDailyOrderStatisticsRequest: GetDailyOrderStatisticsRequest,
-    brandId: string
+    getDailyOrderStatisticsRequest: GetDailyOrderStatisticsRequest
   ) {
-    const { startDate, endDate, productIds, orderType } =
-      getDailyOrderStatisticsRequest;
+    const { productIds, orderType, brandId } = getDailyOrderStatisticsRequest;
+    if (
+      !getDailyOrderStatisticsRequest.startDate ||
+      !getDailyOrderStatisticsRequest.endDate
+    ) {
+      const today = new Date();
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(today.getMonth() - 1);
+      getDailyOrderStatisticsRequest.startDate = oneMonthAgo;
+      getDailyOrderStatisticsRequest.endDate = today;
+    }
+    const { startDate, endDate } = getDailyOrderStatisticsRequest;
 
     const queryBuilder = orderDetailRepository
       .createQueryBuilder('orderDetail')
@@ -945,17 +954,19 @@ class TransactionService extends BaseService<Transaction> {
         'SUM(orderDetail.quantity) as totalQuantity',
       ])
       .where('order.parent_id IS NOT NULL')
-      .andWhere(
-        '(order.brand_id = :brandId OR groupProduct.brand_id = :brandId)',
-        {
-          brandId,
-        }
-      )
       .andWhere('order.status != :cancelledStatus', {
         cancelledStatus: ShippingStatusEnum.CANCELLED,
       })
       .groupBy("DATE_TRUNC('day', statusTracking.createdAt)")
       .orderBy('date', 'DESC');
+    if (brandId) {
+      queryBuilder.andWhere(
+        '(order.brand_id = :brandId OR groupProduct.brand_id = :brandId)',
+        {
+          brandId,
+        }
+      );
+    }
     if (orderType) {
       if (!productIds || productIds.length == 0) {
         throw new BadRequestError('Product ids are required');
@@ -997,9 +1008,18 @@ class TransactionService extends BaseService<Transaction> {
       };
     });
 
+    const total = statistics.reduce(
+      (acc, curr) => {
+        acc.totalRevenue += curr.totalRevenue;
+        acc.totalQuantity += curr.totalQuantity;
+        return acc;
+      },
+      { totalRevenue: 0, totalQuantity: 0 }
+    );
+
     return {
-      message: 'Statistic successfully',
-      data: statistics,
+      total,
+      items: statistics,
     };
   }
 
