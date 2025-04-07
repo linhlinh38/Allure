@@ -69,7 +69,7 @@ export class Brand extends BaseEntity {
     type: "varchar",
     length: 100,
     name: "business_registration_code",
-    nullable: true,
+    nullable: false,
   })
   businessRegistrationCode: string;
 
@@ -83,11 +83,11 @@ export class Brand extends BaseEntity {
   establishmentDate: Date;
 
   @Expose()
-  @Column({ type: "varchar", length: 100, nullable: true })
+  @Column({ type: "varchar", length: 100, nullable: false })
   province: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 100, nullable: true })
+  @Column({ type: "varchar", length: 100, nullable: false })
   district: string;
 
   @Expose()
