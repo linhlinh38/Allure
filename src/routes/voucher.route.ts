@@ -10,6 +10,7 @@ import {
   VoucherCreateSchema,
   VoucherUpdateSchema,
   VoucherUpdateStatusSchema,
+  FilterVouchersSchema,
 } from '../dtos/request/voucher.request';
 const voucherRouter = express.Router();
 voucherRouter.get('/', VoucherController.getAll);
@@ -36,10 +37,7 @@ voucherRouter.put(
   VoucherController.updateStatus
 );
 voucherRouter.use(authentication);
-voucherRouter.post(
-  '/collect-voucher/:code',
-  VoucherController.collectVoucher
-);
+voucherRouter.post('/collect-voucher/:code', VoucherController.collectVoucher);
 voucherRouter.post(
   '/categorize-shop-vouchers-when-checkout/',
   validate(CheckoutItemSchema),
@@ -64,5 +62,10 @@ voucherRouter.post(
   '/can-apply-voucher',
   validate(CanApplyVoucherSchema),
   VoucherController.canApplyVoucher
+);
+voucherRouter.post(
+  '/filter',
+  validate(FilterVouchersSchema),
+  VoucherController.filterVouchers
 );
 export default voucherRouter;
