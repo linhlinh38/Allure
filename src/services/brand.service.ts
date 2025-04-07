@@ -292,7 +292,7 @@ class BrandService extends BaseService<Brand> {
   }
 
   async filter(filterRequest: FilterBrandRequest, paging: Paging) {
-    const { name, reviewerId, status } = filterRequest;
+    const { name, reviewerId, statuses } = filterRequest;
     const { page, limit } = paging;
     const offset = (page - 1) * limit;
 
@@ -312,8 +312,8 @@ class BrandService extends BaseService<Brand> {
       queryBuilder.andWhere('reviewer.id = :reviewerId', { reviewerId });
     }
 
-    if (status) {
-      queryBuilder.andWhere('brand.status = :status', { status });
+    if (statuses && statuses.length > 0) {
+      queryBuilder.andWhere('brand.status IN (:...statuses)', { statuses });
     }
 
     // Get total count
