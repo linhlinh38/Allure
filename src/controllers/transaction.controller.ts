@@ -209,8 +209,7 @@ export default class TransactionController {
         res,
         'Statistic successfully',
         await transactionService.getDailyOrderStatistics(
-          getDailyOrderStatisticsRequest,
-          req.params.brandId
+          getDailyOrderStatisticsRequest
         )
       );
     } catch (err) {

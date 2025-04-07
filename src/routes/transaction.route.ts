@@ -40,7 +40,7 @@ transactionRouter.post(
 );
 
 transactionRouter.post(
-  '/get-daily-order-statistics/:brandId',
+  '/get-daily-order-statistics',
   validate(GetDailyOrderStatisticsSchema),
   TransactionController.getDailyOrderStatistics
 );
