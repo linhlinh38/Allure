@@ -39,7 +39,7 @@ import { orderDetailRepository } from '../repositories/orderDetail.repository';
 
 const repository = AppDataSource.getRepository(Transaction);
 class TransactionService extends BaseService<Transaction> {
-  async getOrderStatistics(loginUser: string, startDate: Date, endDate: Date) {
+  async getOrderStatistics(loginUser: string, startDate: Date, endDate: Date, brandId: string) {
     if (!startDate || !endDate) {
       startDate = new Date();
       endDate = new Date();
@@ -49,38 +49,28 @@ class TransactionService extends BaseService<Transaction> {
     endDate = new Date(endDate);
     startDate.setHours(0, 0, 0, 0);
     endDate.setHours(23, 59, 59, 999);
-    const account = await accountRepository.findOne({
-      where: { id: loginUser },
-      relations: {
-        brands: true,
-        role: true,
-      },
-    });
     let cancelledOrders,
       refundedOrders,
       inProgressReturnedOrders,
       completedOrders,
       unpaidForBrandOrders;
-    if (account.role.role == RoleEnum.MANAGER) {
-      const brand = account.brands[0];
-
       cancelledOrders = await this.queryCountOrderAndSumTotalPrice(
         [ShippingStatusEnum.CANCELLED],
         startDate,
         endDate,
-        brand.id
+        brandId
       ).getRawOne();
       refundedOrders = await this.queryCountOrderAndSumTotalPrice(
         [ShippingStatusEnum.REFUNDED],
         startDate,
         endDate,
-        brand.id
+        brandId
       ).getRawOne();
       inProgressReturnedOrders = await this.queryCountOrderAndSumTotalPrice(
         [ShippingStatusEnum.RETURNING, ShippingStatusEnum.BRAND_RECEIVED],
         startDate,
         endDate,
-        brand.id
+        brandId
       ).getRawOne();
       completedOrders = await this.queryCountOrderAndSumTotalPrice(
         [
@@ -90,7 +80,7 @@ class TransactionService extends BaseService<Transaction> {
         ],
         startDate,
         endDate,
-        brand.id,
+        brandId,
         true
       ).getRawOne();
       unpaidForBrandOrders = await this.queryCountOrderAndSumTotalPrice(
@@ -104,72 +94,31 @@ class TransactionService extends BaseService<Transaction> {
         ],
         startDate,
         endDate,
-        brand.id,
+        brandId,
         false
       ).getRawOne();
-    } else if (account.role.role == RoleEnum.ADMIN) {
-      cancelledOrders = await this.queryCountOrderAndSumTotalPrice(
-        [ShippingStatusEnum.CANCELLED],
-        startDate,
-        endDate
-      ).getRawOne();
-      refundedOrders = await this.queryCountOrderAndSumTotalPrice(
-        [ShippingStatusEnum.REFUNDED],
-        startDate,
-        endDate
-      ).getRawOne();
-      inProgressReturnedOrders = await this.queryCountOrderAndSumTotalPrice(
-        [ShippingStatusEnum.RETURNING, ShippingStatusEnum.BRAND_RECEIVED],
-        startDate,
-        endDate
-      ).getRawOne();
-      completedOrders = await this.queryCountOrderAndSumTotalPrice(
-        [
-          ShippingStatusEnum.DELIVERED,
-          ShippingStatusEnum.COMPLETED,
-          ShippingStatusEnum.RETURNED_FAIL,
-        ],
-        startDate,
-        endDate,
-        null,
-        true
-      ).getRawOne();
-      unpaidForBrandOrders = await this.queryCountOrderAndSumTotalPrice(
-        [
-          ShippingStatusEnum.WAIT_FOR_CONFIRMATION,
-          ShippingStatusEnum.PREPARING_ORDER,
-          ShippingStatusEnum.SHIPPING,
-          ShippingStatusEnum.TO_SHIP,
-          ShippingStatusEnum.DELIVERED,
-          ShippingStatusEnum.COMPLETED,
-        ],
-        startDate,
-        endDate,
-        null,
-        false
-      ).getRawOne();
-    } else
-      throw new BadRequestError(
-        'You dont have permission to access this resource'
-      );
     return {
       cancelledOrders: {
         count: parseInt(cancelledOrders?.count || '0'),
-        sumTotalPrice: parseFloat(cancelledOrders?.sumTotalPrice || '0'),
+        sumTotalPrice: parseFloat(cancelledOrders?.sumtotalprice || '0'),
       },
       refundedOrders: {
         count: parseInt(refundedOrders?.count || '0'),
-        sumTotalPrice: parseFloat(refundedOrders?.sumTotalPrice || '0'),
+        sumTotalPrice: parseFloat(refundedOrders?.sumtotalprice || '0'),
       },
       inProgressReturnedOrders: {
         count: parseInt(inProgressReturnedOrders?.count || '0'),
         sumTotalPrice: parseFloat(
-          inProgressReturnedOrders?.sumTotalPrice || '0'
+          inProgressReturnedOrders?.sumtotalprice || '0'
         ),
       },
       completedOrders: {
         count: parseInt(completedOrders?.count || '0'),
-        sumTotalPrice: parseFloat(completedOrders?.sumTotalPrice || '0'),
+        sumTotalPrice: parseFloat(completedOrders?.sumtotalprice || '0'),
+      },
+      unpaidForBrandOrders: {
+        count: parseInt(unpaidForBrandOrders?.count || '0'),
+        sumTotalPrice: parseFloat(unpaidForBrandOrders?.sumtotalprice || '0'),
       },
       startDate: startDate.toISOString().split('T')[0],
       endDate: endDate.toISOString().split('T')[0],

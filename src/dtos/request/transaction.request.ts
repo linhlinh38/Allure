@@ -66,6 +66,26 @@ export const FilterTransactionSchema = z.object({
   }),
 });
 
+export const OrderStatisticsSchema = z.object({
+  body: z.object({
+    startDate: z
+      .string()
+      .refine(
+        (value) => !isNaN(Date.parse(value)),
+        'Start date must be a valid date string'
+      )
+      .optional(),
+    endDate: z
+      .string()
+      .refine(
+        (value) => !isNaN(Date.parse(value)),
+        'End date must be a valid date string'
+      )
+      .optional(),
+    brandId: z.string().uuid().optional(),
+  }),
+});
+
 export const GetBrandRevenueStatisticsSchema = z.object({
   body: z.object({
     startDate: z

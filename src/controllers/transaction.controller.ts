@@ -24,7 +24,8 @@ export default class TransactionController {
         await transactionService.getOrderStatistics(
           req.loginUser,
           req.body.startDate,
-          req.body.endDate
+          req.body.endDate,
+          req.body.brandId
         )
       );
     } catch (err) {
