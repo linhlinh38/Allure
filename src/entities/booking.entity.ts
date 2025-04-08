@@ -22,7 +22,6 @@ import { Transaction } from "./transaction.entity";
 import { Feedback } from "./feedback.entity";
 import { BookingFormAnswer } from "./bookingFormAnswer.entity";
 import { ConsultationResult } from "./consultationResult.entity";
-import { join } from "path";
 
 @Entity("bookings")
 export class Booking extends BaseEntity {

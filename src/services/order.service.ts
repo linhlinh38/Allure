@@ -462,6 +462,7 @@ class OrderService extends BaseService<Order> {
         await Promise.all([
           //update order status
           (async () => {
+            order.isPaidForBrand = true;
             order.status = ShippingStatusEnum.RETURNED_FAIL;
             await queryRunner.manager.save(Order, order);
           })(),

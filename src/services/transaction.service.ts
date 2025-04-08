@@ -39,6 +39,205 @@ import { orderDetailRepository } from '../repositories/orderDetail.repository';
 
 const repository = AppDataSource.getRepository(Transaction);
 class TransactionService extends BaseService<Transaction> {
+  async getOrderStatistics(loginUser: string, startDate: Date, endDate: Date) {
+    if (!startDate || !endDate) {
+      startDate = new Date();
+      endDate = new Date();
+      startDate.setMonth(endDate.getMonth() - 1);
+    }
+    startDate = new Date(startDate);
+    endDate = new Date(endDate);
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(23, 59, 59, 999);
+    const account = await accountRepository.findOne({
+      where: { id: loginUser },
+      relations: {
+        brands: true,
+        role: true,
+      },
+    });
+    let cancelledOrders,
+      refundedOrders,
+      inProgressReturnedOrders,
+      completedOrders,
+      unpaidForBrandOrders;
+    if (account.role.role == RoleEnum.MANAGER) {
+      const brand = account.brands[0];
+
+      cancelledOrders = await this.queryCountOrderAndSumTotalPrice(
+        [ShippingStatusEnum.CANCELLED],
+        startDate,
+        endDate,
+        brand.id
+      ).getRawOne();
+      refundedOrders = await this.queryCountOrderAndSumTotalPrice(
+        [ShippingStatusEnum.REFUNDED],
+        startDate,
+        endDate,
+        brand.id
+      ).getRawOne();
+      inProgressReturnedOrders = await this.queryCountOrderAndSumTotalPrice(
+        [ShippingStatusEnum.RETURNING, ShippingStatusEnum.BRAND_RECEIVED],
+        startDate,
+        endDate,
+        brand.id
+      ).getRawOne();
+      completedOrders = await this.queryCountOrderAndSumTotalPrice(
+        [
+          ShippingStatusEnum.DELIVERED,
+          ShippingStatusEnum.COMPLETED,
+          ShippingStatusEnum.RETURNED_FAIL,
+        ],
+        startDate,
+        endDate,
+        brand.id,
+        true
+      ).getRawOne();
+      unpaidForBrandOrders = await this.queryCountOrderAndSumTotalPrice(
+        [
+          ShippingStatusEnum.WAIT_FOR_CONFIRMATION,
+          ShippingStatusEnum.PREPARING_ORDER,
+          ShippingStatusEnum.SHIPPING,
+          ShippingStatusEnum.TO_SHIP,
+          ShippingStatusEnum.DELIVERED,
+          ShippingStatusEnum.COMPLETED,
+        ],
+        startDate,
+        endDate,
+        brand.id,
+        false
+      ).getRawOne();
+    } else if (account.role.role == RoleEnum.ADMIN) {
+      cancelledOrders = await this.queryCountOrderAndSumTotalPrice(
+        [ShippingStatusEnum.CANCELLED],
+        startDate,
+        endDate
+      ).getRawOne();
+      refundedOrders = await this.queryCountOrderAndSumTotalPrice(
+        [ShippingStatusEnum.REFUNDED],
+        startDate,
+        endDate
+      ).getRawOne();
+      inProgressReturnedOrders = await this.queryCountOrderAndSumTotalPrice(
+        [ShippingStatusEnum.RETURNING, ShippingStatusEnum.BRAND_RECEIVED],
+        startDate,
+        endDate
+      ).getRawOne();
+      completedOrders = await this.queryCountOrderAndSumTotalPrice(
+        [
+          ShippingStatusEnum.DELIVERED,
+          ShippingStatusEnum.COMPLETED,
+          ShippingStatusEnum.RETURNED_FAIL,
+        ],
+        startDate,
+        endDate,
+        null,
+        true
+      ).getRawOne();
+      unpaidForBrandOrders = await this.queryCountOrderAndSumTotalPrice(
+        [
+          ShippingStatusEnum.WAIT_FOR_CONFIRMATION,
+          ShippingStatusEnum.PREPARING_ORDER,
+          ShippingStatusEnum.SHIPPING,
+          ShippingStatusEnum.TO_SHIP,
+          ShippingStatusEnum.DELIVERED,
+          ShippingStatusEnum.COMPLETED,
+        ],
+        startDate,
+        endDate,
+        null,
+        false
+      ).getRawOne();
+    } else
+      throw new BadRequestError(
+        'You dont have permission to access this resource'
+      );
+    return {
+      cancelledOrders: {
+        count: parseInt(cancelledOrders?.count || '0'),
+        sumTotalPrice: parseFloat(cancelledOrders?.sumTotalPrice || '0'),
+      },
+      refundedOrders: {
+        count: parseInt(refundedOrders?.count || '0'),
+        sumTotalPrice: parseFloat(refundedOrders?.sumTotalPrice || '0'),
+      },
+      inProgressReturnedOrders: {
+        count: parseInt(inProgressReturnedOrders?.count || '0'),
+        sumTotalPrice: parseFloat(
+          inProgressReturnedOrders?.sumTotalPrice || '0'
+        ),
+      },
+      completedOrders: {
+        count: parseInt(completedOrders?.count || '0'),
+        sumTotalPrice: parseFloat(completedOrders?.sumTotalPrice || '0'),
+      },
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
+    };
+  }
+
+  queryCountOrderAndSumTotalPrice(
+    statuses: ShippingStatusEnum[],
+    startDate: Date,
+    endDate: Date,
+    brandId?: string,
+    isPaidForBrand: boolean = null
+  ) {
+    const query = orderRepository
+      .createQueryBuilder('order')
+      .select([
+        'COUNT(order.id) as count',
+        'SUM(order.totalPrice) as sumTotalPrice',
+      ])
+      .andWhere('order.parent_id IS NOT NULL')
+      .andWhere('order.status IN (:...statuses)', {
+        statuses,
+      })
+      .andWhere('order.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
+    if (brandId) {
+      query.andWhere('order.brand_id = :brandId', { brandId });
+    }
+    if (isPaidForBrand != null) {
+      query.andWhere('order.isPaidForBrand = :isPaidForBrand', {
+        isPaidForBrand,
+      });
+    }
+    return query;
+  }
+
+  async brandRevenue(loginUser: string, startDate: Date, endDate: Date) {
+    const account = await accountRepository.findOne({
+      where: { id: loginUser },
+      relations: {
+        brands: true,
+        role: true,
+      },
+    });
+    if (account.role.role != RoleEnum.MANAGER) {
+      throw new BadRequestError(
+        'You dont have permission to access this resource'
+      );
+    }
+    const brand = account.brands[0];
+
+    if (!startDate || !endDate) {
+      startDate = new Date();
+      endDate = new Date();
+      startDate.setMonth(endDate.getMonth() - 1);
+    }
+    startDate = new Date(startDate);
+    endDate = new Date(endDate);
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(23, 59, 59, 999);
+    return await this.calculateBrandWalletTransfers(
+      brand.id,
+      startDate,
+      endDate
+    );
+  }
   async getFinancialSummary(loginUser: string) {
     const totalAmountFromWithDrawal =
       (
@@ -706,6 +905,9 @@ class TransactionService extends BaseService<Transaction> {
     transaction.paymentMethod = PaymentMethodEnum.WALLET;
     transaction.type = TransactionTypeEnum.TRANSFER_TO_WALLET;
     transaction.balanceAfterTransaction = balance;
+    transaction.description = `Comission fee from order ${order.id} is ${
+      order.totalPrice * masterConfig.commissionFee
+    }`;
     return transaction;
   }
 
@@ -722,6 +924,9 @@ class TransactionService extends BaseService<Transaction> {
     transaction.paymentMethod = PaymentMethodEnum.WALLET;
     transaction.type = TransactionTypeEnum.TRANSFER_TO_WALLET;
     transaction.balanceAfterTransaction = balance;
+    transaction.description = `Comission fee from booking ${booking.id} is ${
+      booking.totalPrice * masterConfig.commissionFee
+    }`;
     return transaction;
   }
 
@@ -1048,6 +1253,36 @@ class TransactionService extends BaseService<Transaction> {
       currentDate.setDate(currentDate.getDate() + 1); // Tăng thêm một ngày
     }
     return dates;
+  }
+
+  async calculateBrandWalletTransfers(
+    brandId: string,
+    startDate: Date,
+    endDate: Date
+  ) {
+    const result = await transactionRepository
+      .createQueryBuilder('transaction')
+      .leftJoinAndSelect('transaction.order', 'order')
+      .select([
+        'SUM(transaction.amount) as totalAmount',
+        'SUM(order.totalPrice - transaction.amount) as totalCommissionFee',
+      ])
+      .where('transaction.brand_id = :brandId', { brandId })
+      .andWhere('transaction.type = :type', {
+        type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+      })
+      .andWhere('transaction.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      })
+      .getRawOne();
+
+    return {
+      totalAmount: parseFloat(result?.totalamount || '0'),
+      totalCommissionFee: parseFloat(result?.totalcommissionfee || '0'),
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
+    };
   }
 
   constructor() {
