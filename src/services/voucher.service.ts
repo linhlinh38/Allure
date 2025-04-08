@@ -1308,7 +1308,7 @@ class VoucherService extends BaseService<Voucher> {
     }
 
     if (brandId) {
-      queryBuilder.andWhere('voucher.brand_id = :brandId', { brandId });
+      queryBuilder.andWhere('brand.id = :brandId', { brandId });
     }
 
     if (startTime) {
