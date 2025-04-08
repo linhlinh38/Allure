@@ -7,6 +7,7 @@ import {
   GetBrandRevenueStatisticsSchema,
   GetDailyOrderStatisticsSchema,
   GetStatisticsSchema,
+  OrderStatisticsSchema,
   PaySchema,
 } from '../dtos/request/transaction.request';
 const transactionRouter = express.Router();
@@ -54,7 +55,7 @@ transactionRouter.post(
 
 transactionRouter.post(
   '/order-statistics',
-  validate(GetBrandRevenueStatisticsSchema),
+  validate(OrderStatisticsSchema),
   TransactionController.getOrderStatistics
 );
 
