@@ -34,7 +34,7 @@ export class Brand extends BaseEntity {
   documents: File[];
 
   @Expose()
-  @Column({ type: "varchar", nullable: true})
+  @Column({ type: "varchar", nullable: true })
   description: string;
 
   @ManyToMany(() => Account, (account) => account.brands)
@@ -52,7 +52,7 @@ export class Brand extends BaseEntity {
   phone: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 255 })
+  @Column({ type: "varchar", length: 255, nullable: true })
   address: string;
 
   @Expose()
