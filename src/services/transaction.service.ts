@@ -39,16 +39,7 @@ import { orderDetailRepository } from '../repositories/orderDetail.repository';
 
 const repository = AppDataSource.getRepository(Transaction);
 class TransactionService extends BaseService<Transaction> {
-  async getOrderStatistics(loginUser: string, startDate: Date, endDate: Date, brandId: string) {
-    if (!startDate || !endDate) {
-      startDate = new Date();
-      endDate = new Date();
-      startDate.setMonth(endDate.getMonth() - 1);
-    }
-    startDate = new Date(startDate);
-    endDate = new Date(endDate);
-    startDate.setHours(0, 0, 0, 0);
-    endDate.setHours(23, 59, 59, 999);
+  async getOrderStatistics(brandId: string) {
     let cancelledOrders,
       refundedOrders,
       inProgressReturnedOrders,
@@ -56,20 +47,14 @@ class TransactionService extends BaseService<Transaction> {
       unpaidForBrandOrders;
       cancelledOrders = await this.queryCountOrderAndSumTotalPrice(
         [ShippingStatusEnum.CANCELLED],
-        startDate,
-        endDate,
         brandId
       ).getRawOne();
       refundedOrders = await this.queryCountOrderAndSumTotalPrice(
         [ShippingStatusEnum.REFUNDED],
-        startDate,
-        endDate,
         brandId
       ).getRawOne();
       inProgressReturnedOrders = await this.queryCountOrderAndSumTotalPrice(
         [ShippingStatusEnum.RETURNING, ShippingStatusEnum.BRAND_RECEIVED],
-        startDate,
-        endDate,
         brandId
       ).getRawOne();
       completedOrders = await this.queryCountOrderAndSumTotalPrice(
@@ -78,8 +63,6 @@ class TransactionService extends BaseService<Transaction> {
           ShippingStatusEnum.COMPLETED,
           ShippingStatusEnum.RETURNED_FAIL,
         ],
-        startDate,
-        endDate,
         brandId,
         true
       ).getRawOne();
@@ -92,8 +75,6 @@ class TransactionService extends BaseService<Transaction> {
           ShippingStatusEnum.DELIVERED,
           ShippingStatusEnum.COMPLETED,
         ],
-        startDate,
-        endDate,
         brandId,
         false
       ).getRawOne();
@@ -120,15 +101,11 @@ class TransactionService extends BaseService<Transaction> {
         count: parseInt(unpaidForBrandOrders?.count || '0'),
         sumTotalPrice: parseFloat(unpaidForBrandOrders?.sumtotalprice || '0'),
       },
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0],
     };
   }
 
   queryCountOrderAndSumTotalPrice(
     statuses: ShippingStatusEnum[],
-    startDate: Date,
-    endDate: Date,
     brandId?: string,
     isPaidForBrand: boolean = null
   ) {
@@ -142,10 +119,6 @@ class TransactionService extends BaseService<Transaction> {
       .andWhere('order.status IN (:...statuses)', {
         statuses,
       })
-      .andWhere('order.createdAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      });
     if (brandId) {
       query.andWhere('order.brand_id = :brandId', { brandId });
     }
