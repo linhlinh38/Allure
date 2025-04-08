@@ -22,9 +22,6 @@ export default class TransactionController {
         res,
         'Get order statistics successfully',
         await transactionService.getOrderStatistics(
-          req.loginUser,
-          req.body.startDate,
-          req.body.endDate,
           req.body.brandId
         )
       );

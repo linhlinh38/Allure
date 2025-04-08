@@ -39,64 +39,45 @@ import { orderDetailRepository } from '../repositories/orderDetail.repository';
 
 const repository = AppDataSource.getRepository(Transaction);
 class TransactionService extends BaseService<Transaction> {
-  async getOrderStatistics(loginUser: string, startDate: Date, endDate: Date, brandId: string) {
-    if (!startDate || !endDate) {
-      startDate = new Date();
-      endDate = new Date();
-      startDate.setMonth(endDate.getMonth() - 1);
-    }
-    startDate = new Date(startDate);
-    endDate = new Date(endDate);
-    startDate.setHours(0, 0, 0, 0);
-    endDate.setHours(23, 59, 59, 999);
+  async getOrderStatistics(brandId: string) {
     let cancelledOrders,
       refundedOrders,
       inProgressReturnedOrders,
       completedOrders,
       unpaidForBrandOrders;
-      cancelledOrders = await this.queryCountOrderAndSumTotalPrice(
-        [ShippingStatusEnum.CANCELLED],
-        startDate,
-        endDate,
-        brandId
-      ).getRawOne();
-      refundedOrders = await this.queryCountOrderAndSumTotalPrice(
-        [ShippingStatusEnum.REFUNDED],
-        startDate,
-        endDate,
-        brandId
-      ).getRawOne();
-      inProgressReturnedOrders = await this.queryCountOrderAndSumTotalPrice(
-        [ShippingStatusEnum.RETURNING, ShippingStatusEnum.BRAND_RECEIVED],
-        startDate,
-        endDate,
-        brandId
-      ).getRawOne();
-      completedOrders = await this.queryCountOrderAndSumTotalPrice(
-        [
-          ShippingStatusEnum.DELIVERED,
-          ShippingStatusEnum.COMPLETED,
-          ShippingStatusEnum.RETURNED_FAIL,
-        ],
-        startDate,
-        endDate,
-        brandId,
-        true
-      ).getRawOne();
-      unpaidForBrandOrders = await this.queryCountOrderAndSumTotalPrice(
-        [
-          ShippingStatusEnum.WAIT_FOR_CONFIRMATION,
-          ShippingStatusEnum.PREPARING_ORDER,
-          ShippingStatusEnum.SHIPPING,
-          ShippingStatusEnum.TO_SHIP,
-          ShippingStatusEnum.DELIVERED,
-          ShippingStatusEnum.COMPLETED,
-        ],
-        startDate,
-        endDate,
-        brandId,
-        false
-      ).getRawOne();
+    cancelledOrders = await this.queryCountOrderAndSumTotalPrice(
+      [ShippingStatusEnum.CANCELLED],
+      brandId
+    ).getRawOne();
+    refundedOrders = await this.queryCountOrderAndSumTotalPrice(
+      [ShippingStatusEnum.REFUNDED],
+      brandId
+    ).getRawOne();
+    inProgressReturnedOrders = await this.queryCountOrderAndSumTotalPrice(
+      [ShippingStatusEnum.RETURNING, ShippingStatusEnum.BRAND_RECEIVED],
+      brandId
+    ).getRawOne();
+    completedOrders = await this.queryCountOrderAndSumTotalPrice(
+      [
+        ShippingStatusEnum.DELIVERED,
+        ShippingStatusEnum.COMPLETED,
+        ShippingStatusEnum.RETURNED_FAIL,
+      ],
+      brandId,
+      true
+    ).getRawOne();
+    unpaidForBrandOrders = await this.queryCountOrderAndSumTotalPrice(
+      [
+        ShippingStatusEnum.WAIT_FOR_CONFIRMATION,
+        ShippingStatusEnum.PREPARING_ORDER,
+        ShippingStatusEnum.SHIPPING,
+        ShippingStatusEnum.TO_SHIP,
+        ShippingStatusEnum.DELIVERED,
+        ShippingStatusEnum.COMPLETED,
+      ],
+      brandId,
+      false
+    ).getRawOne();
     return {
       cancelledOrders: {
         count: parseInt(cancelledOrders?.count || '0'),
@@ -120,15 +101,11 @@ class TransactionService extends BaseService<Transaction> {
         count: parseInt(unpaidForBrandOrders?.count || '0'),
         sumTotalPrice: parseFloat(unpaidForBrandOrders?.sumtotalprice || '0'),
       },
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0],
     };
   }
 
   queryCountOrderAndSumTotalPrice(
     statuses: ShippingStatusEnum[],
-    startDate: Date,
-    endDate: Date,
     brandId?: string,
     isPaidForBrand: boolean = null
   ) {
@@ -141,10 +118,6 @@ class TransactionService extends BaseService<Transaction> {
       .andWhere('order.parent_id IS NOT NULL')
       .andWhere('order.status IN (:...statuses)', {
         statuses,
-      })
-      .andWhere('order.createdAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
       });
     if (brandId) {
       query.andWhere('order.brand_id = :brandId', { brandId });
@@ -1062,7 +1035,8 @@ class TransactionService extends BaseService<Transaction> {
   async getDailyOrderStatistics(
     getDailyOrderStatisticsRequest: GetDailyOrderStatisticsRequest
   ) {
-    const { productIds, orderType, brandId } = getDailyOrderStatisticsRequest;
+    const { productIds, orderType, brandId, eventIds, groupProductIds } =
+      getDailyOrderStatisticsRequest;
     if (
       !getDailyOrderStatisticsRequest.startDate ||
       !getDailyOrderStatisticsRequest.endDate
@@ -1108,10 +1082,11 @@ class TransactionService extends BaseService<Transaction> {
         'SUM(orderDetail.quantity) as totalQuantity',
         'SUM(orderDetail.platformVoucherDiscount) as totalPlatformVoucherDiscount',
         'SUM(orderDetail.shopVoucherDiscount) as totalShopVoucherDiscount',
+        'COUNT(DISTINCT order.id) as orderCount',
       ])
       .where('order.parent_id IS NOT NULL')
-      .andWhere('order.status != :cancelledStatus', {
-        cancelledStatus: ShippingStatusEnum.CANCELLED,
+      .andWhere('order.status NOT IN (:...statuses)', {
+        statuses: [ShippingStatusEnum.CANCELLED, ShippingStatusEnum.REFUNDED],
       })
       .groupBy("DATE_TRUNC('day', statusTracking.createdAt)")
       .orderBy('date', 'DESC');
@@ -1123,24 +1098,39 @@ class TransactionService extends BaseService<Transaction> {
         }
       );
     }
-    if (orderType) {
-      if (!productIds || productIds.length == 0) {
-        throw new BadRequestError('Product ids are required');
+    if (!productIds || productIds.length == 0) {
+      throw new BadRequestError('Product ids are required');
+    }
+    if (orderType == OrderEnum.PRE_ORDER) {
+      queryBuilder.andWhere('orderDetail.type = :type', {
+        type: OrderEnum.PRE_ORDER,
+      });
+      if (productIds && productIds.length > 0) {
+        queryBuilder.andWhere('preOrderProductItem.id IN (:...productIds)', {
+          productIds,
+        });
       }
-      if (orderType == OrderEnum.PRE_ORDER) {
-        queryBuilder.andWhere(
-          'orderDetail.type = :type AND preOrderProduct.id IN (:...productIds)',
-          { type: OrderEnum.PRE_ORDER, productIds }
-        );
-      } else if (orderType == OrderEnum.FLASH_SALE) {
-        queryBuilder.andWhere(
-          'orderDetail.type = :type AND productDiscount.id IN (:...productIds)',
-          {
-            type: OrderEnum.FLASH_SALE,
-            productIds,
-          }
-        );
-      } else if (orderType == OrderEnum.NORMAL) {
+      if (eventIds && eventIds.length > 0) {
+        queryBuilder.andWhere('preOrderProduct.id IN (:...eventIds)', {
+          eventIds,
+        });
+      }
+    } else if (orderType == OrderEnum.FLASH_SALE) {
+      queryBuilder.andWhere('orderDetail.type = :type', {
+        type: OrderEnum.FLASH_SALE,
+      });
+      if (productIds && productIds.length > 0) {
+        queryBuilder.andWhere('discountProduct.id IN (:...productIds)', {
+          productIds,
+        });
+      }
+      if (eventIds && eventIds.length > 0) {
+        queryBuilder.andWhere('productDiscount.id IN (:...eventIds)', {
+          eventIds,
+        });
+      }
+    } else if (orderType == 'ALL') {
+      if (productIds && productIds.length > 0) {
         queryBuilder.andWhere(
           '(product.id IN (:...productIds) OR discountProduct.id IN (:...productIds) OR preOrderProductItem.id IN (:...productIds))',
           {
@@ -1148,8 +1138,29 @@ class TransactionService extends BaseService<Transaction> {
           }
         );
       }
+    } else if (orderType == OrderEnum.NORMAL) {
+      queryBuilder.andWhere(
+        ' orderDetail.type = :type AND product.id IN (:...productIds)',
+        {
+          type: OrderEnum.NORMAL,
+          productIds,
+        }
+      );
+    } else if (orderType == OrderEnum.GROUP_BUYING) {
+      queryBuilder.andWhere('orderDetail.type = :type', {
+        type: OrderEnum.GROUP_BUYING,
+      });
+      if (productIds && productIds.length > 0) {
+        queryBuilder.andWhere('product.id IN (:...productIds)', {
+          productIds,
+        });
+      }
+      if (groupProductIds && groupProductIds.length > 0) {
+        queryBuilder.andWhere('groupProduct.id IN (:...groupProductIds)', {
+          groupProductIds,
+        });
+      }
     }
-
     const results = await queryBuilder.getRawMany();
     const dateRange = this.generateDateRange(startDate, endDate);
 
@@ -1167,6 +1178,7 @@ class TransactionService extends BaseService<Transaction> {
         totalShopVoucherDiscount: result
           ? parseFloat(result.totalshopvoucherdiscount)
           : 0,
+        orderCount: result ? parseInt(result.ordercount) : 0,
       };
     });
 
@@ -1176,6 +1188,7 @@ class TransactionService extends BaseService<Transaction> {
         acc.totalQuantity += curr.totalQuantity;
         acc.totalPlatformVoucherDiscount += curr.totalPlatformVoucherDiscount;
         acc.totalShopVoucherDiscount += curr.totalShopVoucherDiscount;
+        acc.orderCount += curr.orderCount;
         return acc;
       },
       {
@@ -1183,6 +1196,7 @@ class TransactionService extends BaseService<Transaction> {
         totalQuantity: 0,
         totalPlatformVoucherDiscount: 0,
         totalShopVoucherDiscount: 0,
+        orderCount: 0
       }
     );
 
