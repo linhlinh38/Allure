@@ -3,6 +3,7 @@ import { productDiscountService } from "../services/productDiscount.service";
 import { createNormalResponse } from "../utils/response";
 import { NotFoundError } from "../errors/error";
 import { ProductDiscountEnum } from "../utils/enum";
+import { AuthRequest } from "../middleware/authentication";
 export default class ProductDiscountController {
   static async getSoldAmount(req: Request, res: Response, next: NextFunction) {
     try {
@@ -14,9 +15,9 @@ export default class ProductDiscountController {
       next(err);
     }
   }
-  static async getAll(req: Request, res: Response, next: NextFunction) {
+  static async getAll(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const productDiscounts = await productDiscountService.getAll();
+      const productDiscounts = await productDiscountService.getAll(req.loginUser);
       return createNormalResponse(
         res,
         "Get all Product Discounts success",

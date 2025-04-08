@@ -13,7 +13,7 @@ import { productRepository } from '../repositories/product.repository';
 import { voucherRepository } from '../repositories/voucher.repository';
 import { BaseService } from './base.service';
 import { groupBuyingRepository } from '../repositories/groupBuying.repository';
-import { StatusEnum, VoucherVisibilityEnum } from '../utils/enum';
+import { RoleEnum, StatusEnum, VoucherVisibilityEnum } from '../utils/enum';
 import { GroupBuyingRequest } from '../dtos/request/groupBuying.request';
 import { GroupBuying } from '../entities/groupBuying.entity';
 import { accountRepository } from '../repositories/account.repository';
@@ -230,7 +230,26 @@ class GroupProductService extends BaseService<GroupProduct> {
     return voucher;
   }
 
-  async getAll() {
+  async getAll(loginUser: string) {
+    const account = await accountRepository.findOne({
+      where: { id: loginUser },
+      relations: {
+        brands: true,
+        role: true
+      }
+    });
+    if(account.role.role == RoleEnum.MANAGER || account.role.role == RoleEnum.STAFF) {
+      const brand = account.brands[0];
+      return await repository.find({
+        relations: {
+          criterias: { voucher: true },
+          products: true,
+        },
+        where: {
+          brand: { id: brand.id },
+        }
+      });
+    }
     return await repository.find({
       relations: {
         criterias: { voucher: true },

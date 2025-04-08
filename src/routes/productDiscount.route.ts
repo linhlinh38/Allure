@@ -25,9 +25,8 @@ productDiscountRouter.get(
   "/filter-product-discount",
   ProductDiscountController.filterProductDiscounts
 );
-productDiscountRouter.get("/", ProductDiscountController.getAll);
-
 productDiscountRouter.use(authentication);
+productDiscountRouter.get("/", ProductDiscountController.getAll);
 productDiscountRouter.post("/", ProductDiscountController.create);
 productDiscountRouter.put("/:id", ProductDiscountController.update);
 export default productDiscountRouter;

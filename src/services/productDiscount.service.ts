@@ -6,11 +6,12 @@ import { ProductImage } from "../entities/productImage.entity";
 import { BadRequestError } from "../errors/error";
 import { orderDetailRepository } from "../repositories/orderDetail.repository";
 import { productDiscountRepository } from "../repositories/productDiscount.repository";
-import { ProductDiscountEnum, ProductEnum, StatusEnum } from "../utils/enum";
+import { ProductDiscountEnum, ProductEnum, RoleEnum, StatusEnum } from "../utils/enum";
 import { BaseService } from "./base.service";
 import { productService } from "./product.service";
 import { productClassificationService } from "./productClassification.service";
 import { preOrderProductService } from "./preOrderProduct.service";
+import { accountRepository } from "../repositories/account.repository";
 
 const repository = AppDataSource.getRepository(ProductDiscount);
 interface FilterOptions {
@@ -45,8 +46,15 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
   constructor() {
     super(repository);
   }
-  async getAll() {
-    const productDiscounts = await this.repository
+  async getAll(loginUser: string) {
+    const account = await accountRepository.findOne({
+      where: { id: loginUser },
+      relations: {
+        brands: true,
+        role: true
+      }
+    });
+    const query = this.repository
       .createQueryBuilder("productDiscount")
       .leftJoinAndSelect("productDiscount.product", "product")
       .leftJoinAndSelect(
@@ -61,9 +69,11 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
         "classificationImages.status = :imageStatus",
         { imageStatus: StatusEnum.ACTIVE }
       )
-      .getMany();
-
-    return productDiscounts;
+    if(account.role.role == RoleEnum.MANAGER || account.role.role == RoleEnum.STAFF) {
+      const brand = account.brands[0];
+      query.where("product.brand_id = :brandId", { brandId: brand.id });
+    }
+    return await query.getMany();
   }
 
   async getById(id: string) {
