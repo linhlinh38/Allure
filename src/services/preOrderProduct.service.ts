@@ -1,21 +1,23 @@
-import { AppDataSource } from "../dataSource";
-import { PreOrderProduct } from "../entities/preOrderProduct.entity";
-import { Product } from "../entities/product.entity";
-import { ProductClassification } from "../entities/productClassification.entity";
-import { ProductImage } from "../entities/productImage.entity";
-import { BadRequestError } from "../errors/error";
-import { preOrderProductRepository } from "../repositories/preOrderProduct.repository";
-import { productDiscountRepository } from "../repositories/productDiscount.repository";
+import { AppDataSource } from '../dataSource';
+import { PreOrderProduct } from '../entities/preOrderProduct.entity';
+import { Product } from '../entities/product.entity';
+import { ProductClassification } from '../entities/productClassification.entity';
+import { ProductImage } from '../entities/productImage.entity';
+import { BadRequestError } from '../errors/error';
+import { accountRepository } from '../repositories/account.repository';
+import { preOrderProductRepository } from '../repositories/preOrderProduct.repository';
+import { productDiscountRepository } from '../repositories/productDiscount.repository';
 import {
   PreOrderProductEnum,
   ProductDiscountEnum,
   ProductEnum,
+  RoleEnum,
   StatusEnum,
-} from "../utils/enum";
-import { BaseService } from "./base.service";
-import { productService } from "./product.service";
-import { productClassificationService } from "./productClassification.service";
-import { format } from "date-fns";
+} from '../utils/enum';
+import { BaseService } from './base.service';
+import { productService } from './product.service';
+import { productClassificationService } from './productClassification.service';
+import { format } from 'date-fns';
 
 const repository = AppDataSource.getRepository(PreOrderProduct);
 interface FilterOptions {
@@ -34,44 +36,53 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
     super(repository);
   }
 
-  async getAll() {
-    const preOrderProduct = await this.repository
-      .createQueryBuilder("preOrderProduct")
-      .leftJoinAndSelect("preOrderProduct.product", "product")
+  async getAll(loginUser: string) {
+    const account = await accountRepository.findOne({
+      where: { id: loginUser },
+      relations: {
+        brands: true,
+        role: true,
+      },
+    });
+    const query = this.repository
+      .createQueryBuilder('preOrderProduct')
+      .leftJoinAndSelect('preOrderProduct.product', 'product')
       .leftJoinAndSelect(
-        "preOrderProduct.productClassifications",
-        "productClassifications",
-        "productClassifications.status = :classificationStatus",
+        'preOrderProduct.productClassifications',
+        'productClassifications',
+        'productClassifications.status = :classificationStatus',
         { classificationStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "productClassifications.images",
-        "classificationImages",
-        "classificationImages.status = :imageStatus",
+        'productClassifications.images',
+        'classificationImages',
+        'classificationImages.status = :imageStatus',
         { imageStatus: StatusEnum.ACTIVE }
-      )
-      .getMany();
-
-    return preOrderProduct;
+      );
+    if(account.role.role == RoleEnum.MANAGER || account.role.role == RoleEnum.STAFF) {
+      const brand = account.brands[0];
+      query.where('product.brand_id = :brandId', { brandId: brand.id });
+    }
+    return await query.getMany();
   }
 
   async getById(id: string) {
     const preOrderProduct = await this.repository
-      .createQueryBuilder("preOrderProduct")
-      .leftJoinAndSelect("preOrderProduct.product", "product")
+      .createQueryBuilder('preOrderProduct')
+      .leftJoinAndSelect('preOrderProduct.product', 'product')
       .leftJoinAndSelect(
-        "preOrderProduct.productClassifications",
-        "productClassifications",
-        "productClassifications.status = :classificationStatus",
+        'preOrderProduct.productClassifications',
+        'productClassifications',
+        'productClassifications.status = :classificationStatus',
         { classificationStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "productClassifications.images",
-        "classificationImages",
-        "classificationImages.status = :imageStatus",
+        'productClassifications.images',
+        'classificationImages',
+        'classificationImages.status = :imageStatus',
         { imageStatus: StatusEnum.ACTIVE }
       )
-      .where("preOrderProduct.id = :id", { id })
+      .where('preOrderProduct.id = :id', { id })
       .getOne();
 
     return preOrderProduct;
@@ -81,28 +92,28 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
     brandId: string
   ): Promise<PreOrderProduct[]> {
     const products = await repository
-      .createQueryBuilder("preOrderProduct")
-      .leftJoinAndSelect("preOrderProduct.product", "product")
-      .leftJoinAndSelect("product.brand", "brand")
+      .createQueryBuilder('preOrderProduct')
+      .leftJoinAndSelect('preOrderProduct.product', 'product')
+      .leftJoinAndSelect('product.brand', 'brand')
       .leftJoinAndSelect(
-        "preOrderProduct.productClassifications",
-        "preOrderProductClassifications",
-        "preOrderProductClassifications.status = :classificationStatus",
+        'preOrderProduct.productClassifications',
+        'preOrderProductClassifications',
+        'preOrderProductClassifications.status = :classificationStatus',
         { classificationStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "preOrderProductClassifications.images",
-        "preOrderProductClassificationsImages",
-        "preOrderProductClassificationsImages.status = :imageStatus",
+        'preOrderProductClassifications.images',
+        'preOrderProductClassificationsImages',
+        'preOrderProductClassificationsImages.status = :imageStatus',
         { imageStatus: StatusEnum.ACTIVE }
       )
-      .where("preOrderProduct.status = :status", {
+      .where('preOrderProduct.status = :status', {
         status: PreOrderProductEnum.ACTIVE,
       })
       // .andWhere("product.status = :productStatus", {
       //   productStatus: ProductEnum.,
       // })
-      .andWhere("brand.id = :brandId", { brandId })
+      .andWhere('brand.id = :brandId', { brandId })
       .getMany();
 
     return products;
@@ -110,25 +121,25 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
 
   async getPreOrderProductOfBrand(brandId: string): Promise<PreOrderProduct[]> {
     const products = await repository
-      .createQueryBuilder("preOrderProduct")
-      .leftJoinAndSelect("preOrderProduct.product", "product")
-      .leftJoinAndSelect("product.brand", "brand")
+      .createQueryBuilder('preOrderProduct')
+      .leftJoinAndSelect('preOrderProduct.product', 'product')
+      .leftJoinAndSelect('product.brand', 'brand')
       .leftJoinAndSelect(
-        "preOrderProduct.productClassifications",
-        "preOrderProductClassifications",
-        "preOrderProductClassifications.status = :classificationStatus",
+        'preOrderProduct.productClassifications',
+        'preOrderProductClassifications',
+        'preOrderProductClassifications.status = :classificationStatus',
         { classificationStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "preOrderProductClassifications.images",
-        "preOrderProductClassificationsImages",
-        "preOrderProductClassificationsImages.status = :imageStatus",
+        'preOrderProductClassifications.images',
+        'preOrderProductClassificationsImages',
+        'preOrderProductClassificationsImages.status = :imageStatus',
         { imageStatus: StatusEnum.ACTIVE }
       )
       // .andWhere("product.status = :productStatus", {
       //   productStatus: ProductEnum.,
       // })
-      .where("brand.id = :brandId", { brandId })
+      .where('brand.id = :brandId', { brandId })
       .getMany();
 
     return products;
@@ -138,25 +149,25 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
     productId: string
   ): Promise<PreOrderProduct[]> {
     const products = await repository
-      .createQueryBuilder("preOrderProduct")
-      .leftJoinAndSelect("preOrderProduct.product", "product")
-      .leftJoinAndSelect("product.brand", "brand")
+      .createQueryBuilder('preOrderProduct')
+      .leftJoinAndSelect('preOrderProduct.product', 'product')
+      .leftJoinAndSelect('product.brand', 'brand')
       .leftJoinAndSelect(
-        "preOrderProduct.productClassifications",
-        "preOrderProductClassifications",
-        "preOrderProductClassifications.status = :classificationStatus",
+        'preOrderProduct.productClassifications',
+        'preOrderProductClassifications',
+        'preOrderProductClassifications.status = :classificationStatus',
         { classificationStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "preOrderProductClassifications.images",
-        "preOrderProductClassificationsImages",
-        "preOrderProductClassificationsImages.status = :imageStatus",
+        'preOrderProductClassifications.images',
+        'preOrderProductClassificationsImages',
+        'preOrderProductClassificationsImages.status = :imageStatus',
         { imageStatus: StatusEnum.ACTIVE }
       )
       // .andWhere("product.status = :productStatus", {
       //   productStatus: ProductEnum.,
       // })
-      .where("product.id = :productId", { productId })
+      .where('product.id = :productId', { productId })
       .getMany();
 
     return products;
@@ -176,19 +187,19 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
     } = options;
 
     const queryBuilder = this.repository
-      .createQueryBuilder("preOrderProduct")
-      .leftJoinAndSelect("preOrderProduct.product", "product")
-      .leftJoinAndSelect("product.brand", "brand")
+      .createQueryBuilder('preOrderProduct')
+      .leftJoinAndSelect('preOrderProduct.product', 'product')
+      .leftJoinAndSelect('product.brand', 'brand')
       .leftJoinAndSelect(
-        "preOrderProduct.productClassifications",
-        "productClassifications",
-        "productClassifications.status = :status",
+        'preOrderProduct.productClassifications',
+        'productClassifications',
+        'productClassifications.status = :status',
         { status: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "productClassifications.images",
-        "images",
-        "images.status = :imageStatus",
+        'productClassifications.images',
+        'images',
+        'images.status = :imageStatus',
         { imageStatus: StatusEnum.ACTIVE }
       );
 
@@ -207,17 +218,17 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
     }
 
     if (productIds && productIds.length > 0) {
-      queryBuilder.andWhere("preOrderProduct.product.id IN (:...productIds)", {
+      queryBuilder.andWhere('preOrderProduct.product.id IN (:...productIds)', {
         productIds,
       });
     }
 
     if (brandId) {
-      queryBuilder.andWhere("brand.id = :brandId", { brandId });
+      queryBuilder.andWhere('brand.id = :brandId', { brandId });
     }
 
     if (status && status.length > 0) {
-      queryBuilder.andWhere("preOrderProduct.status IN (:...statuses)", {
+      queryBuilder.andWhere('preOrderProduct.status IN (:...statuses)', {
         statuses: status,
       });
     }
@@ -225,7 +236,7 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
     queryBuilder
       .orderBy(
         `preOrderProduct.${sortBy}`,
-        order.toUpperCase() as "ASC" | "DESC"
+        order.toUpperCase() as 'ASC' | 'DESC'
       )
       .skip((page - 1) * limit)
       .take(limit);
@@ -244,7 +255,7 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
     const date = new Date(datetimeString);
 
     if (isNaN(date.getTime())) {
-      throw new Error("Invalid datetime string");
+      throw new Error('Invalid datetime string');
     }
 
     return format(date, "yyyy-MM-dd'T'HH:mm:ss");
@@ -270,14 +281,14 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
 
     if (checkQuantity.length === 0) {
       throw new BadRequestError(
-        "Product classification must have at least one quantity."
+        'Product classification must have at least one quantity.'
       );
     }
 
     if (data.productClassifications) {
       for (const classification of data.productClassifications) {
-        if (!classification.sku || classification.sku === "") {
-          throw new BadRequestError("sku is required");
+        if (!classification.sku || classification.sku === '') {
+          throw new BadRequestError('sku is required');
         }
         const checkSku = await productClassificationService.checkSkuUniqueness(
           classification.sku,
@@ -324,18 +335,18 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
     const end = new Date(endTime);
 
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      throw new BadRequestError("Invalid start time or end time");
+      throw new BadRequestError('Invalid start time or end time');
     }
 
     if (start >= end) {
-      throw new BadRequestError("Start time must be earlier than end time");
+      throw new BadRequestError('Start time must be earlier than end time');
     }
 
     // Check for overlapping pre-order events
     const overlappingPreOrder = await preOrderRepository
-      .createQueryBuilder("preOrderProduct")
-      .leftJoin("preOrderProduct.product", "product")
-      .where("product.id = :productId", { productId })
+      .createQueryBuilder('preOrderProduct')
+      .leftJoin('preOrderProduct.product', 'product')
+      .where('product.id = :productId', { productId })
       .andWhere(
         `(
         (preOrderProduct.startTime <= :endTime AND preOrderProduct.endTime >= :startTime) OR
@@ -345,10 +356,10 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
         { startTime, endTime }
       )
       .andWhere(
-        excludeEventId ? "preOrderProduct.id != :excludeEventId" : "1=1",
+        excludeEventId ? 'preOrderProduct.id != :excludeEventId' : '1=1',
         { excludeEventId }
       )
-      .andWhere("preOrderProduct.status IN (:...statuses)", {
+      .andWhere('preOrderProduct.status IN (:...statuses)', {
         statuses: [
           PreOrderProductEnum.ACTIVE,
           PreOrderProductEnum.WAITING,
@@ -365,9 +376,9 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
 
     // Check for overlapping discount events
     const overlappingDiscount = await discountRepository
-      .createQueryBuilder("productDiscount")
-      .leftJoin("productDiscount.product", "product")
-      .where("product.id = :productId", { productId })
+      .createQueryBuilder('productDiscount')
+      .leftJoin('productDiscount.product', 'product')
+      .where('product.id = :productId', { productId })
       .andWhere(
         `(
         (productDiscount.startTime <= :endTime AND productDiscount.endTime >= :startTime) OR
@@ -377,10 +388,10 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
         { startTime, endTime }
       )
       .andWhere(
-        excludeEventId ? "productDiscount.id != :excludeEventId" : "1=1",
+        excludeEventId ? 'productDiscount.id != :excludeEventId' : '1=1',
         { excludeEventId }
       )
-      .andWhere("productDiscount.status IN (:...statuses)", {
+      .andWhere('productDiscount.status IN (:...statuses)', {
         statuses: [
           ProductDiscountEnum.ACTIVE,
           ProductDiscountEnum.WAITING,
@@ -399,10 +410,10 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
   async beforeUpdate(id: string, body: any) {
     const preorderProduct = await this.repository.findOne({
       where: { id },
-      relations: ["product"],
+      relations: ['product'],
     });
     if (!preorderProduct) {
-      throw new BadRequestError("Pre-order Product not found");
+      throw new BadRequestError('Pre-order Product not found');
     }
     if (body.productClassifications) {
       for (const classification of body.productClassifications) {
@@ -580,11 +591,11 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
 
       const preOrderProduct = await preOrderPoductRepository.findOne({
         where: { id },
-        relations: ["productClassifications", "product"],
+        relations: ['productClassifications', 'product'],
       });
 
       if (!preOrderProduct) {
-        throw new Error("Product not found.");
+        throw new Error('Product not found.');
       }
 
       if (
@@ -637,7 +648,7 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
 
       const updatedProduct = await preOrderPoductRepository.findOne({
         where: { id },
-        relations: ["productClassifications", "product"],
+        relations: ['productClassifications', 'product'],
       });
 
       return updatedProduct!;
