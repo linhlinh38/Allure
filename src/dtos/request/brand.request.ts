@@ -15,10 +15,7 @@ export const BrandCreateSchema = z.object({
         .min(1, "Document is required")
         .max(255, "Document cannot exceed 255 characters")
     ),
-    description: z
-      .string()
-      .max(255, "Description cannot exceed 255 characters")
-      .optional(),
+    description: z.string().optional(),
     email: z.string().email("Invalid email address"),
     phone: z.string().optional(),
     address: z

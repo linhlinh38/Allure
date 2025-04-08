@@ -74,6 +74,8 @@ import { FCMService } from './FCM.service';
 import Logging from '../utils/Logging';
 import { addtransferToBrandWalletToQueue } from '../utils/queue/transferToBrandWalletQueue';
 import { Paging } from '../dtos/other/paging.dto';
+import { LiveStream } from '../entities/livestream.entity';
+import { livestreamProductRepository } from '../repositories/livestreamProduct.repository';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
@@ -185,7 +187,10 @@ class OrderService extends BaseService<Order> {
       .leftJoinAndSelect('orderRequest.updatedBy', 'updatedBy')
       .leftJoinAndSelect('updatedBy.role', 'role')
       .leftJoinAndSelect('orderRequest.mediaFiles', 'mediaFiles')
-      .leftJoinAndSelect('orderRequest.rejectedRefundRequest', 'rejectedRefundRequest')
+      .leftJoinAndSelect(
+        'orderRequest.rejectedRefundRequest',
+        'rejectedRefundRequest'
+      )
       .leftJoinAndSelect(
         'rejectedRefundRequest.mediaFiles',
         'rejectedRefundRequestMediaFiles'
@@ -457,6 +462,7 @@ class OrderService extends BaseService<Order> {
         await Promise.all([
           //update order status
           (async () => {
+            order.isPaidForBrand = true;
             order.status = ShippingStatusEnum.RETURNED_FAIL;
             await queryRunner.manager.save(Order, order);
           })(),
@@ -1839,6 +1845,13 @@ class OrderService extends BaseService<Order> {
           childOrder.voucher = shopVoucher;
         }
         for (const item of order.items) {
+          //find livestream
+          if (item.livestreamId) {
+            const livestream = await queryRunner.manager.findOne(LiveStream, {
+              where: { id: item.livestreamId },
+            });
+            if (!livestream) throw new BadRequestError(`Livestream not found`);
+          }
           //find product
           const productClassification =
             await productClassificationRepository.findOne({
@@ -1855,7 +1868,10 @@ class OrderService extends BaseService<Order> {
             throw new BadRequestError('Product is out of stock');
           }
           //init order detail
-          const orderDetail = this.initOrderDetail(productClassification, item);
+          const orderDetail = await this.initOrderDetail(
+            productClassification,
+            item,
+          );
 
           //push order detail into child order
           childOrder.orderDetails.push(orderDetail);
@@ -1910,9 +1926,9 @@ class OrderService extends BaseService<Order> {
     }
   }
 
-  private initOrderDetail(
+  private async initOrderDetail(
     productClassification: ProductClassification,
-    item: { productClassificationId: string; quantity: number }
+    item: { productClassificationId: string; quantity: number, livestreamId?: string }
   ) {
     const orderDetail = new OrderDetail();
     orderDetail.unitPriceBeforeDiscount = productClassification.price;
@@ -1931,7 +1947,24 @@ class OrderService extends BaseService<Order> {
       orderDetail.productDiscount = productClassification.productDiscount;
     } else if (productClassification.preOrderProduct) {
       orderDetail.type = OrderEnum.PRE_ORDER;
-    } else orderDetail.type = OrderEnum.NORMAL;
+    } else {
+      orderDetail.type = OrderEnum.NORMAL;
+      if (item.livestreamId) {
+        orderDetail.type = OrderEnum.LIVE_STREAM;
+        const livestreamProduct = await livestreamProductRepository.findOne({
+          where: {
+            livestream: { id: item.livestreamId },
+            product: {
+              id: productClassification.product.id,
+            },
+          },
+        });
+        if (!livestreamProduct)
+          throw new BadRequestError('Product not found in livestream');
+        orderDetail.unitPriceAfterDiscount =
+          productClassification.price * (1 - livestreamProduct.discount);
+      }
+    }
     orderDetail.subTotal = item.quantity * orderDetail.unitPriceAfterDiscount;
     orderDetail.totalPrice = orderDetail.subTotal;
     orderDetail.quantity = item.quantity;

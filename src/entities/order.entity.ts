@@ -73,6 +73,13 @@ export class Order extends BaseEntity {
   })
   status: ShippingStatusEnum;
 
+  @Column({
+    name: 'is_paid_for_brand',
+    default: false,
+    type: 'boolean',
+  })
+  isPaidForBrand: boolean;
+
   @ManyToOne(() => GroupBuying, (groupBuying) => groupBuying.orders, {
     nullable: true,
   })
@@ -123,23 +130,8 @@ export class Order extends BaseEntity {
   })
   expiredReceivedTime: Date;
 
-  // @OneToOne(
-  //   () => CancelOrderRequest,
-  //   (cancelOrderRequest) => cancelOrderRequest.order
-  // )
-  // cancelOrderRequest: CancelOrderRequest;
-
   @OneToMany(() => Transaction, (transaction) => transaction.order)
   transactions: Transaction[];
-
-  // @OneToOne(() => RefundRequest, (refundRequest) => refundRequest.order)
-  // refundRequest: RefundRequest;
-
-  // @OneToOne(
-  //   () => ComplaintRequest,
-  //   (complaintRequest) => complaintRequest.order
-  // )
-  // complaintRequest: ComplaintRequest;
 
   @OneToOne(() => Report, (report) => report.order)
   report: Report;
