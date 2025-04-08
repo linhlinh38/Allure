@@ -1,11 +1,7 @@
 import { Queue, Worker } from 'bullmq';
 import { AppDataSource } from '../../dataSource';
 import { orderRepository } from '../../repositories/order.repository';
-import {
-  NotificationTypeEnum,
-  RoleEnum,
-  ShippingStatusEnum,
-} from '../enum';
+import { NotificationTypeEnum, RoleEnum, ShippingStatusEnum } from '../enum';
 import { retrieveMasterConfig } from '../retrieveMasterConfig';
 import Logging from '../Logging';
 import { connection } from './connection';
@@ -53,6 +49,11 @@ const transferToBrandWalletQueueWorker = new Worker(
         )
       )
         return;
+
+      order.isPaidForBrand = true;
+      order.status = ShippingStatusEnum.COMPLETED;
+      await queryRunner.manager.save(order);
+
       await transactionService.transferToBrandWallet(order.id, queryRunner);
       const masterConfig = await retrieveMasterConfig();
       const manager = order.brand.accounts.find(
@@ -106,7 +107,5 @@ transferToBrandWalletQueueWorker.on('completed', (job) => {
 });
 
 transferToBrandWalletQueueWorker.on('failed', (job, err) => {
-  console.log(
-    `❌ Job transferToBrandWallet thất bại: ${err.message}`
-  );
+  console.log(`❌ Job transferToBrandWallet thất bại: ${err.message}`);
 });

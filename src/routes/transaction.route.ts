@@ -4,6 +4,7 @@ import validate from '../utils/validate';
 import TransactionController from '../controllers/transaction.controller';
 import {
   FilterTransactionSchema,
+  GetBrandRevenueStatisticsSchema,
   GetDailyOrderStatisticsSchema,
   GetStatisticsSchema,
   PaySchema,
@@ -43,6 +44,18 @@ transactionRouter.post(
   '/get-daily-order-statistics',
   validate(GetDailyOrderStatisticsSchema),
   TransactionController.getDailyOrderStatistics
+);
+
+transactionRouter.post(
+  '/brand-revenue',
+  validate(GetBrandRevenueStatisticsSchema),
+  TransactionController.brandRevenue
+);
+
+transactionRouter.post(
+  '/order-statistics',
+  validate(GetBrandRevenueStatisticsSchema),
+  TransactionController.getOrderStatistics
 );
 
 transactionRouter.post(

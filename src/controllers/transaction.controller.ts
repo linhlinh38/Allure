@@ -1,7 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { createNormalResponse } from '../utils/response';
 import { AuthRequest } from '../middleware/authentication';
-import { NextFunction, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import {
   FilterTransactionRequest,
   GetDailyOrderStatisticsRequest,
@@ -12,6 +12,44 @@ import { transactionService } from '../services/transaction.service';
 import { Paging } from '../dtos/other/paging.dto';
 
 export default class TransactionController {
+  static async getOrderStatistics(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get order statistics successfully',
+        await transactionService.getOrderStatistics(
+          req.loginUser,
+          req.body.startDate,
+          req.body.endDate
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async brandRevenue(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get brand revenue successfully',
+        await transactionService.brandRevenue(
+          req.loginUser,
+          req.body.startDate,
+          req.body.endDate
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async getFinancialSummary(
     req: AuthRequest,
     res: Response,
