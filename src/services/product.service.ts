@@ -10,6 +10,7 @@ import {
   ProductDiscountEnum,
   ProductEnum,
   ProductTagEnum,
+  RoleEnum,
   ShippingStatusEnum,
   StatusEnum,
 } from '../utils/enum';
@@ -199,34 +200,42 @@ class ProductService extends BaseService<Product> {
   }
 
   async getAll(loginUser: string) {
-    const account = await accountRepository.findOne({
-      where: { id: loginUser },
-      relations: {
-        brands: true,
-      },
-    });
-    const products = await this.repository.find({
-      relations: {
-        category: {
-          parentCategory: true,
+    const queryBuilder = this.repository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('category.parentCategory', 'parentCategory')
+      .leftJoinAndSelect('product.brand', 'brand')
+      .leftJoinAndSelect(
+        'product.productClassifications',
+        'productClassifications'
+      )
+      .leftJoinAndSelect(
+        'productClassifications.images',
+        'classificationImages'
+      )
+      .leftJoinAndSelect('product.images', 'images')
+      .where('productClassifications.status = :classificationStatus', {
+        classificationStatus: StatusEnum.ACTIVE,
+      })
+      .andWhere('images.status = :imageStatus', {
+        imageStatus: StatusEnum.ACTIVE,
+      });
+    if (loginUser) {
+      const account = await accountRepository.findOne({
+        where: { id: loginUser },
+        relations: {
+          brands: true,
         },
-        brand: true,
-        productClassifications: {
-          images: true,
-        },
-        images: true,
-      },
-      where: {
-        productClassifications: {
-          status: StatusEnum.ACTIVE,
-        },
-        images: {
-          status: StatusEnum.ACTIVE,
-        },
-      },
-    });
-
-    return products;
+      });
+      if (
+        account.role.role == RoleEnum.MANAGER ||
+        account.role.role == RoleEnum.STAFF
+      ) {
+        const brand = account.brands[0];
+        queryBuilder.andWhere('brand.id = :brandId', { brandId: brand.id });
+      }
+    }
+    return await queryBuilder.getMany();
   }
 
   async getById(id: string) {

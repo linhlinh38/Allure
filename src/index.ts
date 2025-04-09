@@ -9,6 +9,7 @@ import router from './routes/index.route';
 import { errorHandler } from './errors/errorHandler';
 import { initializeMasterConfig } from './utils/initializeMasterConfig';
 import { initializeSlots } from './utils/initializeSlots';
+import extractToken from './middleware/extractToken';
 
 const app = express();
 
@@ -49,6 +50,8 @@ const StartServer = () => {
   app.get('/ping', (req, res, next) =>
     res.status(200).json({ hello: 'world' })
   );
+
+  app.use(extractToken);
 
   //Routes
   app.use('/allure', router);

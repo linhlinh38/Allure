@@ -37,13 +37,6 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
   }
 
   async getAll(loginUser: string) {
-    const account = await accountRepository.findOne({
-      where: { id: loginUser },
-      relations: {
-        brands: true,
-        role: true,
-      },
-    });
     const query = this.repository
       .createQueryBuilder('preOrderProduct')
       .leftJoinAndSelect('preOrderProduct.product', 'product')
@@ -59,9 +52,21 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
         'classificationImages.status = :imageStatus',
         { imageStatus: StatusEnum.ACTIVE }
       );
-    if(account.role.role == RoleEnum.MANAGER || account.role.role == RoleEnum.STAFF) {
-      const brand = account.brands[0];
-      query.where('product.brand_id = :brandId', { brandId: brand.id });
+    if (loginUser) {
+      const account = await accountRepository.findOne({
+        where: { id: loginUser },
+        relations: {
+          brands: true,
+          role: true,
+        },
+      });
+      if (
+        account.role.role == RoleEnum.MANAGER ||
+        account.role.role == RoleEnum.STAFF
+      ) {
+        const brand = account.brands[0];
+        query.where('product.brand_id = :brandId', { brandId: brand.id });
+      }
     }
     return await query.getMany();
   }
