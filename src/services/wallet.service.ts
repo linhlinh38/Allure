@@ -98,7 +98,7 @@ class WalletService extends BaseService<Wallet> {
 
   increaseBalance(wallet: Wallet, amount: number) {
     wallet.balance += amount;
-    wallet.availableBalance -= amount;
+    wallet.availableBalance += amount;
   }
 
   decreaseBalance(wallet: Wallet, amount: number) {

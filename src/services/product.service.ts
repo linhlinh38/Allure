@@ -221,6 +221,7 @@ class ProductService extends BaseService<Product> {
         imageStatus: StatusEnum.ACTIVE,
       });
     if (loginUser) {
+      console.log(loginUser);
       const account = await accountRepository.findOne({
         where: { id: loginUser },
         relations: {
@@ -228,6 +229,8 @@ class ProductService extends BaseService<Product> {
           role: true
         },
       });
+      console.log(account);
+      
       if (
         account.role.role == RoleEnum.MANAGER ||
         account.role.role == RoleEnum.STAFF
