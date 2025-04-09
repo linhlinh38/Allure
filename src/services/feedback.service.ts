@@ -249,13 +249,15 @@ class FeedbackService extends BaseService<Feedback> {
       ])
       .getRawOne();
 
-    const averageRating = parseFloat(result?.average_rating || 0).toFixed(1);
-    const totalCount = result?.total_count || 0;
-    const rating1Count = result?.rating1 || 0;
-    const rating2Count = result?.rating2 || 0;
-    const rating3Count = result?.rating3 || 0;
-    const rating4Count = result?.rating4 || 0;
-    const rating5Count = result?.rating5 || 0;
+    const averageRating = parseFloat(
+      parseFloat(result?.average_rating || 0).toFixed(1)
+    );
+    const totalCount = parseInt(result?.total_count || '0');
+    const rating1Count = parseInt(result?.rating1 || '0');
+    const rating2Count = parseInt(result?.rating2 || '0');
+    const rating3Count = parseInt(result?.rating3 || '0');
+    const rating4Count = parseInt(result?.rating4 || '0');
+    const rating5Count = parseInt(result?.rating5 || '0');
 
     return {
       averageRating,
