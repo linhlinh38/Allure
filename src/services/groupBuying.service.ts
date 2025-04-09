@@ -7,6 +7,7 @@ import { groupBuyingRepository } from '../repositories/groupBuying.repository';
 import {
   NotificationTypeEnum,
   OrderEnum,
+  PaymentMethodEnum,
   ShippingStatusEnum,
   StatusEnum,
   VoucherApplyTypeEnum,
@@ -513,6 +514,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       parentOrder.account = account;
       parentOrder.status = ShippingStatusEnum.JOIN_GROUP_BUYING;
       parentOrder.groupBuying = groupBuying;
+      parentOrder.paymentMethod = PaymentMethodEnum.WALLET;
 
       //create child order
       const childOrder: Order = new Order();
@@ -529,6 +531,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       parentOrder.children = [childOrder];
       childOrder.brand = groupBuying.groupProduct.brand;
       childOrder.groupBuying = groupBuying;
+      childOrder.paymentMethod = PaymentMethodEnum.WALLET;
 
       for (const item of groupBuyingJoinEventBody.items) {
         //find product
@@ -594,7 +597,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
           owner: { id: userId },
         },
       });
-      if (!wallet || parentOrder.totalPrice > wallet.balance)
+      if (!wallet || parentOrder.totalPrice > wallet.availableBalance)
         throw new BadRequestError(`Wallet balance is not enough`);
 
       const createdParentOrder = await queryRunner.manager.save(
