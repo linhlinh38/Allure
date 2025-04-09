@@ -152,7 +152,7 @@ class GroupProductService extends BaseService<GroupProduct> {
   ) {
     const groupProduct = await repository.findOne({
       where: { id: groupProductId },
-      relations: { products: true, criterias: true },
+      relations: { products: true, criterias: true, brand: true },
     });
     if (!groupProduct) throw new BadRequestError('Group product not found');
     if (groupProduct.status != StatusEnum.INACTIVE)
@@ -197,7 +197,6 @@ class GroupProductService extends BaseService<GroupProduct> {
       } else {
         await this.addNewCriteria(
           criteria,
-          groupProductUpdateBody,
           groupProduct
         );
       }
@@ -235,10 +234,13 @@ class GroupProductService extends BaseService<GroupProduct> {
       where: { id: loginUser },
       relations: {
         brands: true,
-        role: true
-      }
+        role: true,
+      },
     });
-    if(account.role.role == RoleEnum.MANAGER || account.role.role == RoleEnum.STAFF) {
+    if (
+      account.role.role == RoleEnum.MANAGER ||
+      account.role.role == RoleEnum.STAFF
+    ) {
       const brand = account.brands[0];
       return await repository.find({
         relations: {
@@ -247,7 +249,7 @@ class GroupProductService extends BaseService<GroupProduct> {
         },
         where: {
           brand: { id: brand.id },
-        }
+        },
       });
     }
     return await repository.find({
@@ -279,7 +281,7 @@ class GroupProductService extends BaseService<GroupProduct> {
       throw new BadRequestError('Some products not found');
     }
     for (const criteria of groupProductBody.criterias) {
-      await this.addNewCriteria(criteria, groupProductBody, groupProduct);
+      await this.addNewCriteria(criteria, groupProduct);
     }
     groupProduct.products = products;
     return await repository.save(groupProduct);
@@ -287,7 +289,6 @@ class GroupProductService extends BaseService<GroupProduct> {
 
   private async addNewCriteria(
     criteria: { threshold: number; voucher: VoucherRequest; id?: string },
-    groupProductBody: GroupProductCreateRequest | GroupProductUpdateRequest,
     groupProduct: GroupProduct
   ) {
     const groupBuyingCriteria = new GroupBuyingCriteria();
@@ -300,14 +301,6 @@ class GroupProductService extends BaseService<GroupProduct> {
         'Voucher: The start time cannot be after the end time'
       );
     }
-    const existVoucherByName = await voucherRepository.findOne({
-      where: {
-        name: criteria.voucher.name,
-      },
-    });
-    if (existVoucherByName) {
-      throw new BadRequestError('Voucher name already exists');
-    }
     const existVoucherByCode = await voucherRepository.findOne({
       where: {
         code: criteria.voucher.code,
@@ -318,13 +311,10 @@ class GroupProductService extends BaseService<GroupProduct> {
     }
     const voucherBody = new Voucher();
     Object.assign(voucherBody, criteria.voucher);
-    if (criteria.voucher.brandId) {
-      const brand = await brandRepository.findOne({
-        where: { id: groupProductBody.brandId },
-      });
-      if (!brand) throw new BadRequestError('Brand not found');
-      voucherBody.brand = brand;
-    }
+    const brand = await brandRepository.findOne({
+      where: { id: groupProduct.brand.id },
+    });
+    voucherBody.brand = brand;
     voucherBody.visibility = VoucherVisibilityEnum.GROUP;
     groupBuyingCriteria.voucher = voucherBody;
     groupProduct.criterias.push(groupBuyingCriteria);
