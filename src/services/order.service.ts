@@ -99,8 +99,6 @@ class OrderService extends BaseService<Order> {
       .createQueryBuilder('order')
       .leftJoinAndSelect('order.account', 'account')
       .leftJoinAndSelect('order.brand', 'brand')
-      .leftJoinAndSelect('order.groupBuying', 'groupBuying')
-      .leftJoinAndSelect('groupBuying.groupProduct', 'groupProduct')
       .where('order.parent_id IS NOT NULL')
       .orderBy('order.createdAt', 'DESC');
     this.queryBuilderForOrder(queryBuilder);
@@ -109,7 +107,7 @@ class OrderService extends BaseService<Order> {
     } else if (account.role.role == RoleEnum.MANAGER || account.role.role == RoleEnum.STAFF) {
       const brand = account.brands[0];
       queryBuilder.andWhere(
-        '(brand.id = :brandId OR groupProduct.brand_id = :brandId)',
+        'brand.id = :brandId',
         {
           brandId: brand.id,
         }

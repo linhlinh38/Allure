@@ -74,7 +74,7 @@ const updateRefundedStatusOrderQueueWorker = new Worker(
         //refund to wallet
         const wallet = await walletRepository.findOne({
           where: {
-            id: order.account.id,
+            owner: { id: order.account.id },
           },
         });
         walletService.increaseBalance(wallet, order.totalPrice);
@@ -98,7 +98,7 @@ const updateRefundedStatusOrderQueueWorker = new Worker(
           (async () => {
             const transaction =
               await transactionService.createTransactionFromChildOrder(
-                complaintRequest.order,
+                order,
                 TransactionTypeEnum.ORDER_REFUND,
                 queryRunner
               );
