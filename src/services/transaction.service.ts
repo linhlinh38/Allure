@@ -130,21 +130,7 @@ class TransactionService extends BaseService<Transaction> {
     return query;
   }
 
-  async brandRevenue(loginUser: string, startDate: Date, endDate: Date) {
-    const account = await accountRepository.findOne({
-      where: { id: loginUser },
-      relations: {
-        brands: true,
-        role: true,
-      },
-    });
-    if (account.role.role != RoleEnum.MANAGER) {
-      throw new BadRequestError(
-        'You dont have permission to access this resource'
-      );
-    }
-    const brand = account.brands[0];
-
+  async brandRevenue(startDate: Date, endDate: Date, brandId: string) {
     if (!startDate || !endDate) {
       startDate = new Date();
       endDate = new Date();
@@ -155,7 +141,7 @@ class TransactionService extends BaseService<Transaction> {
     startDate.setHours(0, 0, 0, 0);
     endDate.setHours(23, 59, 59, 999);
     return await this.calculateBrandWalletTransfers(
-      brand.id,
+      brandId,
       startDate,
       endDate
     );
