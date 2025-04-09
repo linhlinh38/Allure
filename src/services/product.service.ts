@@ -59,8 +59,10 @@ class ProductService extends BaseService<Product> {
         case ProductTagEnum.HOT:
           orderBy = 'sales_last_30_days DESC';
           break;
-        case ProductTagEnum.NEW:
+        case ProductTagEnum.CREATED_DESC:
           orderBy = 'p.created_at DESC';
+        case ProductTagEnum.CREATED_ASC:
+          orderBy = 'p.created_at ASC';
           break;
         default:
           break;
@@ -403,10 +405,10 @@ class ProductService extends BaseService<Product> {
         case ProductTagEnum.HOT:
           orderBy = 'sales_last_30_days DESC';
           break;
-        case ProductTagEnum.OLD:
+        case ProductTagEnum.CREATED_ASC:
           orderBy = 'p.created_at ASC';
           break;
-        case ProductTagEnum.NEW:
+        case ProductTagEnum.CREATED_DESC:
           orderBy = 'p.created_at DESC';
           break;
         case ProductTagEnum.PRICE_ASC:
