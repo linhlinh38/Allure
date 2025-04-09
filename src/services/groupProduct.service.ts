@@ -82,6 +82,7 @@ class GroupProductService extends BaseService<GroupProduct> {
       relations: {
         criterias: { voucher: true },
         products: { images: true, productClassifications: { images: true } },
+        brand: true
       },
     });
     if (!groupProduct) throw new BadRequestError('Group product not found');
@@ -246,6 +247,7 @@ class GroupProductService extends BaseService<GroupProduct> {
         relations: {
           criterias: { voucher: true },
           products: true,
+          brand: true
         },
         where: {
           brand: { id: brand.id },
@@ -256,6 +258,7 @@ class GroupProductService extends BaseService<GroupProduct> {
       relations: {
         criterias: { voucher: true },
         products: true,
+        brand: true
       },
     });
   }

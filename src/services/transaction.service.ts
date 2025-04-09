@@ -454,7 +454,7 @@ class TransactionService extends BaseService<Transaction> {
     orderService.queryBuilderForOrder(query);
     if (account.role.role == RoleEnum.CUSTOMER) {
       query.where('buyer.id = :loginUser', { loginUser });
-    } else if (account.role.role == RoleEnum.MANAGER) {
+    } else if (account.role.role == RoleEnum.MANAGER || account.role.role == RoleEnum.STAFF) {
       const brand = account.brands[0];
       query
         .where('brand.id = :brandId', { brandId: brand.id })

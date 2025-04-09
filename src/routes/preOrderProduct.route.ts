@@ -25,8 +25,8 @@ preOrderProductRouter.get(
   "/filter-pre-order-product",
   PreOrderProductController.filterPreOrderProducts
 );
+preOrderProductRouter.get('/', PreOrderProductController.getAll);
 preOrderProductRouter.use(authentication);
-preOrderProductRouter.get("/", PreOrderProductController.getAll);
 
 
 preOrderProductRouter.post(
