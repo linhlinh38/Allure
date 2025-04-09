@@ -6,6 +6,7 @@ import { Paging } from '../dtos/other/paging.dto';
 import { plainToInstance } from 'class-transformer';
 import { RecommendProductsRequest } from '../dtos/request/product.request';
 import { ProductEnum, ProductTagEnum } from '../utils/enum';
+import { AuthRequest } from '../middleware/authentication';
 export default class ProductController {
   static async getProducts(req: Request, res: Response, next: NextFunction) {
     const paging = {
@@ -29,9 +30,9 @@ export default class ProductController {
       next(err);
     }
   }
-  static async getAll(req: Request, res: Response, next: NextFunction) {
+  static async getAll(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const products = await productService.getAll();
+      const products = await productService.getAll(req.loginUser);
       return createNormalResponse(res, 'Get all product success', products);
     } catch (err) {
       next(err);
