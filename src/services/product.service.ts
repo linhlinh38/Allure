@@ -225,6 +225,7 @@ class ProductService extends BaseService<Product> {
         where: { id: loginUser },
         relations: {
           brands: true,
+          role: true
         },
       });
       if (
