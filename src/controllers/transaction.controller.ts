@@ -39,9 +39,9 @@ export default class TransactionController {
         res,
         'Get brand revenue successfully',
         await transactionService.brandRevenue(
-          req.loginUser,
           req.body.startDate,
-          req.body.endDate
+          req.body.endDate,
+          req.body.brandId
         )
       );
     } catch (err) {

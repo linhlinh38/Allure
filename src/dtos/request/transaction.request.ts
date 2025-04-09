@@ -88,6 +88,7 @@ export const GetBrandRevenueStatisticsSchema = z.object({
         'End date must be a valid date string'
       )
       .optional(),
+    brandId: z.string().uuid(),
   }),
 });
 

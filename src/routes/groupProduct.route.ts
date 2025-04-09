@@ -10,7 +10,6 @@ import validate from '../utils/validate';
 import { GroupBuyingCreateSchema } from '../dtos/request/groupBuying.request';
 
 const groupProductRouter = express.Router();
-groupProductRouter.get('/', GroupProductController.getAll);
 groupProductRouter.get('/get-by-status', GroupProductController.getByStatus);
 groupProductRouter.get(
   '/get-by-brand/:brandId',
@@ -30,6 +29,7 @@ groupProductRouter.post(
   GroupProductController.filter
 );
 groupProductRouter.use(authentication);
+groupProductRouter.get('/', GroupProductController.getAll);
 groupProductRouter.post(
   '/create',
   validate(GroupProductCreateSchema),

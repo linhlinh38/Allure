@@ -106,7 +106,7 @@ class OrderService extends BaseService<Order> {
     this.queryBuilderForOrder(queryBuilder);
     if (account.role.role == RoleEnum.CUSTOMER) {
       queryBuilder.andWhere('account.id = :loginUser', { loginUser });
-    } else if (account.role.role == RoleEnum.MANAGER) {
+    } else if (account.role.role == RoleEnum.MANAGER || account.role.role == RoleEnum.STAFF) {
       const brand = account.brands[0];
       queryBuilder.andWhere(
         '(brand.id = :brandId OR groupProduct.brand_id = :brandId)',

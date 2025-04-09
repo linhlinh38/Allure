@@ -3,10 +3,11 @@ import { createNormalResponse } from "../utils/response";
 import { NotFoundError } from "../errors/error";
 import { preOrderProductService } from "../services/preOrderProduct.service";
 import { PreOrderProductEnum } from "../utils/enum";
+import { AuthRequest } from "../middleware/authentication";
 export default class PreOrderProductController {
-  static async getAll(req: Request, res: Response, next: NextFunction) {
+  static async getAll(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const PreOrderProducts = await preOrderProductService.getAll();
+      const PreOrderProducts = await preOrderProductService.getAll(req.loginUser);
       return createNormalResponse(
         res,
         "Get all PreOrderProducts success",
