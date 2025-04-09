@@ -1098,9 +1098,6 @@ class TransactionService extends BaseService<Transaction> {
         }
       );
     }
-    if (!productIds || productIds.length == 0) {
-      throw new BadRequestError('Product ids are required');
-    }
     if (orderType == OrderEnum.PRE_ORDER) {
       queryBuilder.andWhere('orderDetail.type = :type', {
         type: OrderEnum.PRE_ORDER,
@@ -1129,7 +1126,7 @@ class TransactionService extends BaseService<Transaction> {
           eventIds,
         });
       }
-    } else if (orderType == 'ALL') {
+    } else if (orderType == 'ALL' || !orderType) {
       if (productIds && productIds.length > 0) {
         queryBuilder.andWhere(
           '(product.id IN (:...productIds) OR discountProduct.id IN (:...productIds) OR preOrderProductItem.id IN (:...productIds))',
