@@ -244,6 +244,7 @@ export class WithdrawalRequestService {
   }
 
   static async filter(
+    loginUser: string,
     filter: FilterWithdrawalRequest,
     page: number = 1,
     limit: number = 10
@@ -254,10 +255,36 @@ export class WithdrawalRequestService {
       .leftJoinAndSelect('withdrawalRequest.processedBy', 'processedBy')
       .leftJoinAndSelect('withdrawalRequest.evidences', 'evidence');
 
-    if (filter.accountId) {
-      queryBuilder.andWhere('account.id = :accountId', {
-        accountId: filter.accountId,
+    const account = await accountRepository.findOne({
+      where: {
+        id: loginUser,
+      },
+      relations: {
+        role: true,
+      },
+    });
+    if (
+      [
+        RoleEnum.CUSTOMER,
+        RoleEnum.MANAGER,
+        RoleEnum.STAFF,
+        RoleEnum.CONSULTANT,
+      ].includes(account.role.role)
+    ) {
+      queryBuilder.where('withdrawalRequest.account.id = :accountId', {
+        accountId: loginUser,
       });
+    } else if (
+      account.role.role == RoleEnum.ADMIN ||
+      account.role.role == RoleEnum.OPERATOR
+    ) {
+      if (filter.accountId) {
+        queryBuilder.andWhere('account.id = :accountId', {
+          accountId: filter.accountId,
+        });
+      }
+    } else {
+      throw new BadRequestError('You are not allowed to access this resource');
     }
 
     if (filter.processedById) {

@@ -91,7 +91,7 @@ export class WithdrawalRequestController {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
 
-      const result = await WithdrawalRequestService.filter(filter, page, limit);
+      const result = await WithdrawalRequestService.filter(req.loginUser, filter, page, limit);
       return createNormalResponse(
         res,
         'Get withdrawal request success',
