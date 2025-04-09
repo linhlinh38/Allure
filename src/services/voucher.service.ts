@@ -1170,14 +1170,6 @@ class VoucherService extends BaseService<Voucher> {
     if (new Date(voucherRequest.startTime) > new Date(voucherRequest.endTime)) {
       throw new BadRequestError('The start time cannot be after the end time');
     }
-    const existVoucherByName = await voucherRepository.findOne({
-      where: {
-        name: voucherRequest.name,
-      },
-    });
-    if (existVoucherByName) {
-      throw new BadRequestError('Name already exists');
-    }
     const existVoucherByCode = await voucherRepository.findOne({
       where: {
         code: voucherRequest.code,
@@ -1286,6 +1278,7 @@ class VoucherService extends BaseService<Voucher> {
       endTime,
       applyProductIds,
     } = filter;
+    
 
     const queryBuilder = voucherRepository
       .createQueryBuilder('voucher')
