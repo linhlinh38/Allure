@@ -99,6 +99,7 @@ class OrderService extends BaseService<Order> {
       .createQueryBuilder('order')
       .leftJoinAndSelect('order.account', 'account')
       .leftJoinAndSelect('order.brand', 'brand')
+      .leftJoinAndSelect('order.groupBuying', 'groupBuying')
       .where('order.parent_id IS NOT NULL')
       .orderBy('order.createdAt', 'DESC');
     this.queryBuilderForOrder(queryBuilder);
