@@ -48,6 +48,7 @@ export class Transaction extends BaseEntity {
   @Column({
     type: 'enum',
     enum: PaymentMethodEnum,
+    name: "payment_method",
   })
   paymentMethod: PaymentMethodEnum;
 

@@ -27,16 +27,21 @@ export class Voucher extends BaseEntity {
   @Column({ type: "varchar", length: 100, unique: true })
   code: string;
 
-  @Column({ type: "varchar", length: 50, nullable: false })
+  @Column({
+    type: "varchar",
+    length: 50,
+    nullable: false,
+    name: "discount_type",
+  })
   discountType: string;
 
-  @Column({ type: "double precision" })
+  @Column({ type: "double precision", name: "discount_value" })
   discountValue: number;
 
-  @Column({ type: "double precision", nullable: true })
+  @Column({ type: "double precision", nullable: true, name: "max_discount" })
   maxDiscount: number;
 
-  @Column({ type: "double precision", nullable: true })
+  @Column({ type: "double precision", nullable: true, name: "min_order_value" })
   minOrderValue: number;
 
   @Column({ type: "varchar", length: 255, nullable: true })
@@ -52,16 +57,25 @@ export class Voucher extends BaseEntity {
   @Column({ type: "integer", nullable: true })
   amount: number;
 
-  @Column({ type: "timestamp with time zone", nullable: true })
+  @Column({
+    type: "timestamp with time zone",
+    nullable: true,
+    name: "start_time",
+  })
   startTime: Date;
 
-  @Column({ type: "timestamp with time zone", nullable: true })
+  @Column({
+    type: "timestamp with time zone",
+    nullable: true,
+    name: "end_time",
+  })
   endTime: Date;
 
   @Column({
     type: "enum",
     enum: VoucherApplyTypeEnum,
     default: VoucherApplyTypeEnum.ALL,
+    name: "apply_type",
   })
   applyType: VoucherApplyTypeEnum;
 
