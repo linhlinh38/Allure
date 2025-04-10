@@ -129,8 +129,8 @@ export class Account extends BaseEntity {
   @OneToOne(() => Wallet, (wallet) => wallet.owner)
   wallet: Wallet;
 
-  @OneToOne(() => FCMToken, (fcmToken) => fcmToken.account)
-  fcmToken: FCMToken;
+  @OneToMany(() => FCMToken, (fcmToken) => fcmToken.account)
+  fcmTokens: FCMToken[];
 
   @OneToMany(() => ConsultantService, (service) => service.account, {
     nullable: true,
