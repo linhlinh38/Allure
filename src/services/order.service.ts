@@ -74,6 +74,8 @@ import { FCMService } from './FCM.service';
 import Logging from '../utils/Logging';
 import { addtransferToBrandWalletToQueue } from '../utils/queue/transferToBrandWalletQueue';
 import { Paging } from '../dtos/other/paging.dto';
+import { LiveStream } from '../entities/livestream.entity';
+import { livestreamProductRepository } from '../repositories/livestreamProduct.repository';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
@@ -98,17 +100,19 @@ class OrderService extends BaseService<Order> {
       .leftJoinAndSelect('order.account', 'account')
       .leftJoinAndSelect('order.brand', 'brand')
       .leftJoinAndSelect('order.groupBuying', 'groupBuying')
-      .leftJoinAndSelect('groupBuying.groupProduct', 'groupProduct')
       .where('order.parent_id IS NOT NULL')
       .orderBy('order.createdAt', 'DESC');
     this.queryBuilderForOrder(queryBuilder);
     if (account.role.role == RoleEnum.CUSTOMER) {
       queryBuilder.andWhere('account.id = :loginUser', { loginUser });
-    } else if (account.role.role == RoleEnum.MANAGER) {
+    } else if (account.role.role == RoleEnum.MANAGER || account.role.role == RoleEnum.STAFF) {
       const brand = account.brands[0];
-      queryBuilder.andWhere('brand.id = :brandId OR groupProduct.brand_id = :brandId', {
-        brandId: brand.id,
-      });
+      queryBuilder.andWhere(
+        'brand.id = :brandId',
+        {
+          brandId: brand.id,
+        }
+      );
     } else if (account.role.role == RoleEnum.ADMIN) {
     } else {
       throw new BadRequestError(
@@ -191,12 +195,25 @@ class OrderService extends BaseService<Order> {
         'rejectedRefundRequestMediaFiles'
       )
       .orderBy('orderRequest.createdAt', 'DESC');
-    if (account.role.role == RoleEnum.CUSTOMER) {
-      queryBuilder.where('account.id = :loginUser', { loginUser });
-    } else if (account.role.role == RoleEnum.MANAGER) {
+    this.queryBuilderForOrder(queryBuilder);
+    // if (account.role.role == RoleEnum.CUSTOMER) {
+    //   queryBuilder.where('account.id = :loginUser', { loginUser });
+    //   queryBuilder.andWhere('orderRequest.type IN (:...types)', {
+    //     types: [OrderRequestTypeEnum.CANCEL, OrderRequestTypeEnum.REFUND],
+    //   });
+    if (account.role.role == RoleEnum.MANAGER) {
       const brand = account.brands[0];
       queryBuilder.where('brand.id = :brandId', { brandId: brand.id });
+      queryBuilder.andWhere('orderRequest.type IN (:...types)', {
+        types: [OrderRequestTypeEnum.CANCEL, OrderRequestTypeEnum.REFUND],
+      });
     } else if (account.role.role == RoleEnum.ADMIN) {
+      queryBuilder.andWhere('orderRequest.type IN (:...types)', {
+        types: [
+          OrderRequestTypeEnum.COMPLAINT,
+          OrderRequestTypeEnum.REJECT_REFUND,
+        ],
+      });
     } else {
       throw new BadRequestError(
         'You do not have permission to access this resource'
@@ -444,6 +461,7 @@ class OrderService extends BaseService<Order> {
         await Promise.all([
           //update order status
           (async () => {
+            order.isPaidForBrand = true;
             order.status = ShippingStatusEnum.RETURNED_FAIL;
             await queryRunner.manager.save(Order, order);
           })(),
@@ -647,6 +665,7 @@ class OrderService extends BaseService<Order> {
 
         //create reject refund request
         const rejectRefundRequest = new OrderRequest();
+        rejectRefundRequest.order = refundRequest.order;
         rejectRefundRequest.type = OrderRequestTypeEnum.REJECT_REFUND;
         rejectRefundRequest.refundRequest = refundRequest;
         rejectRefundRequest.reason = reasonRejected;
@@ -1825,6 +1844,13 @@ class OrderService extends BaseService<Order> {
           childOrder.voucher = shopVoucher;
         }
         for (const item of order.items) {
+          //find livestream
+          if (item.livestreamId) {
+            const livestream = await queryRunner.manager.findOne(LiveStream, {
+              where: { id: item.livestreamId },
+            });
+            if (!livestream) throw new BadRequestError(`Livestream not found`);
+          }
           //find product
           const productClassification =
             await productClassificationRepository.findOne({
@@ -1841,7 +1867,10 @@ class OrderService extends BaseService<Order> {
             throw new BadRequestError('Product is out of stock');
           }
           //init order detail
-          const orderDetail = this.initOrderDetail(productClassification, item);
+          const orderDetail = await this.initOrderDetail(
+            productClassification,
+            item,
+          );
 
           //push order detail into child order
           childOrder.orderDetails.push(orderDetail);
@@ -1896,9 +1925,9 @@ class OrderService extends BaseService<Order> {
     }
   }
 
-  private initOrderDetail(
+  private async initOrderDetail(
     productClassification: ProductClassification,
-    item: { productClassificationId: string; quantity: number }
+    item: { productClassificationId: string; quantity: number, livestreamId?: string }
   ) {
     const orderDetail = new OrderDetail();
     orderDetail.unitPriceBeforeDiscount = productClassification.price;
@@ -1917,7 +1946,24 @@ class OrderService extends BaseService<Order> {
       orderDetail.productDiscount = productClassification.productDiscount;
     } else if (productClassification.preOrderProduct) {
       orderDetail.type = OrderEnum.PRE_ORDER;
-    } else orderDetail.type = OrderEnum.NORMAL;
+    } else {
+      orderDetail.type = OrderEnum.NORMAL;
+      if (item.livestreamId) {
+        orderDetail.type = OrderEnum.LIVE_STREAM;
+        const livestreamProduct = await livestreamProductRepository.findOne({
+          where: {
+            livestream: { id: item.livestreamId },
+            product: {
+              id: productClassification.product.id,
+            },
+          },
+        });
+        if (!livestreamProduct)
+          throw new BadRequestError('Product not found in livestream');
+        orderDetail.unitPriceAfterDiscount =
+          productClassification.price * (1 - livestreamProduct.discount);
+      }
+    }
     orderDetail.subTotal = item.quantity * orderDetail.unitPriceAfterDiscount;
     orderDetail.totalPrice = orderDetail.subTotal;
     orderDetail.quantity = item.quantity;

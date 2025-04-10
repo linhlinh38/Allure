@@ -17,7 +17,6 @@ export const BrandCreateSchema = z.object({
     ),
     description: z
       .string()
-      .max(255, 'Description cannot exceed 255 characters')
       .optional(),
     email: z.string().email('Invalid email address'),
     phone: z.string().optional(),
@@ -105,8 +104,8 @@ export class BrandRequest {
 export const FilterBrandSchema = z.object({
   body: z.object({
     name: z.string().optional(),
-    reviewerId: z.string().optional(),
-    status: z.nativeEnum(BrandStatusEnum).optional(),
+    reviewerId: z.string().uuid().optional(),
+    statuses: z.array(z.nativeEnum(BrandStatusEnum)).optional(),
   }),
 });
 
@@ -116,5 +115,5 @@ export class FilterBrandRequest {
   @Expose()
   reviewerId: string;
   @Expose()
-  status: BrandStatusEnum;
+  statuses: BrandStatusEnum[];
 }

@@ -17,7 +17,7 @@ import {
   OrderRequestFilterRequest,
 } from '../dtos/request/order.request';
 import { AuthRequest } from '../middleware/authentication';
-import { ActionReceivedEnum } from '../utils/enum';
+import { ActionReceivedEnum, PaymentMethodEnum, ShippingStatusEnum } from '../utils/enum';
 import { Paging } from '../dtos/other/paging.dto';
 
 export default class OrderController {
@@ -485,30 +485,49 @@ export default class OrderController {
       const orderNormalBody = plainToInstance(OrderNormalRequest, req.body, {
         excludeExtraneousValues: true,
       });
+      const parentOrder = await orderService.createNormal(
+        orderNormalBody,
+        req.loginUser
+      );
+      if(parentOrder.paymentMethod == PaymentMethodEnum.WALLET && parentOrder.status == ShippingStatusEnum.TO_PAY) {
+        return createNormalResponse(
+          res,
+          'Wallet not enough money, turn to To Pay order ',
+          parentOrder
+        );
+      }
       return createNormalResponse(
         res,
         'Create order successfully',
-        await orderService.createNormal(orderNormalBody, req.loginUser)
+        parentOrder
       );
     } catch (err) {
       next(err);
     }
   }
 
-  static async filterOrderRequests(req: AuthRequest, res: Response) {
-    const filter = plainToInstance(OrderRequestFilterRequest, req.body, {
-      excludeExtraneousValues: true,
-    });
+  static async filterOrderRequests(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const filter = plainToInstance(OrderRequestFilterRequest, req.body, {
+        excludeExtraneousValues: true,
+      });
 
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
 
-    const result = await orderService.filterOrderRequests(
-      filter,
-      { page, limit },
-      req.loginUser
-    );
+      const result = await orderService.filterOrderRequests(
+        filter,
+        { page, limit },
+        req.loginUser
+      );
 
-    return createNormalResponse(res, 'Get order requests success', result);
+      return createNormalResponse(res, 'Get order requests success', result);
+    } catch (err) {
+      next(err);
+    }
   }
 }

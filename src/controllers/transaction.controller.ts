@@ -1,9 +1,10 @@
 import { plainToInstance } from 'class-transformer';
 import { createNormalResponse } from '../utils/response';
 import { AuthRequest } from '../middleware/authentication';
-import { NextFunction, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import {
   FilterTransactionRequest,
+  GetDailyOrderStatisticsRequest,
   GetStatisticsRequest,
   PayRequest,
 } from '../dtos/request/transaction.request';
@@ -11,6 +12,42 @@ import { transactionService } from '../services/transaction.service';
 import { Paging } from '../dtos/other/paging.dto';
 
 export default class TransactionController {
+  static async getOrderStatistics(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get order statistics successfully',
+        await transactionService.getOrderStatistics(
+          req.body.brandId
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async brandRevenue(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get brand revenue successfully',
+        await transactionService.brandRevenue(
+          req.body.startDate,
+          req.body.endDate,
+          req.body.brandId
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async getFinancialSummary(
     req: AuthRequest,
     res: Response,
@@ -185,6 +222,30 @@ export default class TransactionController {
         await transactionService.getBrandRevenueStatistics(
           getBrandRevenueStatisticsRequest,
           req.params.brandId
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async getDailyOrderStatistics(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const getDailyOrderStatisticsRequest = plainToInstance(
+        GetDailyOrderStatisticsRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Statistic successfully',
+        await transactionService.getDailyOrderStatistics(
+          getDailyOrderStatisticsRequest
         )
       );
     } catch (err) {

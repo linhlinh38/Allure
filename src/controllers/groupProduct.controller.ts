@@ -136,9 +136,9 @@ export default class GroupProductController {
     }
   }
 
-  static async getAll(req: Request, res: Response, next: NextFunction) {
+  static async getAll(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const groupProducts = await groupProductService.getAll();
+      const groupProducts = await groupProductService.getAll(req.loginUser);
       return createNormalResponse(
         res,
         'Get all group products success',

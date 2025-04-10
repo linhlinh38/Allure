@@ -4,8 +4,9 @@ import { Expose } from 'class-transformer';
 
 export const FilterReportsSchema = z.object({
   body: z.object({
-    type: z.nativeEnum(ReportTypeEnum).optional(),
-    status: z.nativeEnum(ReportStatusEnum).optional(),
+    types: z.array(z.nativeEnum(ReportTypeEnum)).optional(),
+    reason: z.string().optional(),
+    statuses: z.array(z.nativeEnum(ReportStatusEnum)).optional(),
     assigneeId: z.string().uuid().optional(),
   }),
 });
@@ -47,12 +48,11 @@ export class CreateReportRequest {
   bookingId: string;
 }
 
-
 export class FilterReportsRequest {
   @Expose()
-  type: ReportTypeEnum;
+  types: ReportTypeEnum[];
   @Expose()
-  status: ReportStatusEnum;
+  statuses: ReportStatusEnum[];
   @Expose()
-  assigneeId: string
+  assigneeId: string;
 }

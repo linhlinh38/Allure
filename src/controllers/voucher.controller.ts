@@ -10,6 +10,7 @@ import {
   GetBestShopVouchersRequest,
   VoucherRequest,
   VoucherUpdateRequest,
+  FilterVouchersRequest,
 } from '../dtos/request/voucher.request';
 import { Voucher } from '../entities/voucher.entity';
 
@@ -248,6 +249,20 @@ export default class VoucherController {
       });
       await voucherService.createVoucher(voucherBody);
       return createNormalResponse(res, 'Create success');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async filterVouchers(req: Request, res: Response, next: NextFunction) {
+    try {
+      const filter = req.body as FilterVouchersRequest;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const paging = { page, limit };
+
+      const result = await voucherService.filterVouchers(filter, paging);
+      return createNormalResponse(res, 'Filter vouchers success', result);
     } catch (err) {
       next(err);
     }

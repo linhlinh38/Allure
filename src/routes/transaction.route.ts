@@ -4,7 +4,10 @@ import validate from '../utils/validate';
 import TransactionController from '../controllers/transaction.controller';
 import {
   FilterTransactionSchema,
+  GetBrandRevenueStatisticsSchema,
+  GetDailyOrderStatisticsSchema,
   GetStatisticsSchema,
+  OrderStatisticsSchema,
   PaySchema,
 } from '../dtos/request/transaction.request';
 const transactionRouter = express.Router();
@@ -36,6 +39,24 @@ transactionRouter.post(
   '/filter-for-admin',
   validate(FilterTransactionSchema),
   TransactionController.filterForAdmin
+);
+
+transactionRouter.post(
+  '/get-daily-order-statistics',
+  validate(GetDailyOrderStatisticsSchema),
+  TransactionController.getDailyOrderStatistics
+);
+
+transactionRouter.post(
+  '/brand-revenue',
+  validate(GetBrandRevenueStatisticsSchema),
+  TransactionController.brandRevenue
+);
+
+transactionRouter.post(
+  '/order-statistics',
+  validate(OrderStatisticsSchema),
+  TransactionController.getOrderStatistics
 );
 
 transactionRouter.post(

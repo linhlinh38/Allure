@@ -1,6 +1,7 @@
 import { Expose } from 'class-transformer';
 import { z } from 'zod';
 import {
+  OrderEnum,
   PayTypeEnum,
   StatisticsTimeEnum,
   TransactionTypeEnum,
@@ -64,6 +65,79 @@ export const FilterTransactionSchema = z.object({
       .optional(),
   }),
 });
+
+export const OrderStatisticsSchema = z.object({
+  body: z.object({
+    brandId: z.string().uuid().optional(),
+  }),
+});
+
+export const GetBrandRevenueStatisticsSchema = z.object({
+  body: z.object({
+    startDate: z
+      .string()
+      .refine(
+        (value) => !isNaN(Date.parse(value)),
+        'Start date must be a valid date string'
+      )
+      .optional(),
+    endDate: z
+      .string()
+      .refine(
+        (value) => !isNaN(Date.parse(value)),
+        'End date must be a valid date string'
+      )
+      .optional(),
+    brandId: z.string().uuid(),
+  }),
+});
+
+export const GetDailyOrderStatisticsSchema = z.object({
+  body: z.object({
+    startDate: z
+      .string()
+      .refine(
+        (value) => !isNaN(Date.parse(value)),
+        'Start date must be a valid date string'
+      )
+      .optional(),
+    endDate: z
+      .string()
+      .refine(
+        (value) => !isNaN(Date.parse(value)),
+        'End date must be a valid date string'
+      )
+      .optional(),
+    orderType: z.union([z.nativeEnum(OrderEnum), z.literal('ALL')]).optional(),
+    productIds: z.array(z.string().uuid()).optional(),
+    eventIds: z.array(z.string().uuid()).optional(),
+    groupProductIds: z.array(z.string().uuid()).optional(),
+    brandId: z.string().uuid().optional(),
+  }),
+});
+
+export class GetDailyOrderStatisticsRequest {
+  @Expose()
+  startDate: Date;
+
+  @Expose()
+  endDate: Date;
+
+  @Expose()
+  orderType: OrderEnum | 'ALL';
+
+  @Expose()
+  productIds: string[];
+
+  @Expose()
+  eventIds: string[];
+
+  @Expose()
+  groupProductIds: string[];
+
+  @Expose()
+  brandId: string;
+}
 
 export class FilterTransactionRequest {
   @Expose()

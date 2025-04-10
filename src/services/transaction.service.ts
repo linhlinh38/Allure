@@ -3,6 +3,7 @@ import { AppDataSource } from '../dataSource';
 import { Transaction } from '../entities/transaction.entity';
 import {
   BookingStatusEnum,
+  OrderEnum,
   PaymentMethodEnum,
   PayTypeEnum,
   RoleEnum,
@@ -15,6 +16,7 @@ import { Order } from '../entities/order.entity';
 import { GroupBuying } from '../entities/groupBuying.entity';
 import {
   FilterTransactionRequest,
+  GetDailyOrderStatisticsRequest,
   GetStatisticsRequest,
   PayRequest,
 } from '../dtos/request/transaction.request';
@@ -33,9 +35,117 @@ import { Wallet } from '../entities/wallet.entity';
 import { walletService } from './wallet.service';
 import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
 import { accountRepository } from '../repositories/account.repository';
+import { orderDetailRepository } from '../repositories/orderDetail.repository';
 
 const repository = AppDataSource.getRepository(Transaction);
 class TransactionService extends BaseService<Transaction> {
+  async getOrderStatistics(brandId: string) {
+    let cancelledOrders,
+      refundedOrders,
+      inProgressReturnedOrders,
+      completedOrders,
+      unpaidForBrandOrders;
+    cancelledOrders = await this.queryCountOrderAndSumTotalPrice(
+      [ShippingStatusEnum.CANCELLED],
+      brandId
+    ).getRawOne();
+    refundedOrders = await this.queryCountOrderAndSumTotalPrice(
+      [ShippingStatusEnum.REFUNDED],
+      brandId
+    ).getRawOne();
+    inProgressReturnedOrders = await this.queryCountOrderAndSumTotalPrice(
+      [ShippingStatusEnum.RETURNING, ShippingStatusEnum.BRAND_RECEIVED],
+      brandId
+    ).getRawOne();
+    completedOrders = await this.queryCountOrderAndSumTotalPrice(
+      [
+        ShippingStatusEnum.DELIVERED,
+        ShippingStatusEnum.COMPLETED,
+        ShippingStatusEnum.RETURNED_FAIL,
+      ],
+      brandId,
+      true
+    ).getRawOne();
+    unpaidForBrandOrders = await this.queryCountOrderAndSumTotalPrice(
+      [
+        ShippingStatusEnum.WAIT_FOR_CONFIRMATION,
+        ShippingStatusEnum.PREPARING_ORDER,
+        ShippingStatusEnum.SHIPPING,
+        ShippingStatusEnum.TO_SHIP,
+        ShippingStatusEnum.DELIVERED,
+        ShippingStatusEnum.COMPLETED,
+      ],
+      brandId,
+      false
+    ).getRawOne();
+    return {
+      cancelledOrders: {
+        count: parseInt(cancelledOrders?.count || '0'),
+        sumTotalPrice: parseFloat(cancelledOrders?.sumtotalprice || '0'),
+      },
+      refundedOrders: {
+        count: parseInt(refundedOrders?.count || '0'),
+        sumTotalPrice: parseFloat(refundedOrders?.sumtotalprice || '0'),
+      },
+      inProgressReturnedOrders: {
+        count: parseInt(inProgressReturnedOrders?.count || '0'),
+        sumTotalPrice: parseFloat(
+          inProgressReturnedOrders?.sumtotalprice || '0'
+        ),
+      },
+      completedOrders: {
+        count: parseInt(completedOrders?.count || '0'),
+        sumTotalPrice: parseFloat(completedOrders?.sumtotalprice || '0'),
+      },
+      unpaidForBrandOrders: {
+        count: parseInt(unpaidForBrandOrders?.count || '0'),
+        sumTotalPrice: parseFloat(unpaidForBrandOrders?.sumtotalprice || '0'),
+      },
+    };
+  }
+
+  queryCountOrderAndSumTotalPrice(
+    statuses: ShippingStatusEnum[],
+    brandId?: string,
+    isPaidForBrand: boolean = null
+  ) {
+    const query = orderRepository
+      .createQueryBuilder('order')
+      .select([
+        'COUNT(order.id) as count',
+        'SUM(order.totalPrice) as sumTotalPrice',
+      ])
+      .andWhere('order.parent_id IS NOT NULL')
+      .andWhere('order.status IN (:...statuses)', {
+        statuses,
+      });
+    if (brandId) {
+      query.andWhere('order.brand_id = :brandId', { brandId });
+    }
+    if (isPaidForBrand != null) {
+      query.andWhere('order.isPaidForBrand = :isPaidForBrand', {
+        isPaidForBrand,
+      });
+    }
+    return query;
+  }
+
+  async brandRevenue(startDate: Date, endDate: Date, brandId: string) {
+    if (!startDate || !endDate) {
+      startDate = new Date();
+      endDate = new Date();
+      startDate.setMonth(endDate.getMonth() - 1);
+    }
+    startDate = new Date(startDate);
+    endDate = new Date(endDate);
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(23, 59, 59, 999);
+    return await this.calculateBrandWalletTransfers(
+      brandId,
+      startDate,
+      endDate
+    );
+  }
   async getFinancialSummary(loginUser: string) {
     const totalAmountFromWithDrawal =
       (
@@ -344,7 +454,7 @@ class TransactionService extends BaseService<Transaction> {
     orderService.queryBuilderForOrder(query);
     if (account.role.role == RoleEnum.CUSTOMER) {
       query.where('buyer.id = :loginUser', { loginUser });
-    } else if (account.role.role == RoleEnum.MANAGER) {
+    } else if (account.role.role == RoleEnum.MANAGER || account.role.role == RoleEnum.STAFF) {
       const brand = account.brands[0];
       query
         .where('brand.id = :brandId', { brandId: brand.id })
@@ -352,14 +462,13 @@ class TransactionService extends BaseService<Transaction> {
           type: TransactionTypeEnum.TRANSFER_TO_WALLET,
         });
     } else if (account.role.role == RoleEnum.CONSULTANT) {
-      query
-        .where(
-          '(consultant.id = :loginUser AND transaction.type = :type) OR buyer.id = :loginUser',
-          {
-            loginUser,
-            type: TransactionTypeEnum.TRANSFER_TO_WALLET,
-          }
-        )
+      query.where(
+        '(consultant.id = :loginUser AND transaction.type = :type) OR buyer.id = :loginUser',
+        {
+          loginUser,
+          type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+        }
+      );
     } else if (account.role.role == RoleEnum.ADMIN) {
     } else
       throw new BadRequestError(
@@ -704,6 +813,9 @@ class TransactionService extends BaseService<Transaction> {
     transaction.paymentMethod = PaymentMethodEnum.WALLET;
     transaction.type = TransactionTypeEnum.TRANSFER_TO_WALLET;
     transaction.balanceAfterTransaction = balance;
+    transaction.description = `Comission fee from order ${order.id} is ${
+      order.totalPrice * masterConfig.commissionFee
+    }`;
     return transaction;
   }
 
@@ -720,6 +832,9 @@ class TransactionService extends BaseService<Transaction> {
     transaction.paymentMethod = PaymentMethodEnum.WALLET;
     transaction.type = TransactionTypeEnum.TRANSFER_TO_WALLET;
     transaction.balanceAfterTransaction = balance;
+    transaction.description = `Comission fee from booking ${booking.id} is ${
+      booking.totalPrice * masterConfig.commissionFee
+    }`;
     return transaction;
   }
 
@@ -901,6 +1016,219 @@ class TransactionService extends BaseService<Transaction> {
       }
     }
     return transaction;
+  }
+
+  async getDailyOrderStatistics(
+    getDailyOrderStatisticsRequest: GetDailyOrderStatisticsRequest
+  ) {
+    const { productIds, orderType, brandId, eventIds, groupProductIds } =
+      getDailyOrderStatisticsRequest;
+    if (
+      !getDailyOrderStatisticsRequest.startDate ||
+      !getDailyOrderStatisticsRequest.endDate
+    ) {
+      const today = new Date();
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(today.getMonth() - 1);
+      getDailyOrderStatisticsRequest.startDate = oneMonthAgo;
+      getDailyOrderStatisticsRequest.endDate = today;
+    }
+    const { startDate, endDate } = getDailyOrderStatisticsRequest;
+
+    const queryBuilder = orderDetailRepository
+      .createQueryBuilder('orderDetail')
+      .leftJoinAndSelect('orderDetail.order', 'order')
+      .innerJoin(
+        'order.statusTrackings',
+        'statusTracking',
+        'statusTracking.status = :status AND statusTracking.createdAt BETWEEN :startDate AND :endDate',
+        { status: ShippingStatusEnum.WAIT_FOR_CONFIRMATION, startDate, endDate }
+      )
+      .leftJoinAndSelect('order.account', 'account')
+      .leftJoinAndSelect('order.groupBuying', 'groupBuying')
+      .leftJoinAndSelect('groupBuying.groupProduct', 'groupProduct')
+      .leftJoinAndSelect(
+        'orderDetail.productClassification',
+        'productClassification'
+      )
+      .leftJoinAndSelect('productClassification.product', 'product')
+      .leftJoinAndSelect(
+        'productClassification.productDiscount',
+        'productDiscount'
+      )
+      .leftJoinAndSelect('productDiscount.product', 'discountProduct')
+      .leftJoinAndSelect(
+        'productClassification.preOrderProduct',
+        'preOrderProduct'
+      )
+      .leftJoinAndSelect('preOrderProduct.product', 'preOrderProductItem')
+      .select([
+        "DATE_TRUNC('day', statusTracking.createdAt) as date",
+        'SUM(orderDetail.totalPrice) as totalRevenue',
+        'SUM(orderDetail.quantity) as totalQuantity',
+        'SUM(orderDetail.platformVoucherDiscount) as totalPlatformVoucherDiscount',
+        'SUM(orderDetail.shopVoucherDiscount) as totalShopVoucherDiscount',
+        'COUNT(DISTINCT order.id) as orderCount',
+      ])
+      .where('order.parent_id IS NOT NULL')
+      .andWhere('order.status NOT IN (:...statuses)', {
+        statuses: [ShippingStatusEnum.CANCELLED, ShippingStatusEnum.REFUNDED],
+      })
+      .groupBy("DATE_TRUNC('day', statusTracking.createdAt)")
+      .orderBy('date', 'DESC');
+    if (brandId) {
+      queryBuilder.andWhere(
+        '(order.brand_id = :brandId OR groupProduct.brand_id = :brandId)',
+        {
+          brandId,
+        }
+      );
+    }
+    if (orderType == OrderEnum.PRE_ORDER) {
+      queryBuilder.andWhere('orderDetail.type = :type', {
+        type: OrderEnum.PRE_ORDER,
+      });
+      if (productIds && productIds.length > 0) {
+        queryBuilder.andWhere('preOrderProductItem.id IN (:...productIds)', {
+          productIds,
+        });
+      }
+      if (eventIds && eventIds.length > 0) {
+        queryBuilder.andWhere('preOrderProduct.id IN (:...eventIds)', {
+          eventIds,
+        });
+      }
+    } else if (orderType == OrderEnum.FLASH_SALE) {
+      queryBuilder.andWhere('orderDetail.type = :type', {
+        type: OrderEnum.FLASH_SALE,
+      });
+      if (productIds && productIds.length > 0) {
+        queryBuilder.andWhere('discountProduct.id IN (:...productIds)', {
+          productIds,
+        });
+      }
+      if (eventIds && eventIds.length > 0) {
+        queryBuilder.andWhere('productDiscount.id IN (:...eventIds)', {
+          eventIds,
+        });
+      }
+    } else if (orderType == 'ALL' || !orderType) {
+      if (productIds && productIds.length > 0) {
+        queryBuilder.andWhere(
+          '(product.id IN (:...productIds) OR discountProduct.id IN (:...productIds) OR preOrderProductItem.id IN (:...productIds))',
+          {
+            productIds,
+          }
+        );
+      }
+    } else if (orderType == OrderEnum.NORMAL) {
+      queryBuilder.andWhere(
+        ' orderDetail.type = :type AND product.id IN (:...productIds)',
+        {
+          type: OrderEnum.NORMAL,
+          productIds,
+        }
+      );
+    } else if (orderType == OrderEnum.GROUP_BUYING) {
+      queryBuilder.andWhere('orderDetail.type = :type', {
+        type: OrderEnum.GROUP_BUYING,
+      });
+      if (productIds && productIds.length > 0) {
+        queryBuilder.andWhere('product.id IN (:...productIds)', {
+          productIds,
+        });
+      }
+      if (groupProductIds && groupProductIds.length > 0) {
+        queryBuilder.andWhere('groupProduct.id IN (:...groupProductIds)', {
+          groupProductIds,
+        });
+      }
+    }
+    const results = await queryBuilder.getRawMany();
+    const dateRange = this.generateDateRange(startDate, endDate);
+
+    const statistics = dateRange.map((date) => {
+      const result = results.find(
+        (r) => r.date.toISOString().split('T')[0] == date
+      );
+      return {
+        date,
+        totalRevenue: result ? parseFloat(result.totalrevenue) : 0,
+        totalQuantity: result ? parseInt(result.totalquantity) : 0,
+        totalPlatformVoucherDiscount: result
+          ? parseFloat(result.totalplatformvoucherdiscount)
+          : 0,
+        totalShopVoucherDiscount: result
+          ? parseFloat(result.totalshopvoucherdiscount)
+          : 0,
+        orderCount: result ? parseInt(result.ordercount) : 0,
+      };
+    });
+
+    const total = statistics.reduce(
+      (acc, curr) => {
+        acc.totalRevenue += curr.totalRevenue;
+        acc.totalQuantity += curr.totalQuantity;
+        acc.totalPlatformVoucherDiscount += curr.totalPlatformVoucherDiscount;
+        acc.totalShopVoucherDiscount += curr.totalShopVoucherDiscount;
+        acc.orderCount += curr.orderCount;
+        return acc;
+      },
+      {
+        totalRevenue: 0,
+        totalQuantity: 0,
+        totalPlatformVoucherDiscount: 0,
+        totalShopVoucherDiscount: 0,
+        orderCount: 0
+      }
+    );
+
+    return {
+      total,
+      items: statistics,
+    };
+  }
+
+  generateDateRange(startDate: Date, endDate: Date): string[] {
+    const dates = [];
+    let currentDate = new Date(startDate);
+    const end = new Date(endDate);
+
+    while (currentDate <= end) {
+      dates.push(currentDate.toISOString().split('T')[0]); // Chỉ lấy phần ngày (yyyy-mm-dd)
+      currentDate.setDate(currentDate.getDate() + 1); // Tăng thêm một ngày
+    }
+    return dates;
+  }
+
+  async calculateBrandWalletTransfers(
+    brandId: string,
+    startDate: Date,
+    endDate: Date
+  ) {
+    const result = await transactionRepository
+      .createQueryBuilder('transaction')
+      .leftJoinAndSelect('transaction.order', 'order')
+      .select([
+        'SUM(transaction.amount) as totalAmount',
+        'SUM(order.totalPrice - transaction.amount) as totalCommissionFee',
+      ])
+      .where('transaction.brand_id = :brandId', { brandId })
+      .andWhere('transaction.type = :type', {
+        type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+      })
+      .andWhere('transaction.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      })
+      .getRawOne();
+
+    return {
+      totalAmount: parseFloat(result?.totalamount || '0'),
+      totalCommissionFee: parseFloat(result?.totalcommissionfee || '0'),
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
+    };
   }
 
   constructor() {
