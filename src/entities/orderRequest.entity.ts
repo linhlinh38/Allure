@@ -55,7 +55,6 @@ export class OrderRequest extends BaseEntity {
     (orderRequest) => orderRequest.rejectedRefundRequest,
     { nullable: true }
   )
-  @JoinColumn({ name: "refund_request_id" })
   refundRequest: OrderRequest;
 
   @Column({
