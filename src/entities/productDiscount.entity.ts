@@ -1,10 +1,4 @@
-import {
-  Entity,
-  Column,
-  ManyToOne,
-  JoinColumn,
-  OneToMany,
-} from "typeorm";
+import { Entity, Column, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { Product } from "./product.entity";
 import { ProductDiscountEnum } from "../utils/enum";
 import { BaseEntity } from "./base.entity";
@@ -12,10 +6,10 @@ import { ProductClassification } from "./productClassification.entity";
 
 @Entity("product_discounts")
 export class ProductDiscount extends BaseEntity {
-  @Column({ type: "varchar" })
+  @Column({ type: "varchar", name: "start_time" })
   startTime: string;
 
-  @Column({ type: "varchar" })
+  @Column({ type: "varchar", name: "end_time" })
   endTime: string;
 
   @Column({ type: "double precision" })
