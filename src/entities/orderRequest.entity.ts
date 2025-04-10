@@ -1,13 +1,20 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne } from 'typeorm';
-import { BaseEntity } from './base.entity';
-import { OrderRequestTypeEnum, RequestStatusEnum } from '../utils/enum';
-import { Order } from './order.entity';
-import { File } from './file.entity';
-import { Account } from './account.entity';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  OneToOne,
+} from "typeorm";
+import { BaseEntity } from "./base.entity";
+import { OrderRequestTypeEnum, RequestStatusEnum } from "../utils/enum";
+import { Order } from "./order.entity";
+import { File } from "./file.entity";
+import { Account } from "./account.entity";
 
-@Entity('order_requests')
+@Entity("order_requests")
 export class OrderRequest extends BaseEntity {
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: "varchar", length: 255 })
   reason: string;
 
   @OneToMany(() => File, (mediaFile) => mediaFile.orderRequest, {
@@ -16,23 +23,23 @@ export class OrderRequest extends BaseEntity {
   mediaFiles: File[];
 
   @Column({
-    type: 'varchar',
+    type: "varchar",
     length: 255,
     nullable: true,
-    name: 'reason_rejected',
+    name: "reason_rejected",
   })
   reasonRejected: string;
 
   @ManyToOne(() => Order, (order) => order.requests, { nullable: true })
-  @JoinColumn({ name: 'order_id' })
+  @JoinColumn({ name: "order_id" })
   order: Order;
 
   @ManyToOne(() => Account, { nullable: true })
-  @JoinColumn({ name: 'updated_by_id' })
+  @JoinColumn({ name: "updated_by_id" })
   updatedBy: Account;
 
   @Column({
-    type: 'enum',
+    type: "enum",
     enum: OrderRequestTypeEnum,
   })
   type: OrderRequestTypeEnum;
@@ -40,7 +47,7 @@ export class OrderRequest extends BaseEntity {
   @OneToOne(() => OrderRequest, (orderRequest) => orderRequest.refundRequest, {
     nullable: true,
   })
-  @JoinColumn({ name: 'rejected_refund_request_id' })
+  @JoinColumn({ name: "rejected_refund_request_id" })
   rejectedRefundRequest: OrderRequest;
 
   @OneToOne(
@@ -51,7 +58,7 @@ export class OrderRequest extends BaseEntity {
   refundRequest: OrderRequest;
 
   @Column({
-    type: 'enum',
+    type: "enum",
     enum: RequestStatusEnum,
     default: RequestStatusEnum.PENDING,
   })
