@@ -519,7 +519,7 @@ class VoucherService extends BaseService<Voucher> {
           voucher: {
             startTime: LessThanOrEqual(new Date()),
             endTime: MoreThan(new Date()),
-            brand: null,
+            brand: IsNull(),
           },
         },
         relations: {
