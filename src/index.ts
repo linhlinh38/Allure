@@ -14,8 +14,8 @@ import extractToken from "./middleware/extractToken";
 const app = express();
 
 const StartServer = () => {
-  app.use(express.urlencoded({ extended: true }));
-  app.use(express.json());
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+  app.use(express.json({limit: '10mb'}));
 
   const options: cors.CorsOptions = {
     allowedHeaders: [
