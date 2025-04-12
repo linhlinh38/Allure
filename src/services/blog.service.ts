@@ -40,6 +40,35 @@ class BlogService extends BaseService<Blog> {
     return blog;
   }
 
+  async findByTag(tag: string): Promise<Blog> {
+    const blog = await this.repository.findOne({
+      where: {
+        tag,
+      },
+      relations: ["author"],
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        author: {
+          id: true,
+          username: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          avatar: true,
+        },
+      },
+    });
+    if (!blog) {
+      throw new BadRequestError("Blog Not Existed!");
+    }
+    return blog;
+  }
+
   async beforeCreate(data: Blog): Promise<void> {
     const checkBlog = await this.findBy(data.tag, "tag");
     if (checkBlog.length > 0) {

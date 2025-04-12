@@ -26,6 +26,16 @@ export default class BlogController {
     }
   }
 
+  static async findByTag(req: Request, res: Response, next: NextFunction) {
+    try {
+      const blog = await blogService.findByTag(req.params.tag);
+      if (!blog) throw new NotFoundError("Blog not found");
+      return createNormalResponse(res, "Get blog success", blog);
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async filterBlogs(req: Request, res: Response, next: NextFunction) {
     try {
       const { title, tag, authors, statuses, page, limit, sortBy, order } =
