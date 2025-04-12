@@ -12,6 +12,9 @@ export class Blog extends BaseEntity {
   @Column({ type: "varchar" })
   content: string;
 
+  @Column({ type: "varchar" })
+  tag: string;
+
   @Column({
     type: "enum",
     enum: BlogEnum,

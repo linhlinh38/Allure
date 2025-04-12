@@ -28,11 +28,12 @@ export default class BlogController {
 
   static async filterBlogs(req: Request, res: Response, next: NextFunction) {
     try {
-      const { title, authors, statuses, page, limit, sortBy, order } =
+      const { title, tag, authors, statuses, page, limit, sortBy, order } =
         req.query;
 
       const result = await blogService.filterBlogs({
         title: title as string,
+        tag: tag as string,
         authors: authors ? (authors as string).split(",") : undefined,
         statuses: statuses
           ? ((statuses as string).split(",") as BlogEnum[])
@@ -43,7 +44,7 @@ export default class BlogController {
         order: order ? (order as "ASC" | "DESC") : "ASC",
       });
 
-      return res.status(200).json(result);
+      return createNormalResponse(res, "Get blog success", result);
     } catch (error) {
       next(error);
     }

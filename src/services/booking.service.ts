@@ -287,9 +287,12 @@ class BookingService extends BaseService<Booking> {
           id,
         },
       });
-      if (!booking) throw new BadRequestError('Booking not found');
+      if (!booking) throw new BadRequestError("Booking not found");
       booking.status = status;
-      if (status === BookingStatusEnum.COMPLETED && booking.type == BookingTypeEnum.SERVICE) {
+      if (
+        status === BookingStatusEnum.COMPLETED &&
+        booking.type == BookingTypeEnum.SERVICE
+      ) {
         await transactionService.transferToConsultantWallet(
           booking.id,
           queryRunner
@@ -297,7 +300,7 @@ class BookingService extends BaseService<Booking> {
       }
       await queryRunner.manager.save(booking);
       await queryRunner.commitTransaction();
-      return { message: 'Booking service status updated successfully' };
+      return { message: "Booking service status updated successfully" };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -324,7 +327,10 @@ class BookingService extends BaseService<Booking> {
 
       let statusTracking;
 
-      if (data.bookingFormAnswer) {
+      if (
+        data.bookingFormAnswer &&
+        data.status === BookingStatusEnum.SERVICE_BOOKING_FORM_SUBMITED
+      ) {
         let serviceBookingFormAnswer = new BookingFormAnswer();
         serviceBookingFormAnswer.booking = booking;
         serviceBookingFormAnswer.serviceBookingForm = {
@@ -350,6 +356,12 @@ class BookingService extends BaseService<Booking> {
           "Service booking form submitted"
         );
         await queryRunner.manager.save(StatusTracking, statusTracking);
+
+        await addBookingToQueue(
+          booking.id,
+          240000,
+          BookingStatusEnum.SERVICE_BOOKING_FORM_SUBMITED
+        );
       } else if (data.consultationResult) {
         if (data.consultationResult.suggestedProductClassifications) {
           for (const suggestedProductClassification of data.consultationResult
@@ -413,6 +425,13 @@ class BookingService extends BaseService<Booking> {
           "Booking status updated"
         );
         await queryRunner.manager.save(StatusTracking, statusTracking);
+        if (data.status === BookingStatusEnum.BOOKING_CONFIRMED) {
+          await addBookingToQueue(
+            booking.id,
+            240000,
+            BookingStatusEnum.BOOKING_CONFIRMED
+          );
+        }
         if (
           data.status === BookingStatusEnum.COMPLETED &&
           booking.type == BookingTypeEnum.SERVICE
@@ -636,10 +655,18 @@ class BookingService extends BaseService<Booking> {
         await queryRunner.manager.save(StatusTracking, statusTrackings);
 
         if (createdBooking.status === BookingStatusEnum.TO_PAY) {
-          await addBookingToQueue(createdBooking.id, 120000);
+          await addBookingToQueue(
+            createdBooking.id,
+            120000,
+            BookingStatusEnum.TO_PAY
+          );
         }
         if (createdBooking.status === BookingStatusEnum.WAIT_FOR_CONFIRMATION) {
-          await addBookingToQueue(createdBooking.id, 240000);
+          await addBookingToQueue(
+            createdBooking.id,
+            240000,
+            BookingStatusEnum.WAIT_FOR_CONFIRMATION
+          );
         }
       }
       await queryRunner.commitTransaction();
@@ -683,7 +710,9 @@ class BookingService extends BaseService<Booking> {
       if (
         //user.role.role === RoleEnum.CUSTOMER &&
         booking.status !== BookingStatusEnum.TO_PAY &&
-        booking.status !== BookingStatusEnum.WAIT_FOR_CONFIRMATION
+        booking.status !== BookingStatusEnum.WAIT_FOR_CONFIRMATION &&
+        booking.status !== BookingStatusEnum.BOOKING_CONFIRMED &&
+        booking.status !== BookingStatusEnum.SERVICE_BOOKING_FORM_SUBMITED
       ) {
         throw new BadRequestError(
           `Can not cancelled booking in status: ${booking.status}`
@@ -704,7 +733,10 @@ class BookingService extends BaseService<Booking> {
       );
       await queryRunner.manager.save(StatusTracking, statusTracking);
 
-      if (booking.status !== BookingStatusEnum.TO_PAY) {
+      if (
+        booking.status !== BookingStatusEnum.TO_PAY &&
+        booking.status !== BookingStatusEnum.BOOKING_CONFIRMED
+      ) {
         const wallet = await walletRepository.findOne({
           where: {
             owner: { id: booking.account.id },
