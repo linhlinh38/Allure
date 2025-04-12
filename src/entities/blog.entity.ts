@@ -12,7 +12,7 @@ export class Blog extends BaseEntity {
   @Column({ type: "varchar" })
   content: string;
 
-  @Column({ type: "varchar" })
+  @Column({ type: "varchar", nullable: true })
   tag: string;
 
   @Column({
