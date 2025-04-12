@@ -16,7 +16,6 @@ import { PreOrderProduct } from "./preOrderProduct.entity";
 import { ProductDiscount } from "./productDiscount.entity";
 import { GroupProduct } from "./groupProduct.entity";
 import { File } from "./file.entity";
-import { LiveStream } from "./livestream.entity";
 import { LivestreamProduct } from "./livestreamProduct.entity";
 
 @Entity("products")

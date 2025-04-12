@@ -227,12 +227,12 @@ export enum FeedbackFilterEnum {
 }
 
 export enum ProductTagEnum {
-  BEST_SELLER = 'BEST_SELLER',
-  HOT = 'HOT',
-  CREATED_DESC = 'CREATED_DESC',
-  CREATED_ASC = 'CREATED_ASC',
-  PRICE_ASC = 'PRICE_ASC',
-  PRICE_DESC = 'PRICE_DESC',
+  BEST_SELLER = "BEST_SELLER",
+  HOT = "HOT",
+  CREATED_DESC = "CREATED_DESC",
+  CREATED_ASC = "CREATED_ASC",
+  PRICE_ASC = "PRICE_ASC",
+  PRICE_DESC = "PRICE_DESC",
 }
 
 export enum StatisticsTimeEnum {
@@ -273,6 +273,11 @@ export enum BlogEnum {
   UN_PUBLISHED = "UN_PUBLISHED",
   PUBLISHED = "PUBLISHED",
   INACTIVE = "INACTIVE",
+}
+
+export enum BlogTypeEnum {
+  CONDITION = "CONDITION",
+  BLOG = "BLOG",
 }
 
 export enum PayTypeEnum {
