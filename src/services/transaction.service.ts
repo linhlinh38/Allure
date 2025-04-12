@@ -919,7 +919,7 @@ class TransactionService extends BaseService<Transaction> {
     const masterConfig = await retrieveMasterConfig();
     walletService.increaseBalance(
       wallet,
-      order.totalPrice * (1 - masterConfig.commissionFee)
+      (order.totalPrice + order.platformVoucherDiscount) * (1 - masterConfig.commissionFee)
     );
     await queryRunner.manager.save(wallet);
     const transaction =
@@ -1213,8 +1213,8 @@ class TransactionService extends BaseService<Transaction> {
       .createQueryBuilder("transaction")
       .leftJoinAndSelect("transaction.order", "order")
       .select([
-        "SUM(transaction.amount) as totalAmount",
-        "SUM(order.totalPrice - transaction.amount) as totalCommissionFee",
+        'SUM(transaction.amount) as totalAmount',
+        'SUM(order.totalPrice + order.platformVoucherDiscount - transaction.amount) as totalCommissionFee',
       ])
       .where("transaction.brand_id = :brandId", { brandId })
       .andWhere("transaction.type = :type", {

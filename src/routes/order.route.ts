@@ -23,7 +23,7 @@ orderRouter.get('/get-by-id/:orderId', OrderController.getById);
 orderRouter.get('/get-by-brand/:brandId', OrderController.getByBrand);
 orderRouter.use(authentication);
 orderRouter.post(
-  '/get-my-orders/',
+  '/get-my-orders',
   validate(SearchOrderSchema),
   OrderController.getMyOrders
 );
@@ -121,6 +121,11 @@ orderRouter.post(
   '/filter',
   validate(OrderFilterRequestSchema),
   OrderController.filter
+);
+orderRouter.post(
+  '/filter-parent',
+  validate(OrderFilterRequestSchema),
+  OrderController.filterParent
 );
 orderRouter.post('/create-pre-order', OrderController.createPreOrder);
 orderRouter.post('/create-group-order', OrderController.createGroupOrder);
