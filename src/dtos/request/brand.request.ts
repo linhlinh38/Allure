@@ -1,28 +1,26 @@
-import { z } from 'zod';
-import { BrandStatusEnum } from '../../utils/enum';
-import { Expose } from 'class-transformer';
+import { z } from "zod";
+import { BrandStatusEnum } from "../../utils/enum";
+import { Expose } from "class-transformer";
 
 export const BrandCreateSchema = z.object({
   body: z.object({
     name: z
       .string()
-      .min(1, 'Name is required')
-      .max(255, 'Name cannot exceed 255 characters'),
-    logo: z.string().max(255, 'Logo cannot exceed 255 characters').optional(),
+      .min(1, "Name is required")
+      .max(255, "Name cannot exceed 255 characters"),
+    logo: z.string().max(255, "Logo cannot exceed 255 characters").optional(),
     documents: z.array(
       z
         .string()
-        .min(1, 'Document is required')
-        .max(255, 'Document cannot exceed 255 characters')
+        .min(1, "Document is required")
+        .max(255, "Document cannot exceed 255 characters")
     ),
-    description: z
-      .string()
-      .optional(),
-    email: z.string().email('Invalid email address'),
+    description: z.string().optional(),
+    email: z.string().email("Invalid email address"),
     phone: z.string().optional(),
     address: z
       .string()
-      .max(255, 'Address cannot exceed 255 characters')
+      .max(255, "Address cannot exceed 255 characters")
       .optional(),
     businessTaxCode: z.string().max(100),
     businessRegistrationCode: z.string().max(100),
@@ -41,8 +39,8 @@ export const BrandUpdateSchema = z.object({
 export const BrandUpdateStatusSchema = z.object({
   body: z.object({
     status: z.nativeEnum(BrandStatusEnum),
-    reason: z.string().min(1, 'Reason is required').optional(),
-    brandId: z.string().uuid('Invalid brand id'),
+    reason: z.string().min(1, "Reason is required").optional(),
+    brandId: z.string().uuid("Invalid brand id"),
   }),
 });
 

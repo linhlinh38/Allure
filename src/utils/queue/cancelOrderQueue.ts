@@ -1,29 +1,29 @@
-import { Queue, Worker } from 'bullmq';
-import { AppDataSource } from '../../dataSource';
-import { orderRepository } from '../../repositories/order.repository';
-import { orderService } from '../../services/order.service';
-import { NotificationTypeEnum, ShippingStatusEnum } from '../enum';
-import { retrieveMasterConfig } from '../retrieveMasterConfig';
-import Logging from '../Logging';
-import { connection } from './connection';
-import { FCMService } from '../../services/FCM.service';
-import { fcmTokenRepository } from '../../repositories/fcmToken.repository';
+import { Queue, Worker } from "bullmq";
+import { AppDataSource } from "../../dataSource";
+import { orderRepository } from "../../repositories/order.repository";
+import { orderService } from "../../services/order.service";
+import { NotificationTypeEnum, ShippingStatusEnum } from "../enum";
+import { retrieveMasterConfig } from "../retrieveMasterConfig";
+import Logging from "../Logging";
+import { connection } from "./connection";
+import { FCMService } from "../../services/FCM.service";
+import { fcmTokenRepository } from "../../repositories/fcmToken.repository";
 
-export const cancelOrderQueue = new Queue('cancelOrderQueue', {
+export const cancelOrderQueue = new Queue("cancelOrderQueue", {
   connection,
 });
 
 export async function addNormalOrderToQueue(orderId: string) {
   const masterConfig = await retrieveMasterConfig();
   await cancelOrderQueue.add(
-    'checkStatus',
+    "checkStatus",
     { orderId },
     { delay: Number(masterConfig.autoCancelOrderTime) }
   );
 }
 
 const cancelOrderQueueWorker = new Worker(
-  'cancelOrderQueue',
+  "cancelOrderQueue",
   async (job) => {
     const { orderId } = job.data;
     console.log(`⏳ Kiểm tra trạng thái đơn hàng ${orderId}...`);
@@ -76,7 +76,7 @@ const cancelOrderQueueWorker = new Worker(
             await FCMService.sendMulticastNotification(
               fcmTokens.map((token) => token.token),
               {
-                title: 'Đơn hàng đã bị hủy',
+                title: "Đơn hàng đã bị hủy",
                 body: `Đơn hàng #${parentOrder.id} của bạn đã bị hủy`,
                 data: {
                   type: NotificationTypeEnum.UPDATE_ORDER_STATUS,
@@ -87,7 +87,7 @@ const cancelOrderQueueWorker = new Worker(
               }
             );
           } catch (err) {
-            Logging.error('Failed to send FCM notification:' + err);
+            Logging.error("Failed to send FCM notification:" + err);
           }
         }
       }
@@ -104,10 +104,10 @@ const cancelOrderQueueWorker = new Worker(
   }
 );
 
-cancelOrderQueueWorker.on('completed', (job) => {
+cancelOrderQueueWorker.on("completed", (job) => {
   console.log(`✅ Job kiểm tra đơn hàng ${job.data.orderId} đã hoàn thành`);
 });
 
-cancelOrderQueueWorker.on('failed', (job, err) => {
+cancelOrderQueueWorker.on("failed", (job, err) => {
   console.log(`❌ Job ${job.data.orderId} thất bại: ${err.message}`);
 });

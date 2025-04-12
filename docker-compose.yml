@@ -1,0 +1,22 @@
+version: "3.9"
+services:
+  db:
+    container_name: allure_db
+    image: postgres:14.13
+    ports:
+      - 5432:5433
+    volumes:
+      - db_vol:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: Admin@123
+      POSTGRES_DB: allure
+
+  adminer:
+    image: adminer:4.8.1
+    ports:
+      - 8080:8080
+    depends_on:
+      - db
+
+volumes:
+  db_vol:
