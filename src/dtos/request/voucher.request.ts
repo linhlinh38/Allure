@@ -102,7 +102,7 @@ export const GetBestShopVouchersSchema = z.object({
           brandId: z.string().uuid(),
         })
       )
-      .nonempty(),
+      .optional(),
   }),
 });
 
@@ -115,7 +115,7 @@ export const GetBestPlatformVouchersSchema = z.object({
           quantity: z.number().int().positive(),
         })
       )
-      .nonempty(),
+      .optional(),
   }),
 });
 
