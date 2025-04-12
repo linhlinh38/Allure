@@ -6,6 +6,7 @@ const blogRouter = express.Router();
 
 blogRouter.get("/", BlogController.getAll);
 blogRouter.get("/filter-blogs", BlogController.filterBlogs);
+blogRouter.get("/tag/:tag", BlogController.findByTag);
 
 blogRouter.use(authentication);
 blogRouter.post("/", BlogController.create);

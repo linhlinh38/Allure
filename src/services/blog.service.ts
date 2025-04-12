@@ -40,10 +40,39 @@ class BlogService extends BaseService<Blog> {
     return blog;
   }
 
+  async findByTag(tag: string): Promise<Blog> {
+    const blog = await this.repository.findOne({
+      where: {
+        tag,
+      },
+      relations: ["author"],
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        author: {
+          id: true,
+          username: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          avatar: true,
+        },
+      },
+    });
+    if (!blog) {
+      throw new BadRequestError("Blog Not Existed!");
+    }
+    return blog;
+  }
+
   async beforeCreate(data: Blog): Promise<void> {
-    const checkBlog = await this.findBy(data.title, "title");
+    const checkBlog = await this.findBy(data.tag, "tag");
     if (checkBlog.length > 0) {
-      throw new BadRequestError("Blog title already Existed");
+      throw new BadRequestError("Blog tag already Existed");
     }
   }
 
@@ -55,14 +84,15 @@ class BlogService extends BaseService<Blog> {
     if (!checkBlog) {
       throw new BadRequestError("Blog Not Existed!");
     }
-    const checkBlogTitle = await this.findBy(data.title, "title");
+    const checkBlogTitle = await this.findBy(data.tag, "tag");
     if (checkBlogTitle.length > 0 && checkBlogTitle[0].id !== id) {
-      throw new BadRequestError("Blog title already Existed");
+      throw new BadRequestError("Blog tag already Existed");
     }
   }
 
   async filterBlogs(options: {
     title?: string;
+    tag?: string;
     authors?: string[];
     statuses?: BlogEnum[];
     page?: number;
@@ -70,7 +100,8 @@ class BlogService extends BaseService<Blog> {
     sortBy?: keyof Blog;
     order?: string;
   }): Promise<{ items: Blog[]; total: number; page: number; limit: number }> {
-    const { title, authors, statuses, page, limit, sortBy, order } = options;
+    const { title, tag, authors, statuses, page, limit, sortBy, order } =
+      options;
 
     const queryBuilder = this.repository
       .createQueryBuilder("blog")
@@ -85,6 +116,12 @@ class BlogService extends BaseService<Blog> {
         "author.lastName",
         "author.avatar",
       ]);
+
+    if (tag) {
+      queryBuilder.andWhere("LOWER(blog.tag) LIKE :tag", {
+        tag: `%${tag.toLowerCase()}%`,
+      });
+    }
 
     if (title) {
       queryBuilder.andWhere("LOWER(blog.title) LIKE :title", {
