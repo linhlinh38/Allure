@@ -48,7 +48,7 @@ export default class AddressController {
 
   static async create(req: Request, res: Response, next: NextFunction) {
     try {
-      await addressService.create(req.body);
+      await addressService.createAddress(req.body);
       return createNormalResponse(res, "Create address success");
     } catch (err) {
       next(err);

@@ -292,7 +292,7 @@ class AccountService extends BaseService<Account> {
             fullAddress: data.address.fullAddress,
             type: data.address.type,
             notes: data.address.notes,
-            isDefault: true,
+            isDefault: false,
           };
           await queryRunner.manager.save(Address, address);
         }

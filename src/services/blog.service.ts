@@ -3,7 +3,7 @@ import { AppDataSource } from "../dataSource";
 import { Blog } from "../entities/blog.entity";
 import { BadRequestError } from "../errors/error";
 import { BaseService } from "./base.service";
-import { BlogEnum } from "../utils/enum";
+import { BlogEnum, BlogTypeEnum } from "../utils/enum";
 
 const repository = AppDataSource.getRepository(Blog);
 class BlogService extends BaseService<Blog> {
@@ -93,6 +93,7 @@ class BlogService extends BaseService<Blog> {
   async filterBlogs(options: {
     title?: string;
     tag?: string;
+    types?: BlogTypeEnum[];
     authors?: string[];
     statuses?: BlogEnum[];
     page?: number;
@@ -100,7 +101,7 @@ class BlogService extends BaseService<Blog> {
     sortBy?: keyof Blog;
     order?: string;
   }): Promise<{ items: Blog[]; total: number; page: number; limit: number }> {
-    const { title, tag, authors, statuses, page, limit, sortBy, order } =
+    const { title, tag, types, authors, statuses, page, limit, sortBy, order } =
       options;
 
     const queryBuilder = this.repository
@@ -135,6 +136,10 @@ class BlogService extends BaseService<Blog> {
 
     if (statuses && statuses.length > 0) {
       queryBuilder.andWhere("blog.status IN (:...statuses)", { statuses });
+    }
+
+    if (types && types.length > 0) {
+      queryBuilder.andWhere("blog.type IN (:...types)", { types });
     }
 
     queryBuilder.orderBy(

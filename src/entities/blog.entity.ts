@@ -2,7 +2,7 @@ import { Entity, Column, ManyToOne, JoinColumn } from "typeorm";
 import { BaseEntity } from "./base.entity";
 
 import { Account } from "./account.entity";
-import { BlogEnum } from "../utils/enum";
+import { BlogEnum, BlogTypeEnum } from "../utils/enum";
 
 @Entity("blogs")
 export class Blog extends BaseEntity {
@@ -14,6 +14,13 @@ export class Blog extends BaseEntity {
 
   @Column({ type: "varchar" })
   tag: string;
+
+  @Column({
+    type: "enum",
+    enum: BlogTypeEnum,
+    default: BlogTypeEnum.BLOG,
+  })
+  type: BlogTypeEnum;
 
   @Column({
     type: "enum",
