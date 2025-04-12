@@ -34,7 +34,7 @@ export class Brand extends BaseEntity {
   documents: File[];
 
   @Expose()
-  @Column({ type: "varchar", nullable: true})
+  @Column({ type: "varchar", nullable: true })
   description: string;
 
   @ManyToMany(() => Account, (account) => account.brands)
@@ -60,6 +60,7 @@ export class Brand extends BaseEntity {
     type: "varchar",
     length: 100,
     name: "business_tax_code",
+    nullable: true,
   })
   businessTaxCode: string;
 
@@ -68,19 +69,25 @@ export class Brand extends BaseEntity {
     type: "varchar",
     length: 100,
     name: "business_registration_code",
+    nullable: true,
   })
   businessRegistrationCode: string;
 
   @Expose()
-  @Column({ type: "date", name: "establishment_date" })
+  @Column({
+    type: "date",
+    name: "establishment_date",
+
+    nullable: true,
+  })
   establishmentDate: Date;
 
   @Expose()
-  @Column({ type: "varchar", length: 100 })
+  @Column({ type: "varchar", length: 100, nullable: false })
   province: string;
 
   @Expose()
-  @Column({ type: "varchar", length: 100 })
+  @Column({ type: "varchar", length: 100, nullable: false })
   district: string;
 
   @Expose()
@@ -92,6 +99,7 @@ export class Brand extends BaseEntity {
     type: "varchar",
     length: 255,
     name: "business_registration_address",
+    nullable: true,
   })
   businessRegistrationAddress: string;
 

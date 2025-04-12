@@ -1,14 +1,14 @@
-import express from 'express';
-import authentication from '../middleware/authentication';
-import validate from '../utils/validate';
+import express from "express";
+import authentication from "../middleware/authentication";
+import validate from "../utils/validate";
 import {
   UpdateWokingSlotSchema,
   ActiveSlotSchema,
-} from '../dtos/request/slot.request';
-import SlotController from '../controllers/slot.controller';
+} from "../dtos/request/slot.request";
+import SlotController from "../controllers/slot.controller";
 const slotRouter = express.Router();
 
-slotRouter.get('/', SlotController.getAll);
+slotRouter.get("/", SlotController.getAll);
 
 slotRouter.use(authentication);
 
@@ -19,16 +19,16 @@ slotRouter.use(authentication);
 // );
 
 slotRouter.post(
-  '/update-working-slots',
+  "/update-working-slots",
   validate(UpdateWokingSlotSchema),
   SlotController.updateWorkingSlot
 );
 slotRouter.get(
-  '/get-working-slots-of-consultant/:accountId',
+  "/get-working-slots-of-consultant/:accountId",
   SlotController.getWorkingSlotsOfConsultant
 );
 slotRouter.post(
-  '/active-slots/',
+  "/active-slots/",
   validate(ActiveSlotSchema),
   SlotController.activeSlots
 );

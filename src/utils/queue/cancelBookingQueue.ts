@@ -12,11 +12,15 @@ export const cancelBookingQueue = new Queue("cancelBookingQueue", {
   connection,
 });
 
-export async function addBookingToQueue(bookingId: string, delay: number) {
+export async function addBookingToQueue(
+  bookingId: string,
+  delay: number,
+  currentStatus: BookingStatusEnum
+) {
   const masterConfig = await retrieveMasterConfig();
   await cancelBookingQueue.add(
     "checkBookingStatus",
-    { bookingId },
+    { bookingId, currentStatus },
     { delay } // Delay in milliseconds
   );
 }
@@ -24,7 +28,7 @@ export async function addBookingToQueue(bookingId: string, delay: number) {
 const cancelBookingQueueWorker = new Worker(
   "cancelBookingQueue",
   async (job) => {
-    const { bookingId } = job.data;
+    const { bookingId, currentStatus } = job.data;
     console.log(`⏳ Checking booking status for booking ID: ${bookingId}...`);
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
@@ -43,15 +47,12 @@ const cancelBookingQueueWorker = new Worker(
       }
 
       // Check if the booking is still in a cancellable status
-      if (
-        booking.status === BookingStatusEnum.TO_PAY ||
-        booking.status === BookingStatusEnum.WAIT_FOR_CONFIRMATION
-      ) {
+      if (booking.status === currentStatus) {
         // Update the booking status to cancelled
         await bookingService.cancelBooking(
           bookingId,
           undefined,
-          "Auto-cancelled due to booking timeout"
+          `Auto-cancelled due to booking timeout for status ${currentStatus}`
         );
 
         //send notification to account

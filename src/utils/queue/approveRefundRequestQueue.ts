@@ -1,22 +1,22 @@
-import { Queue, Worker } from 'bullmq';
-import { AppDataSource } from '../../dataSource';
-import { orderRepository } from '../../repositories/order.repository';
-import { orderService } from '../../services/order.service';
+import { Queue, Worker } from "bullmq";
+import { AppDataSource } from "../../dataSource";
+import { orderRepository } from "../../repositories/order.repository";
+import { orderService } from "../../services/order.service";
 import {
   NotificationTypeEnum,
   OrderRequestTypeEnum,
   RequestStatusEnum,
   ShippingStatusEnum,
-} from '../enum';
-import { retrieveMasterConfig } from '../retrieveMasterConfig';
-import Logging from '../Logging';
-import { connection } from './connection';
-import { orderRequestRepository } from '../../repositories/orderRequest.repository';
-import { FCMService } from '../../services/FCM.service';
-import { fcmTokenRepository } from '../../repositories/fcmToken.repository';
+} from "../enum";
+import { retrieveMasterConfig } from "../retrieveMasterConfig";
+import Logging from "../Logging";
+import { connection } from "./connection";
+import { orderRequestRepository } from "../../repositories/orderRequest.repository";
+import { FCMService } from "../../services/FCM.service";
+import { fcmTokenRepository } from "../../repositories/fcmToken.repository";
 
 export const approveRefundRequestQueue = new Queue(
-  'approveRefundRequestQueue',
+  "approveRefundRequestQueue",
   {
     connection,
   }
@@ -25,14 +25,14 @@ export const approveRefundRequestQueue = new Queue(
 export async function addRefundRequestToQueue(id: string) {
   const masterConfig = await retrieveMasterConfig();
   await approveRefundRequestQueue.add(
-    'checkStatus',
+    "checkStatus",
     { id },
     { delay: Number(masterConfig.autoApproveRefundRequestTime) }
   );
 }
 
 const approveRefundRequestQueueWorker = new Worker(
-  'approveRefundRequestQueue',
+  "approveRefundRequestQueue",
   async (job) => {
     const { id } = job.data;
     console.log(`⏳ Kiểm tra trạng thái refund request ${id}...`);
@@ -87,7 +87,7 @@ const approveRefundRequestQueueWorker = new Worker(
           await FCMService.sendMulticastNotification(
             fcmTokens.map((token) => token.token),
             {
-              title: 'Yêu cầu hoàn tiền đã được chấp nhận',
+              title: "Yêu cầu hoàn tiền đã được chấp nhận",
               body: `Đơn hàng #${order.id} của bạn đã được chấp nhận hoàn tiền`,
               data: {
                 type: NotificationTypeEnum.UPDATE_ORDER_STATUS,
@@ -98,7 +98,7 @@ const approveRefundRequestQueueWorker = new Worker(
             }
           );
         } catch (err) {
-          Logging.error('Failed to send FCM notification:' + err);
+          Logging.error("Failed to send FCM notification:" + err);
         }
       }
 
@@ -115,10 +115,10 @@ const approveRefundRequestQueueWorker = new Worker(
   }
 );
 
-approveRefundRequestQueueWorker.on('completed', (job) => {
+approveRefundRequestQueueWorker.on("completed", (job) => {
   console.log(`✅ Job kiểm tra đơn hàng ${job.data.orderId} đã hoàn thành`);
 });
 
-approveRefundRequestQueueWorker.on('failed', (job, err) => {
+approveRefundRequestQueueWorker.on("failed", (job, err) => {
   console.log(`❌ Job ${job.data.orderId} thất bại: ${err.message}`);
 });

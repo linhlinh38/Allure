@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { blogService } from "../services/blog.service";
 import { createNormalResponse } from "../utils/response";
 import { NotFoundError } from "../errors/error";
-import { BlogEnum } from "../utils/enum";
+import { BlogEnum, BlogTypeEnum } from "../utils/enum";
 import { Blog } from "../entities/blog.entity";
 import { AuthRequest } from "../middleware/authentication";
 import { Account } from "../entities/account.entity";
@@ -26,16 +26,39 @@ export default class BlogController {
     }
   }
 
+  static async findByTag(req: Request, res: Response, next: NextFunction) {
+    try {
+      const blog = await blogService.findByTag(req.params.tag);
+      if (!blog) throw new NotFoundError("Blog not found");
+      return createNormalResponse(res, "Get blog success", blog);
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async filterBlogs(req: Request, res: Response, next: NextFunction) {
     try {
-      const { title, authors, statuses, page, limit, sortBy, order } =
-        req.query;
+      const {
+        title,
+        tag,
+        types,
+        authors,
+        statuses,
+        page,
+        limit,
+        sortBy,
+        order,
+      } = req.query;
 
       const result = await blogService.filterBlogs({
         title: title as string,
+        tag: tag as string,
         authors: authors ? (authors as string).split(",") : undefined,
         statuses: statuses
           ? ((statuses as string).split(",") as BlogEnum[])
+          : undefined,
+        types: types
+          ? ((types as string).split(",") as BlogTypeEnum[])
           : undefined,
         page: page ? parseInt(page as string, 10) : 1,
         limit: limit ? parseInt(limit as string, 10) : 10,
@@ -43,7 +66,7 @@ export default class BlogController {
         order: order ? (order as "ASC" | "DESC") : "ASC",
       });
 
-      return res.status(200).json(result);
+      return createNormalResponse(res, "Get blog success", result);
     } catch (error) {
       next(error);
     }

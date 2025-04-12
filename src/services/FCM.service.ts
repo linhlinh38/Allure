@@ -1,10 +1,10 @@
-import { messaging } from '../configs/firebaseConfig';
-import { BadRequestError } from '../errors/error';
-import { fcmTokenRepository } from '../repositories/fcmToken.repository';
-import { accountRepository } from '../repositories/account.repository';
-import Logging from '../utils/Logging';
-import admin from 'firebase-admin';
-import { NotificationData } from '../dtos/request/fcm.request';
+import { messaging } from "../configs/firebaseConfig";
+import { BadRequestError } from "../errors/error";
+import { fcmTokenRepository } from "../repositories/fcmToken.repository";
+import { accountRepository } from "../repositories/account.repository";
+import Logging from "../utils/Logging";
+import admin from "firebase-admin";
+import { NotificationData } from "../dtos/request/fcm.request";
 
 export class FCMService {
   static async sendNotification(
@@ -87,7 +87,7 @@ export class FCMService {
         },
       },
     });
-    if (!token) throw new BadRequestError('FCM Token not found');
+    if (!token) throw new BadRequestError("FCM Token not found");
     return token.token;
   }
 
@@ -120,7 +120,7 @@ export class FCMService {
     });
 
     if (!account) {
-      throw new BadRequestError('Account not found');
+      throw new BadRequestError("Account not found");
     }
 
     // Get FCM token
@@ -129,16 +129,16 @@ export class FCMService {
     });
 
     if (!fcmTokens || fcmTokens.length === 0) {
-      throw new BadRequestError('FCM token not found for this account');
+      throw new BadRequestError("FCM token not found for this account");
     }
 
     // Create notification data
     const notificationData = {
-      title: 'Test Notification',
+      title: "Test Notification",
       body: `Hello ${account.firstName}, this is a test notification!`,
       data: {
-        type: 'TEST',
-        message: 'This is a test notification from the API',
+        type: "TEST",
+        message: "This is a test notification from the API",
       },
       createdAt: new Date(),
       accountIds: [account.id],
@@ -167,11 +167,11 @@ export class FCMService {
   ) {
     try {
       const db = admin.firestore();
-      await db.collection('notifications').add(notificationData);
-      Logging.info('Notification saved to Firestore successfully');
+      await db.collection("notifications").add(notificationData);
+      Logging.info("Notification saved to Firestore successfully");
     } catch (error) {
-      Logging.error('Error saving notification to Firestore:' + error);
-      throw new BadRequestError('Failed to save notification to Firestore');
+      Logging.error("Error saving notification to Firestore:" + error);
+      throw new BadRequestError("Failed to save notification to Firestore");
     }
   }
 }

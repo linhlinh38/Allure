@@ -66,6 +66,7 @@ class AccountService extends BaseService<Account> {
         cartItems: true,
         addresses: true,
         bankAccounts: true,
+        files: true,
       },
     });
 
@@ -83,7 +84,14 @@ class AccountService extends BaseService<Account> {
       where: {
         [option]: value,
       },
-      relations: ["role", "brands", "cartItems", "addresses", "bankAccounts"],
+      relations: [
+        "role",
+        "brands",
+        "cartItems",
+        "addresses",
+        "bankAccounts",
+        "files",
+      ],
     });
 
     return (await accounts).map((account) => ({
@@ -284,7 +292,7 @@ class AccountService extends BaseService<Account> {
             fullAddress: data.address.fullAddress,
             type: data.address.type,
             notes: data.address.notes,
-            isDefault: true,
+            isDefault: false,
           };
           await queryRunner.manager.save(Address, address);
         }
