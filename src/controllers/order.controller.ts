@@ -21,6 +21,24 @@ import { ActionReceivedEnum, PaymentMethodEnum, ShippingStatusEnum } from '../ut
 import { Paging } from '../dtos/other/paging.dto';
 
 export default class OrderController {
+  static async filterParent(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const paging = {
+        page: Number(req.query.page) ? Number(req.query.page) : 1,
+        limit: Number(req.query.limit) ? Number(req.query.limit) : 10,
+      } as Paging;
+      const orderFilterRequest = plainToInstance(OrderFilterRequest, req.body, {
+        excludeExtraneousValues: true,
+      });
+      return createNormalResponse(
+        res,
+        'Filter orders success',
+        await orderService.filter(orderFilterRequest, paging, req.loginUser, true)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async filter(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const paging = {
@@ -489,7 +507,10 @@ export default class OrderController {
         orderNormalBody,
         req.loginUser
       );
-      if(parentOrder.paymentMethod == PaymentMethodEnum.WALLET && parentOrder.status == ShippingStatusEnum.TO_PAY) {
+      if (
+        parentOrder.paymentMethod == PaymentMethodEnum.WALLET &&
+        parentOrder.status == ShippingStatusEnum.TO_PAY
+      ) {
         return createNormalResponse(
           res,
           'Wallet not enough money, turn to To Pay order ',
