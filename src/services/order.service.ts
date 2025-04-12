@@ -1924,6 +1924,8 @@ class OrderService extends BaseService<Order> {
         parentOrder.voucher = platformVoucher;
       }
 
+      this.separatePreOrders(parentOrder);
+
       voucherService.calculateOrderPrice(parentOrder);
 
       //check its payment method and corresponding logic for each method
@@ -1960,6 +1962,26 @@ class OrderService extends BaseService<Order> {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  private separatePreOrders(parentOrder: Order) {
+    const preOrders: Order[] = [];
+    parentOrder.children.forEach((order) => {
+      const remainingOrderDetails = [];
+      order.orderDetails.forEach((orderDetail) => {
+        if (orderDetail.type == OrderEnum.PRE_ORDER) {
+          const preOrder = new Order();
+          Object.assign(preOrder, order);
+          preOrder.type = OrderEnum.PRE_ORDER;
+          preOrder.orderDetails = [orderDetail];
+          preOrders.push(preOrder);
+        } else {
+          remainingOrderDetails.push(orderDetail);
+        }
+      });
+      order.orderDetails = remainingOrderDetails;
+    });
+    parentOrder.children.push(...preOrders);
   }
 
   private async initOrderDetail(
