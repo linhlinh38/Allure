@@ -82,7 +82,8 @@ class OrderService extends BaseService<Order> {
   async filter(
     orderFilterRequest: OrderFilterRequest,
     paging: Paging,
-    loginUser: string
+    loginUser: string,
+    isParent?: boolean
   ) {
     const account = await accountRepository.findOne({
       where: {
@@ -100,19 +101,24 @@ class OrderService extends BaseService<Order> {
       .leftJoinAndSelect('order.account', 'account')
       .leftJoinAndSelect('order.brand', 'brand')
       .leftJoinAndSelect('order.groupBuying', 'groupBuying')
-      .where('order.parent_id IS NOT NULL')
       .orderBy('order.createdAt', 'DESC');
-    this.queryBuilderForOrder(queryBuilder);
+    if (isParent) {
+      queryBuilder.where('order.parent_id IS NULL');
+      this.queryBuilderForParentOrder(queryBuilder);
+    } else {
+      queryBuilder.where('order.parent_id IS NOT NULL');
+      this.queryBuilderForOrder(queryBuilder);
+    }
     if (account.role.role == RoleEnum.CUSTOMER) {
       queryBuilder.andWhere('account.id = :loginUser', { loginUser });
-    } else if (account.role.role == RoleEnum.MANAGER || account.role.role == RoleEnum.STAFF) {
+    } else if (
+      account.role.role == RoleEnum.MANAGER ||
+      account.role.role == RoleEnum.STAFF
+    ) {
       const brand = account.brands[0];
-      queryBuilder.andWhere(
-        'brand.id = :brandId',
-        {
-          brandId: brand.id,
-        }
-      );
+      queryBuilder.andWhere('brand.id = :brandId', {
+        brandId: brand.id,
+      });
     } else if (account.role.role == RoleEnum.ADMIN) {
     } else {
       throw new BadRequestError(
@@ -836,6 +842,37 @@ class OrderService extends BaseService<Order> {
   queryBuilderForOrder(queryBuilder: SelectQueryBuilder<any>) {
     queryBuilder
       .leftJoinAndSelect('order.orderDetails', 'orderDetail')
+      .leftJoinAndSelect(
+        'orderDetail.productClassification',
+        'productClassification'
+      )
+      .leftJoinAndSelect(
+        'productClassification.images',
+        'productClassificationImages'
+      )
+      .leftJoinAndSelect('productClassification.product', 'product')
+      .leftJoinAndSelect('product.brand', 'productBrand')
+      .leftJoinAndSelect('product.images', 'productImages')
+      .leftJoinAndSelect(
+        'productClassification.productDiscount',
+        'productDiscount'
+      )
+      .leftJoinAndSelect('productDiscount.product', 'discountProduct')
+      .leftJoinAndSelect('discountProduct.brand', 'discountProductBrand')
+      .leftJoinAndSelect('discountProduct.images', 'discountProductImages')
+      .leftJoinAndSelect(
+        'productClassification.preOrderProduct',
+        'preOrderProduct'
+      )
+      .leftJoinAndSelect('preOrderProduct.product', 'preOrderProductItem')
+      .leftJoinAndSelect('preOrderProductItem.brand', 'preOrderProductBrand')
+      .leftJoinAndSelect('preOrderProductItem.images', 'preOrderProductImages');
+  }
+
+  queryBuilderForParentOrder(queryBuilder: SelectQueryBuilder<any>) {
+    queryBuilder
+      .leftJoinAndSelect('order.children', 'child')
+      .leftJoinAndSelect('child.orderDetails', 'orderDetail')
       .leftJoinAndSelect(
         'orderDetail.productClassification',
         'productClassification'
@@ -1869,7 +1906,7 @@ class OrderService extends BaseService<Order> {
           //init order detail
           const orderDetail = await this.initOrderDetail(
             productClassification,
-            item,
+            item
           );
 
           //push order detail into child order
@@ -1927,7 +1964,11 @@ class OrderService extends BaseService<Order> {
 
   private async initOrderDetail(
     productClassification: ProductClassification,
-    item: { productClassificationId: string; quantity: number, livestreamId?: string }
+    item: {
+      productClassificationId: string;
+      quantity: number;
+      livestreamId?: string;
+    }
   ) {
     const orderDetail = new OrderDetail();
     orderDetail.unitPriceBeforeDiscount = productClassification.price;
