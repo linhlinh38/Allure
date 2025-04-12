@@ -202,8 +202,20 @@ class ProductService extends BaseService<Product> {
   async getAll(loginUser: string) {
     const queryBuilder = this.repository
       .createQueryBuilder('product')
-      .leftJoinAndSelect('product.category', 'category')
-      .leftJoinAndSelect('category.parentCategory', 'parentCategory')
+      .leftJoin('product.category', 'category')
+      .addSelect([
+        'category.id',
+        'category.name',
+        'category.level',
+        'category.status',
+      ])
+      .leftJoin('category.parentCategory', 'parentCategory')
+      .addSelect([
+        'parentCategory.id',
+        'parentCategory.name',
+        'parentCategory.level',
+        'parentCategory.status',
+      ])
       .leftJoinAndSelect('product.brand', 'brand')
       .leftJoinAndSelect(
         'product.productClassifications',
@@ -226,11 +238,11 @@ class ProductService extends BaseService<Product> {
         where: { id: loginUser },
         relations: {
           brands: true,
-          role: true
+          role: true,
         },
       });
       console.log(account);
-      
+
       if (
         account.role.role == RoleEnum.MANAGER ||
         account.role.role == RoleEnum.STAFF
@@ -279,8 +291,20 @@ class ProductService extends BaseService<Product> {
   private queryGetProductAndRelations() {
     return repository
       .createQueryBuilder('product')
-      .leftJoinAndSelect('product.category', 'category')
-      .leftJoinAndSelect('category.parentCategory', 'parentCategory')
+      .leftJoin('product.category', 'category')
+      .addSelect([
+        'category.id',
+        'category.name',
+        'category.level',
+        'category.status',
+      ])
+      .leftJoin('category.parentCategory', 'parentCategory')
+      .addSelect([
+        'parentCategory.id',
+        'parentCategory.name',
+        'parentCategory.level',
+        'parentCategory.status',
+      ])
       .leftJoinAndSelect('product.brand', 'brand')
       .leftJoinAndSelect('product.certificates', 'certificates')
       .leftJoinAndSelect(
