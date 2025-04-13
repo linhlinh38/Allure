@@ -37,7 +37,7 @@ export default class AddressController {
     }
   }
 
-  static async update(req: Request, res: Response, next: NextFunction) {
+  static async update(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       await addressService.update(req.params.id, req.body);
       return createNormalResponse(res, "Update address success");

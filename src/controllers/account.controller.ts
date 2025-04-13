@@ -48,7 +48,7 @@ async function getAccountBy(req: Request, res: Response, next: NextFunction) {
     // );
     return res
       .status(200)
-      .send({ message: 'Get all account success', data: account });
+      .send({ message: "Get all account success", data: account });
   } catch (error) {
     next(error);
   }
@@ -165,10 +165,7 @@ async function updateAccount(
     if (req.body.password) {
       req.body.password = await encryptedPassword(req.body.password);
     }
-    const account = await accountService.update(
-      req.loginUser,
-      req.body as Account
-    );
+    const account = await accountService.updateAccount(req.loginUser, req.body);
     return res.status(200).send({ message: "Update account success" });
   } catch (error) {
     next(error);

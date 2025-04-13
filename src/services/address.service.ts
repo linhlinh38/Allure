@@ -55,11 +55,22 @@ class AddressService extends BaseService<Address> {
     }
   }
 
-  async update(id: any, data: Partial<Address>): Promise<Address> {
+  async update(id: any, data: any): Promise<Address> {
     let address;
+    const accountAddress = await addressRepository.findOne({
+      where: {
+        id,
+      },
+      relations: {
+        account: true,
+      },
+    });
+    if (!accountAddress) {
+      throw new Error("Address not found");
+    }
     if (data.isDefault) {
       address = await addressRepository.update(
-        { account: { id: data.account.id } },
+        { account: { id: accountAddress.account.id } },
         { isDefault: false }
       );
     } else {
