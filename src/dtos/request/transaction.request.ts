@@ -92,6 +92,26 @@ export const GetBrandRevenueStatisticsSchema = z.object({
   }),
 });
 
+export const GetConsultantRevenueStatisticsSchema = z.object({
+  body: z.object({
+    startDate: z
+      .string()
+      .refine(
+        (value) => !isNaN(Date.parse(value)),
+        'Start date must be a valid date string'
+      )
+      .optional(),
+    endDate: z
+      .string()
+      .refine(
+        (value) => !isNaN(Date.parse(value)),
+        'End date must be a valid date string'
+      )
+      .optional(),
+    consultantId: z.string().uuid(),
+  }),
+});
+
 export const GetDailyOrderStatisticsSchema = z.object({
   body: z.object({
     startDate: z
