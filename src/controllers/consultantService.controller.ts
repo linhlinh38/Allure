@@ -3,7 +3,7 @@ import { consultantServiceService } from "../services/consultantService.service"
 import { createNormalResponse } from "../utils/response";
 import { NotFoundError } from "../errors/error";
 import { AuthRequest } from "../middleware/authentication";
-import { StatusEnum } from "../utils/enum";
+import { ServiceTypeEnum, StatusEnum } from "../utils/enum";
 import { ConsultantService } from "../entities/consultantService.entity";
 export default class ConsultantServiceController {
   static async getAll(req: Request, res: Response, next: NextFunction) {
@@ -51,6 +51,7 @@ export default class ConsultantServiceController {
         price,
         accountIds,
         systemServiceId,
+        types,
         statuses,
         sortBy,
         order,
@@ -63,6 +64,9 @@ export default class ConsultantServiceController {
         price: price ? Number(price) : undefined,
         accountIds: accountIds ? (accountIds as string).split(",") : undefined,
         systemServiceId: systemServiceId?.toString(),
+        types: types
+          ? ((types as string).split(",") as ServiceTypeEnum[])
+          : undefined,
         statuses: statuses
           ? ((statuses as string).split(",") as StatusEnum[])
           : undefined,
@@ -76,6 +80,7 @@ export default class ConsultantServiceController {
           filter.price,
           filter.accountIds,
           filter.systemServiceId,
+          filter.types,
           filter.statuses,
           filter.sortBy,
           filter.order as "ASC" | "DESC",

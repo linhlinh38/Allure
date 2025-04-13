@@ -142,6 +142,24 @@ async function getMyProfile(
   }
 }
 
+async function getById(req: Request, res: Response, next: NextFunction) {
+  try {
+    const account = await accountService.getById(req.params.id);
+    const responseData = {
+      ...plainToClass(AccountResponse, account),
+      dob: account?.dob ? account.dob.toLocaleString() : null,
+      createdAt: account.createdAt.toLocaleString(),
+      updatedAt: account.updatedAt.toLocaleString(),
+    };
+
+    return res
+      .status(200)
+      .send({ message: "Get account success", data: responseData });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function createAccount(req: Request, res: Response, next: NextFunction) {
   try {
     const account = await accountService.createAccount(req.body);
@@ -372,6 +390,7 @@ async function checkAllAccountsAndBanIfNecessary(
 export const accountController = {
   getAllAccount,
   getAccountBy,
+  getById,
   createAccount,
   updateAccount,
   updateAccountStatus,

@@ -46,6 +46,8 @@ accountRouter.post(
   accountController.resendVerifyEmail
 );
 
+accountRouter.get("/get-by-id/:id", accountController.getById);
+
 accountRouter.use(authentication);
 
 accountRouter.post(

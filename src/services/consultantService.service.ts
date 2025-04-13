@@ -5,7 +5,7 @@ import { Question } from "../entities/question.entity";
 import { ServiceBookingForm } from "../entities/serviceBookingForm.entity";
 import { ServiceImage } from "../entities/serviceImage.entity";
 import { NotFoundError } from "../errors/error";
-import { StatusEnum } from "../utils/enum";
+import { ServiceTypeEnum, StatusEnum } from "../utils/enum";
 import { BaseService } from "./base.service";
 
 const repository = AppDataSource.getRepository(ConsultantService);
@@ -102,6 +102,7 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
     price?: number,
     accountIds?: string[],
     systemServiceId?: string,
+    types?: ServiceTypeEnum[],
     statuses?: StatusEnum[],
     sortBy: keyof ConsultantService = "id",
     order: "ASC" | "DESC" = "ASC",
@@ -165,6 +166,10 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
       query.andWhere("systemService.id = :systemServiceId", {
         systemServiceId,
       });
+    }
+
+    if (types && types.length > 0) {
+      query.andWhere("systemService.type IN (:...types)", { types });
     }
 
     if (statuses && statuses.length > 0) {
