@@ -73,9 +73,30 @@ class AccountService extends BaseService<Account> {
     if (!account) {
       throw new Error("Account not found");
     }
+
+    const certificates = account.files
+      ?.filter((file) => file.type === FileEnum.CERTIFICATE)
+      .map(({ name, fileUrl, type }) => ({ name, fileUrl, type }));
+
+    const thumbnailImageList = account.files
+      ?.filter((file) => file.type === FileEnum.CONSULTANT_THUMBNAIL)
+      .map(({ name, fileUrl, type }) => ({ name, fileUrl, type }));
+
+    const otherFiles = account.files
+      ?.filter(
+        (file) =>
+          file.type !== FileEnum.CERTIFICATE &&
+          file.type !== FileEnum.CONSULTANT_THUMBNAIL
+      )
+      .map(({ name, fileUrl, type }) => ({ name, fileUrl, type }));
+
     return {
       ...account,
       role: account.role.role,
+      certificates: certificates?.length > 0 ? certificates : undefined,
+      thumbnailImageList:
+        thumbnailImageList?.length > 0 ? thumbnailImageList : undefined,
+      files: otherFiles?.length > 0 ? otherFiles : undefined,
     };
   }
 
