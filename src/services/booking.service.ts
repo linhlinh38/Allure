@@ -494,6 +494,7 @@ class BookingService extends BaseService<Booking> {
           startTime: bookingRequest.startTime,
           endTime: bookingRequest.endTime,
           status: In([
+            BookingStatusEnum.TO_PAY,
             BookingStatusEnum.BOOKING_CONFIRMED,
             BookingStatusEnum.WAIT_FOR_CONFIRMATION,
           ]),
