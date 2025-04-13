@@ -76,11 +76,23 @@ class AccountService extends BaseService<Account> {
 
     const certificates = account.files
       ?.filter((file) => file.type === FileEnum.CERTIFICATE)
-      .map(({ name, fileUrl, type }) => ({ name, fileUrl, type }));
+      .map(({ id, name, fileUrl, type, status }) => ({
+        id,
+        name,
+        fileUrl,
+        type,
+        status,
+      }));
 
     const thumbnailImageList = account.files
       ?.filter((file) => file.type === FileEnum.CONSULTANT_THUMBNAIL)
-      .map(({ name, fileUrl, type }) => ({ name, fileUrl, type }));
+      .map(({ id, name, fileUrl, type, status }) => ({
+        id,
+        name,
+        fileUrl,
+        type,
+        status,
+      }));
 
     const otherFiles = account.files
       ?.filter(
@@ -88,7 +100,13 @@ class AccountService extends BaseService<Account> {
           file.type !== FileEnum.CERTIFICATE &&
           file.type !== FileEnum.CONSULTANT_THUMBNAIL
       )
-      .map(({ name, fileUrl, type }) => ({ name, fileUrl, type }));
+      .map(({ id, name, fileUrl, type, status }) => ({
+        id,
+        name,
+        fileUrl,
+        type,
+        status,
+      }));
 
     return {
       ...account,
