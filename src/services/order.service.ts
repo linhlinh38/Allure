@@ -1270,18 +1270,17 @@ class OrderService extends BaseService<Order> {
       if (!order) {
         throw new BadRequestError(`Order not found`);
       }
+      if (order.status == ShippingStatusEnum.TO_PAY) {
+        throw new BadRequestError('Can not cancel order to pay');
+      }
       if (
         [
           ShippingStatusEnum.WAIT_FOR_CONFIRMATION,
-          ShippingStatusEnum.TO_PAY,
           ShippingStatusEnum.PREPARING_ORDER,
           ShippingStatusEnum.SHIPPING,
         ].includes(order.status)
       ) {
-        if (
-          order.status != ShippingStatusEnum.TO_PAY &&
-          order.paymentMethod != PaymentMethodEnum.CASH
-        ) {
+        if (order.paymentMethod != PaymentMethodEnum.CASH) {
           //refund to wallet
           await walletService.refundFromCancelOrder(order, queryRunner);
           const transaction =
@@ -1408,6 +1407,9 @@ class OrderService extends BaseService<Order> {
       });
       if (!order) {
         throw new BadRequestError(`Order not found`);
+      }
+      if (order.status == ShippingStatusEnum.TO_PAY) {
+        throw new BadRequestError('Can not cancel order to pay');
       }
       const cancelOrderRequest = await orderRequestRepository.findOne({
         where: {
