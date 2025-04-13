@@ -3,7 +3,7 @@ import accountRouter from "./account.route";
 import authRoute from "./auth.route";
 import brandRoute from "./brand.route";
 import addressRouter from "./address.route";
-import categoryRouter from "./category.router";
+import categoryRouter from "./category.route";
 import productClassificationRouter from "./productClassification.route";
 import productRouter from "./product.route";
 import roleRouter from "./role.route";

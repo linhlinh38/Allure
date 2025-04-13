@@ -17,10 +17,41 @@ import {
   OrderRequestFilterRequest,
 } from '../dtos/request/order.request';
 import { AuthRequest } from '../middleware/authentication';
-import { ActionReceivedEnum, PaymentMethodEnum, ShippingStatusEnum } from '../utils/enum';
+import {
+  ActionReceivedEnum,
+  PaymentMethodEnum,
+  ShippingStatusEnum,
+} from '../utils/enum';
 import { Paging } from '../dtos/other/paging.dto';
 
 export default class OrderController {
+  static async filterParent(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const paging = {
+        page: Number(req.query.page) ? Number(req.query.page) : 1,
+        limit: Number(req.query.limit) ? Number(req.query.limit) : 10,
+      } as Paging;
+      const orderFilterRequest = plainToInstance(OrderFilterRequest, req.body, {
+        excludeExtraneousValues: true,
+      });
+      return createNormalResponse(
+        res,
+        'Filter orders success',
+        await orderService.filter(
+          orderFilterRequest,
+          paging,
+          req.loginUser,
+          true
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async filter(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const paging = {
@@ -313,6 +344,18 @@ export default class OrderController {
     }
   }
 
+  static async getParentById(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get order successfully',
+        await orderService.getParentById(req.params.orderId)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async getById(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       return createNormalResponse(
@@ -379,6 +422,22 @@ export default class OrderController {
           req.loginUser
         )
       );
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async cancelParentOrder(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      await orderService.cancelParentOrderWhenToPay(
+        req.params.orderId,
+        req.body.reason
+      );
+      return createNormalResponse(res, 'Cancel order successfully');
     } catch (err) {
       next(err);
     }
@@ -489,7 +548,10 @@ export default class OrderController {
         orderNormalBody,
         req.loginUser
       );
-      if(parentOrder.paymentMethod == PaymentMethodEnum.WALLET && parentOrder.status == ShippingStatusEnum.TO_PAY) {
+      if (
+        parentOrder.paymentMethod == PaymentMethodEnum.WALLET &&
+        parentOrder.status == ShippingStatusEnum.TO_PAY
+      ) {
         return createNormalResponse(
           res,
           'Wallet not enough money, turn to To Pay order ',

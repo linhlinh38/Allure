@@ -34,7 +34,7 @@ export const OrderNormalCreateSchema = z.object({
                   .number()
                   .int()
                   .positive('Quantity must be a positive integer'),
-                livestreamId: z.string().uuid().optional(),
+                livestreamId: z.string().optional(),
               })
             )
             .min(1, 'Items cannot be empty'),
@@ -129,7 +129,7 @@ export const GetMyRequestsSchema = z.object({
   body: z.object({
     statusList: z.array(z.nativeEnum(RequestStatusEnum)).optional(),
     types: z.array(z.nativeEnum(OrderRequestTypeEnum)).optional(),
-  }),
+  }), 
 });
 
 export const OrderFilterRequestSchema = z.object({

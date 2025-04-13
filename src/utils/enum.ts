@@ -252,7 +252,7 @@ export enum ReportTypeEnum {
 export enum ReportStatusEnum {
   PENDING = "PENDING",
   IN_PROCESSING = "IN_PROCESSING",
-  //DONE = "DONE",
+  DONE = "DONE",
   REJECTED = "REJECTED",
   APPROVED = "APPROVED",
   CANCELLED = "CANCELLED",

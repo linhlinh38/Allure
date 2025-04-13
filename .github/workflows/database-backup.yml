@@ -1,0 +1,36 @@
+name: Database Backup
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # Run daily at midnight
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Backup database
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd ~/allure-app
+
+            # Create backup directory
+            BACKUP_DIR=~/allure-app/backups/$(date +%Y%m%d_%H%M%S)
+            mkdir -p $BACKUP_DIR
+
+            # Backup database
+            BACKUP_FILE="$BACKUP_DIR/db_backup.sql"
+            docker exec allure_db pg_dump -U postgres allure > "$BACKUP_FILE"
+
+            # Compress backup
+            gzip "$BACKUP_FILE"
+
+            # Remove backups older than 7 days
+            find ~/allure-app/backups -type d -mtime +7 -exec rm -rf {} \; 2>/dev/null || true
+
+            echo "Database backup completed: $BACKUP_FILE.gz"

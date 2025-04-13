@@ -82,7 +82,8 @@ class OrderService extends BaseService<Order> {
   async filter(
     orderFilterRequest: OrderFilterRequest,
     paging: Paging,
-    loginUser: string
+    loginUser: string,
+    isParent?: boolean
   ) {
     const account = await accountRepository.findOne({
       where: {
@@ -100,19 +101,24 @@ class OrderService extends BaseService<Order> {
       .leftJoinAndSelect('order.account', 'account')
       .leftJoinAndSelect('order.brand', 'brand')
       .leftJoinAndSelect('order.groupBuying', 'groupBuying')
-      .where('order.parent_id IS NOT NULL')
       .orderBy('order.createdAt', 'DESC');
-    this.queryBuilderForOrder(queryBuilder);
+    if (isParent) {
+      queryBuilder.where('order.parent_id IS NULL');
+      this.queryBuilderForParentOrder(queryBuilder);
+    } else {
+      queryBuilder.where('order.parent_id IS NOT NULL');
+      this.queryBuilderForOrder(queryBuilder);
+    }
     if (account.role.role == RoleEnum.CUSTOMER) {
       queryBuilder.andWhere('account.id = :loginUser', { loginUser });
-    } else if (account.role.role == RoleEnum.MANAGER || account.role.role == RoleEnum.STAFF) {
+    } else if (
+      account.role.role == RoleEnum.MANAGER ||
+      account.role.role == RoleEnum.STAFF
+    ) {
       const brand = account.brands[0];
-      queryBuilder.andWhere(
-        'brand.id = :brandId',
-        {
-          brandId: brand.id,
-        }
-      );
+      queryBuilder.andWhere('brand.id = :brandId', {
+        brandId: brand.id,
+      });
     } else if (account.role.role == RoleEnum.ADMIN) {
     } else {
       throw new BadRequestError(
@@ -196,12 +202,9 @@ class OrderService extends BaseService<Order> {
       )
       .orderBy('orderRequest.createdAt', 'DESC');
     this.queryBuilderForOrder(queryBuilder);
-    // if (account.role.role == RoleEnum.CUSTOMER) {
-    //   queryBuilder.where('account.id = :loginUser', { loginUser });
-    //   queryBuilder.andWhere('orderRequest.type IN (:...types)', {
-    //     types: [OrderRequestTypeEnum.CANCEL, OrderRequestTypeEnum.REFUND],
-    //   });
-    if (account.role.role == RoleEnum.MANAGER) {
+    if (account.role.role == RoleEnum.CUSTOMER) {
+      queryBuilder.where('account.id = :loginUser', { loginUser });
+    } else if (account.role.role == RoleEnum.MANAGER) {
       const brand = account.brands[0];
       queryBuilder.where('brand.id = :brandId', { brandId: brand.id });
       queryBuilder.andWhere('orderRequest.type IN (:...types)', {
@@ -313,7 +316,7 @@ class OrderService extends BaseService<Order> {
             order,
             loginUser,
             ShippingStatusEnum.BRAND_RECEIVED,
-            'Auto update',
+            null,
             queryRunner
           ),
         ]);
@@ -863,6 +866,37 @@ class OrderService extends BaseService<Order> {
       .leftJoinAndSelect('preOrderProductItem.images', 'preOrderProductImages');
   }
 
+  queryBuilderForParentOrder(queryBuilder: SelectQueryBuilder<any>) {
+    queryBuilder
+      .leftJoinAndSelect('order.children', 'child')
+      .leftJoinAndSelect('child.orderDetails', 'orderDetail')
+      .leftJoinAndSelect(
+        'orderDetail.productClassification',
+        'productClassification'
+      )
+      .leftJoinAndSelect(
+        'productClassification.images',
+        'productClassificationImages'
+      )
+      .leftJoinAndSelect('productClassification.product', 'product')
+      .leftJoinAndSelect('product.brand', 'productBrand')
+      .leftJoinAndSelect('product.images', 'productImages')
+      .leftJoinAndSelect(
+        'productClassification.productDiscount',
+        'productDiscount'
+      )
+      .leftJoinAndSelect('productDiscount.product', 'discountProduct')
+      .leftJoinAndSelect('discountProduct.brand', 'discountProductBrand')
+      .leftJoinAndSelect('discountProduct.images', 'discountProductImages')
+      .leftJoinAndSelect(
+        'productClassification.preOrderProduct',
+        'preOrderProduct'
+      )
+      .leftJoinAndSelect('preOrderProduct.product', 'preOrderProductItem')
+      .leftJoinAndSelect('preOrderProductItem.brand', 'preOrderProductBrand')
+      .leftJoinAndSelect('preOrderProductItem.images', 'preOrderProductImages');
+  }
+
   async getCancelRequestOfBrand(brandId: string, status: RequestStatusEnum) {
     const brand = await brandRepository.findOne({
       where: { id: brandId },
@@ -1032,6 +1066,34 @@ class OrderService extends BaseService<Order> {
         this.refundVoucher(order, queryRunner),
       ]);
     else await this.refundVoucher(order, queryRunner);
+  }
+
+  async getParentById(orderId: string) {
+    const order = await orderRepository.findOne({
+      where: { id: orderId, parent: IsNull() },
+      relations: {
+        account: true,
+        children: {
+          orderDetails: {
+            feedback: {
+              mediaFiles: true,
+              replies: {
+                account: { role: true },
+              },
+            },
+            productClassification: {
+              images: true,
+              product: { brand: true, images: true },
+              productDiscount: { product: { brand: true, images: true } },
+              preOrderProduct: { product: { brand: true, images: true } },
+            },
+          },
+        },
+        voucher: true,
+      },
+    });
+    if (!order) throw new BadRequestError(`Order not found`);
+    return order;
   }
 
   async getById(orderId: string) {
@@ -1291,6 +1353,37 @@ class OrderService extends BaseService<Order> {
     await queryRunner.manager.save(StatusTracking, statusTracking);
   }
 
+  async cancelParentOrderWhenToPay(orderId: string, reason: string) {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const order = await orderRepository.findOne({
+        where: { id: orderId, parent: IsNull() },
+        relations: {
+          children: {
+            account: true,
+            orderDetails: { productClassification: true },
+            voucher: true,
+          },
+          account: true,
+          voucher: true,
+        },
+      });
+      if (!order) throw new BadRequestError('Order not found');
+      if (order.status != ShippingStatusEnum.TO_PAY) {
+        throw new BadRequestError('Order status is not TO_PAY');
+      }
+      await this.cancelParentOrder(order, queryRunner, reason);
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
   async customerCancelOrder(orderId: string, reason: string, userId: string) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
@@ -1391,7 +1484,11 @@ class OrderService extends BaseService<Order> {
     }
   }
 
-  async cancelChildOrder(order: Order, queryRunner: QueryRunner) {
+  async cancelChildOrder(
+    order: Order,
+    queryRunner: QueryRunner,
+    reason?: string
+  ) {
     await Promise.all([
       //update order status and save
       (async () => {
@@ -1407,18 +1504,23 @@ class OrderService extends BaseService<Order> {
         order,
         null,
         ShippingStatusEnum.CANCELLED,
-        'AUTO CANCELLED',
+        reason ? reason : 'AUTO CANCELLED',
         queryRunner
       ),
     ]);
   }
 
-  async cancelParentOrder(order: Order, queryRunner: QueryRunner) {
+  async cancelParentOrder(
+    order: Order,
+    queryRunner: QueryRunner,
+    reason?: string
+  ) {
     //cancel child orders
     for (const childOrder of order.children) {
-      await this.cancelChildOrder(childOrder, queryRunner);
+      await this.cancelChildOrder(childOrder, queryRunner, reason);
     }
     //cancel parent order
+    delete order.children;
     await Promise.all([
       //update order status and save
       (async () => {
@@ -1432,7 +1534,7 @@ class OrderService extends BaseService<Order> {
         order,
         null,
         ShippingStatusEnum.CANCELLED,
-        'AUTO CANCELLED',
+        reason ? reason : 'AUTO CANCELLED',
         queryRunner
       ),
     ]);
@@ -1869,7 +1971,7 @@ class OrderService extends BaseService<Order> {
           //init order detail
           const orderDetail = await this.initOrderDetail(
             productClassification,
-            item,
+            item
           );
 
           //push order detail into child order
@@ -1886,6 +1988,8 @@ class OrderService extends BaseService<Order> {
         voucherService.applyPlatformVoucher(parentOrder);
         parentOrder.voucher = platformVoucher;
       }
+
+      this.separatePreOrders(parentOrder);
 
       voucherService.calculateOrderPrice(parentOrder);
 
@@ -1925,9 +2029,33 @@ class OrderService extends BaseService<Order> {
     }
   }
 
+  private separatePreOrders(parentOrder: Order) {
+    const preOrders: Order[] = [];
+    parentOrder.children.forEach((order) => {
+      const remainingOrderDetails = [];
+      order.orderDetails.forEach((orderDetail) => {
+        if (orderDetail.type == OrderEnum.PRE_ORDER) {
+          const preOrder = new Order();
+          Object.assign(preOrder, order);
+          preOrder.type = OrderEnum.PRE_ORDER;
+          preOrder.orderDetails = [orderDetail];
+          preOrders.push(preOrder);
+        } else {
+          remainingOrderDetails.push(orderDetail);
+        }
+      });
+      order.orderDetails = remainingOrderDetails;
+    });
+    parentOrder.children.push(...preOrders);
+  }
+
   private async initOrderDetail(
     productClassification: ProductClassification,
-    item: { productClassificationId: string; quantity: number, livestreamId?: string }
+    item: {
+      productClassificationId: string;
+      quantity: number;
+      livestreamId?: string;
+    }
   ) {
     const orderDetail = new OrderDetail();
     orderDetail.unitPriceBeforeDiscount = productClassification.price;
@@ -1974,7 +2102,8 @@ class OrderService extends BaseService<Order> {
   private async createStatusTrackingForParentOrder(
     parentOrder: Order,
     status: ShippingStatusEnum,
-    queryRunner: QueryRunner
+    queryRunner: QueryRunner,
+    reason?: string
   ) {
     //create status tracking for parent order
     let statusTracking = new StatusTracking();
@@ -1982,6 +2111,7 @@ class OrderService extends BaseService<Order> {
     statusTracking.updatedBy = new Account();
     statusTracking.updatedBy.id = parentOrder.account.id;
     statusTracking.status = status;
+    if (reason) statusTracking.reason = reason;
 
     const statusTrackings = parentOrder.children.map((childOrder) => {
       //create status tracking for child order
@@ -1990,6 +2120,7 @@ class OrderService extends BaseService<Order> {
       statusTracking.updatedBy = new Account();
       statusTracking.updatedBy.id = parentOrder.account.id;
       statusTracking.status = status;
+      if (reason) statusTracking.reason = reason;
       return statusTracking;
     });
     await queryRunner.manager.save(StatusTracking, [

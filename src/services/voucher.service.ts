@@ -487,6 +487,11 @@ class VoucherService extends BaseService<Voucher> {
     loginUser: string
   ) {
     const checkoutItems = getBestPlatformVouchersRequest.checkoutItems;
+    if (!checkoutItems && checkoutItems.length == 0)
+      return {
+        bestVoucher: null,
+        bestDiscount: 0,
+      };
     const quantityMap = new Map(
       checkoutItems.map((item) => [item.classificationId, item.quantity])
     );
@@ -519,7 +524,7 @@ class VoucherService extends BaseService<Voucher> {
           voucher: {
             startTime: LessThanOrEqual(new Date()),
             endTime: MoreThan(new Date()),
-            brand: null,
+            brand: IsNull(),
           },
         },
         relations: {
@@ -589,8 +594,16 @@ class VoucherService extends BaseService<Voucher> {
     loginUser: string
   ) {
     const response = [];
-
-    for (const checkoutItem of getBestShopVouchersRequest.checkoutItems) {
+    const checkoutItems = getBestShopVouchersRequest.checkoutItems;
+    if (!checkoutItems && checkoutItems.length == 0)
+      return [
+        {
+          brandId: null,
+          bestVoucher: null,
+          bestDiscount: 0,
+        },
+      ];
+    for (const checkoutItem of checkoutItems) {
       const quantityMap = new Map(
         checkoutItem.brandItems.map((item) => [
           item.classificationId,
@@ -1278,7 +1291,6 @@ class VoucherService extends BaseService<Voucher> {
       endTime,
       applyProductIds,
     } = filter;
-    
 
     const queryBuilder = voucherRepository
       .createQueryBuilder('voucher')

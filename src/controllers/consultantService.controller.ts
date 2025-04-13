@@ -87,7 +87,11 @@ export default class ConsultantServiceController {
           filter.page,
           filter.limit
         );
-      res.status(200).json(consultantServices);
+      return createNormalResponse(
+        res,
+        'Filter services success',
+        consultantServices
+      );
     } catch (err) {
       next(err);
     }

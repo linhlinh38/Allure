@@ -130,6 +130,39 @@ class TransactionService extends BaseService<Transaction> {
     return query;
   }
 
+  async consultantRevenue(
+    startDate: Date,
+    endDate: Date,
+    consultantId: string,
+    loginUser: string
+  ) {
+    if (!startDate || !endDate) {
+      startDate = new Date();
+      endDate = new Date();
+      startDate.setMonth(endDate.getMonth() - 1);
+    }
+    startDate = new Date(startDate);
+    endDate = new Date(endDate);
+    startDate.setHours(-7, 0, 0, 0);
+    endDate.setHours(16, 59, 59, 999);
+    const account = await accountRepository.findOne({
+      where: { id: loginUser },
+      relations: { role: true },
+    });
+    if (account.role.role == RoleEnum.CONSULTANT) {
+      return await this.calculateConsultantWalletTransfers(
+        loginUser,
+        startDate,
+        endDate
+      );
+    }
+    return await this.calculateConsultantWalletTransfers(
+      consultantId,
+      startDate,
+      endDate
+    );
+  }
+
   async brandRevenue(startDate: Date, endDate: Date, brandId: string) {
     if (!startDate || !endDate) {
       startDate = new Date();
@@ -138,8 +171,8 @@ class TransactionService extends BaseService<Transaction> {
     }
     startDate = new Date(startDate);
     endDate = new Date(endDate);
-    startDate.setHours(0, 0, 0, 0);
-    endDate.setHours(23, 59, 59, 999);
+    startDate.setHours(-7, 0, 0, 0);
+    endDate.setHours(16, 59, 59, 999);
     return await this.calculateBrandWalletTransfers(
       brandId,
       startDate,
@@ -454,7 +487,10 @@ class TransactionService extends BaseService<Transaction> {
     orderService.queryBuilderForOrder(query);
     if (account.role.role == RoleEnum.CUSTOMER) {
       query.where('buyer.id = :loginUser', { loginUser });
-    } else if (account.role.role == RoleEnum.MANAGER || account.role.role == RoleEnum.STAFF) {
+    } else if (
+      account.role.role == RoleEnum.MANAGER ||
+      account.role.role == RoleEnum.STAFF
+    ) {
       const brand = account.brands[0];
       query
         .where('brand.id = :brandId', { brandId: brand.id })
@@ -645,8 +681,8 @@ class TransactionService extends BaseService<Transaction> {
     if (!brand) throw new BadRequestError(`Brand not find`);
     let startDate = new Date(getBrandRevenueStatisticsRequest.startDate);
     let endDate = new Date(getBrandRevenueStatisticsRequest.endDate);
-    startDate.setHours(0, 0, 0, 0);
-    endDate.setHours(23, 59, 59, 999);
+    startDate.setHours(-7, 0, 0, 0);
+    endDate.setHours(16, 59, 59, 999);
     const queryBuilder = orderRepository
       .createQueryBuilder('o')
       .innerJoin('o.brand', 'b')
@@ -672,8 +708,8 @@ class TransactionService extends BaseService<Transaction> {
     ) {
       let startDate = new Date(getBrandRevenueStatisticsRequest.startDate);
       let endDate = new Date(getBrandRevenueStatisticsRequest.endDate);
-      startDate.setHours(0, 0, 0, 0);
-      endDate.setHours(23, 59, 59, 999);
+      startDate.setHours(-7, 0, 0, 0);
+      endDate.setHours(16, 59, 59, 999);
       queryBuilder.andWhere('o.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
         endDate,
@@ -724,8 +760,8 @@ class TransactionService extends BaseService<Transaction> {
     ) {
       let startDate = new Date(getUserSpendingStatisticsRequest.startDate);
       let endDate = new Date(getUserSpendingStatisticsRequest.endDate);
-      startDate.setHours(0, 0, 0, 0);
-      endDate.setHours(23, 59, 59, 999);
+      startDate.setHours(-7, 0, 0, 0);
+      endDate.setHours(16, 59, 59, 999);
       queryBuilder.andWhere('o.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
         endDate,
@@ -916,7 +952,8 @@ class TransactionService extends BaseService<Transaction> {
     const masterConfig = await retrieveMasterConfig();
     walletService.increaseBalance(
       wallet,
-      order.totalPrice * (1 - masterConfig.commissionFee)
+      (order.totalPrice + order.platformVoucherDiscount) *
+        (1 - masterConfig.commissionFee)
     );
     await queryRunner.manager.save(wallet);
     const transaction =
@@ -1179,7 +1216,7 @@ class TransactionService extends BaseService<Transaction> {
         totalQuantity: 0,
         totalPlatformVoucherDiscount: 0,
         totalShopVoucherDiscount: 0,
-        orderCount: 0
+        orderCount: 0,
       }
     );
 
@@ -1201,6 +1238,37 @@ class TransactionService extends BaseService<Transaction> {
     return dates;
   }
 
+  async calculateConsultantWalletTransfers(
+    consultantId: string,
+    startDate: Date,
+    endDate: Date
+  ) {
+    const result = await transactionRepository
+      .createQueryBuilder('transaction')
+      .leftJoinAndSelect('transaction.booking', 'booking')
+      .leftJoinAndSelect('transaction.consultant', 'consultant')
+      .select([
+        'SUM(transaction.amount) as totalAmount',
+        'SUM(booking.totalPrice - transaction.amount) as totalCommissionFee',
+      ])
+      .where('consultant.id = :consultantId', { consultantId })
+      .andWhere('transaction.type = :type', {
+        type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+      })
+      .andWhere('transaction.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      })
+      .getRawOne();
+
+    return {
+      totalAmount: parseFloat(result?.totalamount || '0'),
+      totalCommissionFee: parseFloat(result?.totalcommissionfee || '0'),
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
+    };
+  }
+
   async calculateBrandWalletTransfers(
     brandId: string,
     startDate: Date,
@@ -1211,7 +1279,7 @@ class TransactionService extends BaseService<Transaction> {
       .leftJoinAndSelect('transaction.order', 'order')
       .select([
         'SUM(transaction.amount) as totalAmount',
-        'SUM(order.totalPrice - transaction.amount) as totalCommissionFee',
+        'SUM(order.totalPrice + order.platformVoucherDiscount - transaction.amount) as totalCommissionFee',
       ])
       .where('transaction.brand_id = :brandId', { brandId })
       .andWhere('transaction.type = :type', {

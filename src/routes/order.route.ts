@@ -20,10 +20,11 @@ import validate from '../utils/validate';
 const orderRouter = express.Router();
 orderRouter.get('/', OrderController.getAll);
 orderRouter.get('/get-by-id/:orderId', OrderController.getById);
+orderRouter.get('/get-parent-by-id/:orderId', OrderController.getParentById);
 orderRouter.get('/get-by-brand/:brandId', OrderController.getByBrand);
 orderRouter.use(authentication);
 orderRouter.post(
-  '/get-my-orders/',
+  '/get-my-orders',
   validate(SearchOrderSchema),
   OrderController.getMyOrders
 );
@@ -53,6 +54,11 @@ orderRouter.post(
   '/customer-cancel-order/:orderId',
   validate(CancelOrderSchema),
   OrderController.customerCancelOrder
+);
+orderRouter.post(
+  '/cancel-parent-order/:orderId',
+  validate(CancelOrderSchema),
+  OrderController.cancelParentOrder
 );
 orderRouter.post(
   '/brand-cancel-order/:orderId',
@@ -121,6 +127,11 @@ orderRouter.post(
   '/filter',
   validate(OrderFilterRequestSchema),
   OrderController.filter
+);
+orderRouter.post(
+  '/filter-parent',
+  validate(OrderFilterRequestSchema),
+  OrderController.filterParent
 );
 orderRouter.post('/create-pre-order', OrderController.createPreOrder);
 orderRouter.post('/create-group-order', OrderController.createGroupOrder);
