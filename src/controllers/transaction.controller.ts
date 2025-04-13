@@ -12,6 +12,26 @@ import { transactionService } from '../services/transaction.service';
 import { Paging } from '../dtos/other/paging.dto';
 
 export default class TransactionController {
+  static async consultantRevenue(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get consultant revenue successfully',
+        await transactionService.consultantRevenue(
+          req.body.startDate,
+          req.body.endDate,
+          req.body.consultantId,
+          req.loginUser
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async getOrderStatistics(
     req: AuthRequest,
     res: Response,
@@ -21,9 +41,7 @@ export default class TransactionController {
       return createNormalResponse(
         res,
         'Get order statistics successfully',
-        await transactionService.getOrderStatistics(
-          req.body.brandId
-        )
+        await transactionService.getOrderStatistics(req.body.brandId)
       );
     } catch (err) {
       next(err);
