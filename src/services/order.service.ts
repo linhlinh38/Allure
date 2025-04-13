@@ -202,12 +202,9 @@ class OrderService extends BaseService<Order> {
       )
       .orderBy('orderRequest.createdAt', 'DESC');
     this.queryBuilderForOrder(queryBuilder);
-    // if (account.role.role == RoleEnum.CUSTOMER) {
-    //   queryBuilder.where('account.id = :loginUser', { loginUser });
-    //   queryBuilder.andWhere('orderRequest.type IN (:...types)', {
-    //     types: [OrderRequestTypeEnum.CANCEL, OrderRequestTypeEnum.REFUND],
-    //   });
-    if (account.role.role == RoleEnum.MANAGER) {
+    if (account.role.role == RoleEnum.CUSTOMER) {
+      queryBuilder.where('account.id = :loginUser', { loginUser });
+    } else if (account.role.role == RoleEnum.MANAGER) {
       const brand = account.brands[0];
       queryBuilder.where('brand.id = :brandId', { brandId: brand.id });
       queryBuilder.andWhere('orderRequest.type IN (:...types)', {
@@ -325,7 +322,6 @@ class OrderService extends BaseService<Order> {
         ]);
         isReceived = true;
         await addUpdateRefundedStatusOrderToQueue(orderId);
-
       } else {
         const masterConfig = await retrieveMasterConfig();
         order.expiredReceivedTime = new Date(

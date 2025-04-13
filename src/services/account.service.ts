@@ -73,9 +73,48 @@ class AccountService extends BaseService<Account> {
     if (!account) {
       throw new Error("Account not found");
     }
+
+    const certificates = account.files
+      ?.filter((file) => file.type === FileEnum.CERTIFICATE)
+      .map(({ id, name, fileUrl, type, status }) => ({
+        id,
+        name,
+        fileUrl,
+        type,
+        status,
+      }));
+
+    const thumbnailImageList = account.files
+      ?.filter((file) => file.type === FileEnum.CONSULTANT_THUMBNAIL)
+      .map(({ id, name, fileUrl, type, status }) => ({
+        id,
+        name,
+        fileUrl,
+        type,
+        status,
+      }));
+
+    const otherFiles = account.files
+      ?.filter(
+        (file) =>
+          file.type !== FileEnum.CERTIFICATE &&
+          file.type !== FileEnum.CONSULTANT_THUMBNAIL
+      )
+      .map(({ id, name, fileUrl, type, status }) => ({
+        id,
+        name,
+        fileUrl,
+        type,
+        status,
+      }));
+
     return {
       ...account,
       role: account.role.role,
+      certificates: certificates?.length > 0 ? certificates : undefined,
+      thumbnailImageList:
+        thumbnailImageList?.length > 0 ? thumbnailImageList : undefined,
+      files: otherFiles?.length > 0 ? otherFiles : undefined,
     };
   }
 
@@ -392,21 +431,25 @@ class AccountService extends BaseService<Account> {
 
       // Handle certificates
       if (accountData.certificates && accountData.certificates.length > 0) {
-        // Remove old certificates
-        await queryRunner.manager.delete(File, {
-          account: { id: accountId },
-          type: FileEnum.CERTIFICATE,
-        });
-
         // Add new certificates
         for (const cert of accountData.certificates) {
-          const certFile: Partial<File> = {
-            account: account,
-            name: cert.name ?? null,
-            fileUrl: cert.fileUrl,
-            type: FileEnum.CERTIFICATE,
-          };
-          await queryRunner.manager.save(File, certFile);
+          if (cert.id) {
+            const existingCert = await queryRunner.manager.findOne(File, {
+              where: { id: cert.id },
+            });
+            if (existingCert) {
+              queryRunner.manager.merge(File, existingCert, cert);
+              await queryRunner.manager.save(File, existingCert);
+            }
+          } else {
+            const certFile: Partial<File> = {
+              account: account,
+              name: cert.name ?? null,
+              fileUrl: cert.fileUrl,
+              type: FileEnum.CERTIFICATE,
+            };
+            await queryRunner.manager.save(File, certFile);
+          }
         }
       }
 
@@ -415,21 +458,24 @@ class AccountService extends BaseService<Account> {
         accountData.thumbnailImageList &&
         accountData.thumbnailImageList.length > 0
       ) {
-        // Remove old thumbnails
-        await queryRunner.manager.delete(File, {
-          account: { id: accountId },
-          type: FileEnum.CONSULTANT_THUMBNAIL,
-        });
-
-        // Add new thumbnails
         for (const img of accountData.thumbnailImageList) {
-          const thumbnailFile: Partial<File> = {
-            account: account,
-            name: img.name ?? null,
-            fileUrl: img.fileUrl,
-            type: FileEnum.CONSULTANT_THUMBNAIL,
-          };
-          await queryRunner.manager.save(File, thumbnailFile);
+          if (img.id) {
+            const existingThumbnail = await queryRunner.manager.findOne(File, {
+              where: { id: img.id },
+            });
+            if (existingThumbnail) {
+              queryRunner.manager.merge(File, existingThumbnail, img);
+              await queryRunner.manager.save(File, existingThumbnail);
+            }
+          } else {
+            const thumbnailFile: Partial<File> = {
+              account: account,
+              name: img.name ?? null,
+              fileUrl: img.fileUrl,
+              type: FileEnum.CONSULTANT_THUMBNAIL,
+            };
+            await queryRunner.manager.save(File, thumbnailFile);
+          }
         }
       }
 
