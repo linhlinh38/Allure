@@ -5,6 +5,8 @@ export const ConsultantServiceCreateSchema = z.object({
   body: z.object({
     price: z.number().int().nonnegative("Price must be a non-negative integer"),
     account: z.string().optional(),
+    description: z.string().optional(),
+    detail: z.string().optional(),
     images: z.array(ServiceImageCreateSchema.shape.body).optional(),
     systemService: z.string(),
     serviceBookingForm: z.string().optional(),
