@@ -356,6 +356,93 @@ class AccountService extends BaseService<Account> {
     }
   }
 
+  async updateAccount(accountId: string, accountData: any): Promise<Account> {
+    const queryRunner = AppDataSource.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Find the account to update
+      const account = await queryRunner.manager.findOne(Account, {
+        where: { id: accountId },
+        relations: ["files"],
+      });
+
+      if (!account) {
+        throw new Error("Account not found");
+      }
+
+      // Update basic account information
+      if (accountData.password) {
+        accountData.password = await encryptedPassword(accountData.password);
+      }
+
+      if (accountData.username) {
+        const checkExist = await queryRunner.manager.findOne(Account, {
+          where: { username: accountData.username },
+        });
+        if (checkExist && checkExist.id !== account.id) {
+          throw new BadRequestError("Username already exists");
+        }
+      }
+
+      queryRunner.manager.merge(Account, account, accountData);
+      await queryRunner.manager.save(account);
+
+      // Handle certificates
+      if (accountData.certificates && accountData.certificates.length > 0) {
+        // Remove old certificates
+        await queryRunner.manager.delete(File, {
+          account: { id: accountId },
+          type: FileEnum.CERTIFICATE,
+        });
+
+        // Add new certificates
+        for (const cert of accountData.certificates) {
+          const certFile: Partial<File> = {
+            account: account,
+            name: cert.name ?? null,
+            fileUrl: cert.fileUrl,
+            type: FileEnum.CERTIFICATE,
+          };
+          await queryRunner.manager.save(File, certFile);
+        }
+      }
+
+      // Handle thumbnail images
+      if (
+        accountData.thumbnailImageList &&
+        accountData.thumbnailImageList.length > 0
+      ) {
+        // Remove old thumbnails
+        await queryRunner.manager.delete(File, {
+          account: { id: accountId },
+          type: FileEnum.CONSULTANT_THUMBNAIL,
+        });
+
+        // Add new thumbnails
+        for (const img of accountData.thumbnailImageList) {
+          const thumbnailFile: Partial<File> = {
+            account: account,
+            name: img.name ?? null,
+            fileUrl: img.fileUrl,
+            type: FileEnum.CONSULTANT_THUMBNAIL,
+          };
+          await queryRunner.manager.save(File, thumbnailFile);
+        }
+      }
+
+      await queryRunner.commitTransaction();
+      return account;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
   async updateAccountStatus(
     updatedBy: string,
     updateData: AccountUpdateStatusType
