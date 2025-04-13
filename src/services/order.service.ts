@@ -1068,6 +1068,34 @@ class OrderService extends BaseService<Order> {
     else await this.refundVoucher(order, queryRunner);
   }
 
+  async getParentById(orderId: string) {
+    const order = await orderRepository.findOne({
+      where: { id: orderId, parent: IsNull() },
+      relations: {
+        account: true,
+        children: {
+          orderDetails: {
+            feedback: {
+              mediaFiles: true,
+              replies: {
+                account: { role: true },
+              },
+            },
+            productClassification: {
+              images: true,
+              product: { brand: true, images: true },
+              productDiscount: { product: { brand: true, images: true } },
+              preOrderProduct: { product: { brand: true, images: true } },
+            },
+          },
+        },
+        voucher: true,
+      },
+    });
+    if (!order) throw new BadRequestError(`Order not found`);
+    return order;
+  }
+
   async getById(orderId: string) {
     const order = await orderRepository.findOne({
       where: { id: orderId },
@@ -1325,6 +1353,37 @@ class OrderService extends BaseService<Order> {
     await queryRunner.manager.save(StatusTracking, statusTracking);
   }
 
+  async cancelParentOrderWhenToPay(orderId: string, reason: string) {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const order = await orderRepository.findOne({
+        where: { id: orderId, parent: IsNull() },
+        relations: {
+          children: {
+            account: true,
+            orderDetails: { productClassification: true },
+            voucher: true,
+          },
+          account: true,
+          voucher: true,
+        },
+      });
+      if (!order) throw new BadRequestError('Order not found');
+      if (order.status != ShippingStatusEnum.TO_PAY) {
+        throw new BadRequestError('Order status is not TO_PAY');
+      }
+      await this.cancelParentOrder(order, queryRunner, reason);
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
   async customerCancelOrder(orderId: string, reason: string, userId: string) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
@@ -1425,7 +1484,11 @@ class OrderService extends BaseService<Order> {
     }
   }
 
-  async cancelChildOrder(order: Order, queryRunner: QueryRunner) {
+  async cancelChildOrder(
+    order: Order,
+    queryRunner: QueryRunner,
+    reason?: string
+  ) {
     await Promise.all([
       //update order status and save
       (async () => {
@@ -1441,18 +1504,23 @@ class OrderService extends BaseService<Order> {
         order,
         null,
         ShippingStatusEnum.CANCELLED,
-        'AUTO CANCELLED',
+        reason ? reason : 'AUTO CANCELLED',
         queryRunner
       ),
     ]);
   }
 
-  async cancelParentOrder(order: Order, queryRunner: QueryRunner) {
+  async cancelParentOrder(
+    order: Order,
+    queryRunner: QueryRunner,
+    reason?: string
+  ) {
     //cancel child orders
     for (const childOrder of order.children) {
-      await this.cancelChildOrder(childOrder, queryRunner);
+      await this.cancelChildOrder(childOrder, queryRunner, reason);
     }
     //cancel parent order
+    delete order.children;
     await Promise.all([
       //update order status and save
       (async () => {
@@ -1466,7 +1534,7 @@ class OrderService extends BaseService<Order> {
         order,
         null,
         ShippingStatusEnum.CANCELLED,
-        'AUTO CANCELLED',
+        reason ? reason : 'AUTO CANCELLED',
         queryRunner
       ),
     ]);
@@ -2034,7 +2102,8 @@ class OrderService extends BaseService<Order> {
   private async createStatusTrackingForParentOrder(
     parentOrder: Order,
     status: ShippingStatusEnum,
-    queryRunner: QueryRunner
+    queryRunner: QueryRunner,
+    reason?: string
   ) {
     //create status tracking for parent order
     let statusTracking = new StatusTracking();
@@ -2042,6 +2111,7 @@ class OrderService extends BaseService<Order> {
     statusTracking.updatedBy = new Account();
     statusTracking.updatedBy.id = parentOrder.account.id;
     statusTracking.status = status;
+    if (reason) statusTracking.reason = reason;
 
     const statusTrackings = parentOrder.children.map((childOrder) => {
       //create status tracking for child order
@@ -2050,6 +2120,7 @@ class OrderService extends BaseService<Order> {
       statusTracking.updatedBy = new Account();
       statusTracking.updatedBy.id = parentOrder.account.id;
       statusTracking.status = status;
+      if (reason) statusTracking.reason = reason;
       return statusTracking;
     });
     await queryRunner.manager.save(StatusTracking, [
