@@ -34,7 +34,7 @@ export const OrderNormalCreateSchema = z.object({
                   .number()
                   .int()
                   .positive('Quantity must be a positive integer'),
-                livestreamId: z.string().uuid().optional(),
+                livestreamId: z.string().optional(),
               })
             )
             .min(1, 'Items cannot be empty'),
