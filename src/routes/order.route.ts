@@ -20,6 +20,7 @@ import validate from '../utils/validate';
 const orderRouter = express.Router();
 orderRouter.get('/', OrderController.getAll);
 orderRouter.get('/get-by-id/:orderId', OrderController.getById);
+orderRouter.get('/get-parent-by-id/:orderId', OrderController.getParentById);
 orderRouter.get('/get-by-brand/:brandId', OrderController.getByBrand);
 orderRouter.use(authentication);
 orderRouter.post(

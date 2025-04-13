@@ -1068,6 +1068,34 @@ class OrderService extends BaseService<Order> {
     else await this.refundVoucher(order, queryRunner);
   }
 
+  async getParentById(orderId: string) {
+    const order = await orderRepository.findOne({
+      where: { id: orderId, parent: IsNull() },
+      relations: {
+        account: true,
+        children: {
+          orderDetails: {
+            feedback: {
+              mediaFiles: true,
+              replies: {
+                account: { role: true },
+              },
+            },
+            productClassification: {
+              images: true,
+              product: { brand: true, images: true },
+              productDiscount: { product: { brand: true, images: true } },
+              preOrderProduct: { product: { brand: true, images: true } },
+            },
+          },
+        },
+        voucher: true,
+      },
+    });
+    if (!order) throw new BadRequestError(`Order not found`);
+    return order;
+  }
+
   async getById(orderId: string) {
     const order = await orderRepository.findOne({
       where: { id: orderId },
@@ -1325,10 +1353,7 @@ class OrderService extends BaseService<Order> {
     await queryRunner.manager.save(StatusTracking, statusTracking);
   }
 
-  async cancelParentOrderWhenToPay(
-    orderId: string,
-    reason: string
-  ) {
+  async cancelParentOrderWhenToPay(orderId: string, reason: string) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();

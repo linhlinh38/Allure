@@ -344,6 +344,18 @@ export default class OrderController {
     }
   }
 
+  static async getParentById(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get order successfully',
+        await orderService.getParentById(req.params.orderId)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async getById(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       return createNormalResponse(
