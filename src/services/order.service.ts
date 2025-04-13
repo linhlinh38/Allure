@@ -319,12 +319,13 @@ class OrderService extends BaseService<Order> {
             order,
             loginUser,
             ShippingStatusEnum.BRAND_RECEIVED,
-            'Auto update',
+            null,
             queryRunner
           ),
         ]);
         isReceived = true;
         await addUpdateRefundedStatusOrderToQueue(orderId);
+
       } else {
         const masterConfig = await retrieveMasterConfig();
         order.expiredReceivedTime = new Date(
