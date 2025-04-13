@@ -45,7 +45,7 @@ accountRouter.post(
   validate(AccountUpdateSchema),
   accountController.resendVerifyEmail
 );
-
+accountRouter.get('/filter-account', accountController.filterAccounts);
 accountRouter.use(authentication);
 
 accountRouter.post(
@@ -66,7 +66,6 @@ accountRouter.post("/brand-staff", accountController.getStaffByBrandAndStatus);
 accountRouter.get("/", accountController.getAllAccount);
 accountRouter.get("/me", accountController.getMyProfile);
 accountRouter.get("/get/:option/:value", accountController.getAccountBy);
-accountRouter.get("/filter-account", accountController.filterAccounts);
 accountRouter.put(
   "/",
   validate(AccountUpdateSchema),
