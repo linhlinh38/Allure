@@ -17,11 +17,19 @@ import {
   OrderRequestFilterRequest,
 } from '../dtos/request/order.request';
 import { AuthRequest } from '../middleware/authentication';
-import { ActionReceivedEnum, PaymentMethodEnum, ShippingStatusEnum } from '../utils/enum';
+import {
+  ActionReceivedEnum,
+  PaymentMethodEnum,
+  ShippingStatusEnum,
+} from '../utils/enum';
 import { Paging } from '../dtos/other/paging.dto';
 
 export default class OrderController {
-  static async filterParent(req: AuthRequest, res: Response, next: NextFunction) {
+  static async filterParent(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const paging = {
         page: Number(req.query.page) ? Number(req.query.page) : 1,
@@ -33,7 +41,12 @@ export default class OrderController {
       return createNormalResponse(
         res,
         'Filter orders success',
-        await orderService.filter(orderFilterRequest, paging, req.loginUser, true)
+        await orderService.filter(
+          orderFilterRequest,
+          paging,
+          req.loginUser,
+          true
+        )
       );
     } catch (err) {
       next(err);
@@ -397,6 +410,22 @@ export default class OrderController {
           req.loginUser
         )
       );
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async cancelParentOrder(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      await orderService.cancelParentOrderWhenToPay(
+        req.params.orderId,
+        req.body.reason
+      );
+      return createNormalResponse(res, 'Cancel order successfully');
     } catch (err) {
       next(err);
     }

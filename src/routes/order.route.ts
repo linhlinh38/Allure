@@ -55,6 +55,11 @@ orderRouter.post(
   OrderController.customerCancelOrder
 );
 orderRouter.post(
+  '/cancel-parent-order/:orderId',
+  validate(CancelOrderSchema),
+  OrderController.cancelParentOrder
+);
+orderRouter.post(
   '/brand-cancel-order/:orderId',
   validate(CancelOrderSchema),
   OrderController.brandCancelOrder
