@@ -62,7 +62,7 @@ const uupdateBrandReceiveStatusOrderQueueWorker = new Worker(
           //create status tracking
           orderService.createStatusTracking(
             order,
-            order.account.id,
+            null,
             ShippingStatusEnum.BRAND_RECEIVED,
             'Auto update',
             queryRunner
