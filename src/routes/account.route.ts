@@ -45,8 +45,10 @@ accountRouter.post(
   validate(AccountUpdateSchema),
   accountController.resendVerifyEmail
 );
-accountRouter.get('/filter-account', accountController.filterAccounts);
-accountRouter.get('/get/:option/:value', accountController.getAccountBy);
+
+accountRouter.get("/get-by-id/:id", accountController.getById);
+accountRouter.get("/filter-account", accountController.filterAccounts);
+accountRouter.get("/get/:option/:value", accountController.getAccountBy);
 accountRouter.use(authentication);
 
 accountRouter.post(

@@ -10,6 +10,7 @@ import {
   FileEnum,
   ReportStatusEnum,
   RoleEnum,
+  StatusEnum,
 } from "../utils/enum";
 import {
   sendBannedAccountEmail,
@@ -56,19 +57,19 @@ class AccountService extends BaseService<Account> {
   }
 
   async getById(accountId: string) {
-    const account = await repository.findOne({
-      where: { id: accountId },
-      relations: {
-        role: true,
-        brands: {
-          reviewer: true,
-        },
-        cartItems: true,
-        addresses: true,
-        bankAccounts: true,
-        files: true,
-      },
-    });
+    const account = await repository
+      .createQueryBuilder("account")
+      .leftJoinAndSelect("account.role", "role")
+      .leftJoinAndSelect("account.brands", "brands")
+      .leftJoinAndSelect("brands.reviewer", "reviewer")
+      .leftJoinAndSelect("account.cartItems", "cartItems")
+      .leftJoinAndSelect("account.addresses", "addresses")
+      .leftJoinAndSelect("account.bankAccounts", "bankAccounts")
+      .leftJoinAndSelect("account.files", "files", "files.status = :status", {
+        status: StatusEnum.ACTIVE,
+      })
+      .where("account.id = :accountId", { accountId })
+      .getOne();
 
     if (!account) {
       throw new Error("Account not found");
