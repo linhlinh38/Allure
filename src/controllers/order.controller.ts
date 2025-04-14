@@ -25,6 +25,24 @@ import {
 import { Paging } from '../dtos/other/paging.dto';
 
 export default class OrderController {
+  static async updatePaymentMethod(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Update payment method success',
+        await orderService.updatePaymentMethod(
+          req.params.orderId,
+          req.body.paymentMethod,
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async filterParent(
     req: AuthRequest,
     res: Response,
@@ -344,7 +362,11 @@ export default class OrderController {
     }
   }
 
-  static async getParentById(req: AuthRequest, res: Response, next: NextFunction) {
+  static async getParentById(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       return createNormalResponse(
         res,
