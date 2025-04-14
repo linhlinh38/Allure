@@ -191,6 +191,17 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
   async getById(id: string) {
     const services = await this.repository
       .createQueryBuilder("consultantService")
+      .leftJoinAndSelect("consultantService.account", "account")
+      .select("consultantService")
+      .addSelect([
+        "account.id",
+        "account.username",
+        "account.email",
+        "account.phone",
+        "account.firstName",
+        "account.lastName",
+        "account.avatar",
+      ])
       .leftJoinAndSelect("consultantService.systemService", "systemService")
       .leftJoinAndSelect("systemService.category", "category")
       .leftJoinAndSelect(
