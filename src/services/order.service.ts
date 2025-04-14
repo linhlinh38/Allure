@@ -79,6 +79,30 @@ import { livestreamProductRepository } from '../repositories/livestreamProduct.r
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
+  async updatePaymentMethod(orderId: string, paymentMethod: PaymentMethodEnum) {
+    const order = await orderRepository.findOne({
+      where: {
+        id: orderId,
+      },
+      relations: {
+        parent: true,
+      },
+    });
+    if (!order) throw new BadRequestError('Order not found');
+    if (order.parent)
+      throw new BadRequestError(
+        'Can not update payment method for child order'
+      );
+    if (order.status != ShippingStatusEnum.TO_PAY)
+      throw new BadRequestError(`Only update payment method for order TO PAY`);
+    if (order.isPaymentMethodUpdated)
+      throw new BadRequestError(`Only update payment method once`);
+    if (paymentMethod == order.paymentMethod)
+      throw new BadRequestError(`Please update different payment method`);
+    order.paymentMethod = paymentMethod;
+    order.isPaymentMethodUpdated = true;
+    await orderRepository.save(order);
+  }
   async filter(
     orderFilterRequest: OrderFilterRequest,
     paging: Paging,
