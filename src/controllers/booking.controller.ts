@@ -4,6 +4,8 @@ import { createNormalResponse } from "../utils/response";
 import { AuthRequest } from "../middleware/authentication";
 import { plainToInstance } from "class-transformer";
 import { BookingRequest } from "../dtos/request/booking.request";
+import { BookingStatusEnum, ServiceTypeEnum } from "../utils/enum";
+import { Booking } from "../entities/booking.entity";
 export default class BookingController {
   static async getBookingOfBrand(
     req: AuthRequest,
@@ -64,6 +66,85 @@ export default class BookingController {
       next(err);
     }
   }
+
+  static async filterBookings(req: Request, res: Response, next: NextFunction) {
+    try {
+      const {
+        consultantServiceId,
+        consultantAccountId,
+        systemServiceType,
+        statuses,
+        minTotalPrice,
+        maxTotalPrice,
+        feedbackRating,
+        page = 1,
+        limit = 10,
+        sortBy = "createdAt",
+        order = "ASC",
+      } = req.query;
+
+      const filters = {
+        consultantServiceId: consultantServiceId as string,
+        consultantAccountId: consultantAccountId as string,
+        systemServiceType: systemServiceType as ServiceTypeEnum,
+        status: statuses
+          ? ((statuses as string).split(",") as BookingStatusEnum[])
+          : undefined,
+        minTotalPrice: minTotalPrice ? Number(minTotalPrice) : undefined,
+        maxTotalPrice: maxTotalPrice ? Number(maxTotalPrice) : undefined,
+        feedbackRating: feedbackRating ? Number(feedbackRating) : undefined,
+      };
+
+      const paging = {
+        page: Number(page),
+        limit: Number(limit),
+      };
+
+      const result = await bookingService.filterBookings(
+        filters,
+        paging,
+        sortBy as keyof Booking,
+        order as "ASC" | "DESC"
+      );
+
+      res.status(200).json({
+        message: "Filter bookings success",
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async calculateRevenueByConsultant(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { consultantId, startTime, endTime } = req.query;
+
+      if (!consultantId || !startTime || !endTime) {
+        return res.status(400).send({
+          message: "Consultant ID, start time, and end time are required.",
+        });
+      }
+
+      const revenue = await bookingService.calculateRevenueByConsultant(
+        consultantId as string,
+        startTime as string,
+        endTime as string
+      );
+
+      return res.status(200).send({
+        message: "Revenue calculated successfully",
+        data: { revenue },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async updateStatus(
     req: AuthRequest,
     res: Response,
