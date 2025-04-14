@@ -145,6 +145,12 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
       )
       .leftJoinAndSelect("consultantService.systemService", "systemService")
       .leftJoinAndSelect(
+        "systemService.images",
+        "systemServiceImages",
+        "systemServiceImages.status = :imageActiveStatus",
+        { imageActiveStatus: StatusEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
         "consultantService.images",
         "images",
         "images.status = :activeStatus",
