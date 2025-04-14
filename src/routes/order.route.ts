@@ -14,6 +14,7 @@ import {
   TakeReceivedActionSchema,
   UpdateOrderStatusSchema,
   OrderRequestFilterSchema,
+  UpdatePaymentMethodSchema,
 } from '../dtos/request/order.request';
 import validate from '../utils/validate';
 
@@ -139,5 +140,10 @@ orderRouter.post(
   '/filter-requests',
   validate(OrderRequestFilterSchema),
   OrderController.filterOrderRequests
+);
+orderRouter.post(
+  '/update-payment-method/:orderId',
+  validate(UpdatePaymentMethodSchema),
+  OrderController.updatePaymentMethod
 );
 export default orderRouter;
