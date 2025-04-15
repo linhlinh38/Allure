@@ -145,6 +145,12 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
       )
       .leftJoinAndSelect("consultantService.systemService", "systemService")
       .leftJoinAndSelect(
+        "systemService.images",
+        "systemServiceImages",
+        "systemServiceImages.status = :imageActiveStatus",
+        { imageActiveStatus: StatusEnum.ACTIVE }
+      )
+      .leftJoinAndSelect(
         "consultantService.images",
         "images",
         "images.status = :activeStatus",
@@ -191,6 +197,17 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
   async getById(id: string) {
     const services = await this.repository
       .createQueryBuilder("consultantService")
+      .leftJoinAndSelect("consultantService.account", "account")
+      .select("consultantService")
+      .addSelect([
+        "account.id",
+        "account.username",
+        "account.email",
+        "account.phone",
+        "account.firstName",
+        "account.lastName",
+        "account.avatar",
+      ])
       .leftJoinAndSelect("consultantService.systemService", "systemService")
       .leftJoinAndSelect("systemService.category", "category")
       .leftJoinAndSelect(

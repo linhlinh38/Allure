@@ -13,6 +13,11 @@ const bookingRoute = express.Router();
 bookingRoute.use(authentication);
 bookingRoute.get("/", BookingController.getAll);
 bookingRoute.get("/get-by-id/:id", BookingController.getById);
+bookingRoute.get("/filter-booking", BookingController.filterBookings);
+bookingRoute.get(
+  "/revenue-booking",
+  BookingController.calculateRevenueByConsultant
+);
 bookingRoute.get(
   "/get-booking-of-brand/:brandId",
   BookingController.getBookingOfBrand

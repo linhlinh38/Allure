@@ -998,12 +998,12 @@ class VoucherService extends BaseService<Voucher> {
         : Math.min(sumPrice, voucher.discountValue);
     } else if (voucher.discountType == DiscountTypeEnum.PERCENTAGE) {
       discount = voucher.maxDiscount
-        ? Math.min(
+        ? Math.round(Math.min(
             sumPrice,
             sumPrice * voucher.discountValue,
             voucher.maxDiscount
-          )
-        : Math.min(sumPrice, sumPrice * voucher.discountValue);
+          ))
+        : Math.round(Math.min(sumPrice, sumPrice * voucher.discountValue));
     }
 
     let totalAppliedDiscount = 0;
@@ -1088,12 +1088,12 @@ class VoucherService extends BaseService<Voucher> {
         : Math.min(sumPrice, voucher.discountValue);
     } else if (voucher.discountType == DiscountTypeEnum.PERCENTAGE) {
       discount = voucher.maxDiscount
-        ? Math.min(
+        ? Math.round(Math.min(
             sumPrice,
             sumPrice * voucher.discountValue,
             voucher.maxDiscount
-          )
-        : Math.min(sumPrice, sumPrice * voucher.discountValue);
+          ))
+        : Math.round(Math.min(sumPrice, sumPrice * voucher.discountValue));
     }
 
     let totalAppliedDiscount = 0;

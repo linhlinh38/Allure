@@ -276,6 +276,126 @@ class BookingService extends BaseService<Booking> {
     });
   }
 
+  async filterBookings(
+    filters: {
+      consultantServiceId?: string;
+      consultantAccountId?: string;
+      systemServiceType?: ServiceTypeEnum;
+      status?: BookingStatusEnum[];
+      minTotalPrice?: number;
+      maxTotalPrice?: number;
+      feedbackRating?: number;
+    },
+    paging: { page: number; limit: number },
+    sortBy: keyof Booking = "createdAt",
+    order: "ASC" | "DESC" = "ASC"
+  ): Promise<{
+    items: Booking[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const queryBuilder = repository
+      .createQueryBuilder("booking")
+      .leftJoinAndSelect("booking.consultantService", "consultantService")
+      .leftJoinAndSelect("consultantService.account", "consultantAccount")
+      .select("booking")
+      .addSelect("consultantService")
+      .addSelect([
+        "consultantAccount.id",
+        "consultantAccount.username",
+        "consultantAccount.email",
+        "consultantAccount.phone",
+        "consultantAccount.firstName",
+        "consultantAccount.lastName",
+        "consultantAccount.avatar",
+      ])
+      .leftJoinAndSelect("consultantService.systemService", "systemService")
+      .leftJoinAndSelect("booking.feedback", "feedback");
+
+    // Filter by consultantServiceId
+    if (filters.consultantServiceId) {
+      queryBuilder.andWhere("consultantService.id = :consultantServiceId", {
+        consultantServiceId: filters.consultantServiceId,
+      });
+    }
+
+    // Filter by consultantAccountId
+    if (filters.consultantAccountId) {
+      queryBuilder.andWhere("consultantAccount.id = :consultantAccountId", {
+        consultantAccountId: filters.consultantAccountId,
+      });
+    }
+
+    // Filter by systemServiceType
+    if (filters.systemServiceType) {
+      queryBuilder.andWhere("systemService.type = :systemServiceType", {
+        systemServiceType: filters.systemServiceType,
+      });
+    }
+
+    // Filter by status
+    if (filters.status && filters.status.length > 0) {
+      queryBuilder.andWhere("booking.status IN (:...status)", {
+        status: filters.status,
+      });
+    }
+
+    // Filter by totalPrice range
+    if (filters.minTotalPrice) {
+      queryBuilder.andWhere("booking.totalPrice >= :minTotalPrice", {
+        minTotalPrice: filters.minTotalPrice,
+      });
+    }
+    if (filters.maxTotalPrice) {
+      queryBuilder.andWhere("booking.totalPrice <= :maxTotalPrice", {
+        maxTotalPrice: filters.maxTotalPrice,
+      });
+    }
+
+    // Filter by feedback rating
+    if (filters.feedbackRating) {
+      queryBuilder.andWhere("feedback.rating = :feedbackRating", {
+        feedbackRating: filters.feedbackRating,
+      });
+    }
+
+    // Sorting and pagination
+    queryBuilder
+      .orderBy(`booking.${sortBy}`, order)
+      .skip((paging.page - 1) * paging.limit)
+      .take(paging.limit);
+
+    const [items, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      items,
+      total,
+      page: paging.page,
+      limit: paging.limit,
+    };
+  }
+
+  async calculateRevenueByConsultant(
+    consultantId: string,
+    startTime: string,
+    endTime: string
+  ): Promise<number> {
+    const totalRevenue = await repository
+      .createQueryBuilder("booking")
+      .select("SUM(booking.totalPrice)", "totalRevenue")
+      .leftJoin("booking.consultantService", "consultantService")
+      .where("consultantService.account.id = :consultantId", { consultantId })
+      .andWhere("booking.status = :status", {
+        status: BookingStatusEnum.COMPLETED,
+      })
+      .andWhere("booking.createdAt >= :startTime", { startTime })
+      .andWhere("booking.createdAt <= :endTime", { endTime })
+      .getRawOne();
+
+    return totalRevenue?.totalRevenue || 0;
+  }
+
   async updateStatus(id: string, status: BookingStatusEnum) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
@@ -508,6 +628,7 @@ class BookingService extends BaseService<Booking> {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
+    let createdBooking;
     try {
       // const bookings = await repository.find({
       //   where: { account: { id: loginUser } },
@@ -528,7 +649,8 @@ class BookingService extends BaseService<Booking> {
         const slot = await slotRepository.findOneBy({
           id: bookingRequest.slot,
         });
-        if (!slot) throw new BadRequestError("Slot not found");
+        if (!slot || !slot.isActive)
+          throw new BadRequestError("Slot not found or invalid");
       }
 
       if (bookingRequest.type == BookingTypeEnum.INTERVIEW) {
@@ -582,8 +704,9 @@ class BookingService extends BaseService<Booking> {
         ) {
           throw new BadRequestError("Slot is required");
         }
-        await this.isSlotBooked(bookingRequest);
-        let createdBooking = new Booking();
+        if (bookingRequest.slot) await this.isSlotBooked(bookingRequest);
+
+        createdBooking = new Booking();
         Object.assign(createdBooking, bookingRequest);
         createdBooking.status = BookingStatusEnum.TO_PAY;
         createdBooking.account = new Account();
@@ -671,7 +794,7 @@ class BookingService extends BaseService<Booking> {
         }
       }
       await queryRunner.commitTransaction();
-      return;
+      return createdBooking;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
