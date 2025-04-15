@@ -628,6 +628,7 @@ class BookingService extends BaseService<Booking> {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
+    let createdBooking;
     try {
       // const bookings = await repository.find({
       //   where: { account: { id: loginUser } },
@@ -705,7 +706,7 @@ class BookingService extends BaseService<Booking> {
         }
         if (bookingRequest.slot) await this.isSlotBooked(bookingRequest);
 
-        let createdBooking = new Booking();
+        createdBooking = new Booking();
         Object.assign(createdBooking, bookingRequest);
         createdBooking.status = BookingStatusEnum.TO_PAY;
         createdBooking.account = new Account();
@@ -793,7 +794,7 @@ class BookingService extends BaseService<Booking> {
         }
       }
       await queryRunner.commitTransaction();
-      return;
+      return createdBooking;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
