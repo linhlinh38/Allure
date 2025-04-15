@@ -126,6 +126,7 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
         "account.firstName",
         "account.lastName",
         "account.avatar",
+        "account.majorTitle",
       ])
       .leftJoinAndSelect(
         "consultantService.serviceBookingForm",
@@ -207,6 +208,7 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
         "account.firstName",
         "account.lastName",
         "account.avatar",
+        "account.majorTitle",
       ])
       .leftJoinAndSelect("consultantService.systemService", "systemService")
       .leftJoinAndSelect("systemService.category", "category")

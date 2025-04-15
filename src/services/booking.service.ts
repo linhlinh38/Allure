@@ -31,6 +31,7 @@ import { BookingFormAnswer } from "../entities/bookingFormAnswer.entity";
 import { ProductClassification } from "../entities/productClassification.entity";
 import { walletService } from "./wallet.service";
 import { transactionService } from "./transaction.service";
+import { MediaFile } from "../entities/mediaFile.entity";
 
 const repository = AppDataSource.getRepository(Booking);
 class BookingService extends BaseService<Booking> {
@@ -72,6 +73,7 @@ class BookingService extends BaseService<Booking> {
         slot: true,
         bookingFormAnswer: true,
         consultationResult: true,
+        statusTrackings: true,
       },
     });
     if (!booking) throw new BadRequestError("Booking not found");
@@ -125,7 +127,11 @@ class BookingService extends BaseService<Booking> {
   //   await booking.save();
   // }
 
-  async getMyBookings(loginUser: string) {
+  async getMyBookings(
+    loginUser: string,
+    statuses?: BookingStatusEnum[],
+    searchQuery?: string
+  ) {
     const account = await accountRepository.findOne({
       where: {
         id: loginUser,
@@ -168,51 +174,136 @@ class BookingService extends BaseService<Booking> {
       account.role.role == RoleEnum.MANAGER ||
       account.role.role == RoleEnum.CUSTOMER
     ) {
-      return await bookingRepository.find({
-        where: {
-          // type: BookingTypeEnum.INTERVIEW,
-          account: { id: loginUser },
-        },
-        relations: {
-          brand: { reviewer: true },
-          consultantService: {
-            account: true,
-            systemService: true,
-            serviceBookingForm: { questions: { images: true } },
-          },
-          account: true,
-          slot: true,
-          bookingFormAnswer: true,
-          consultationResult: true,
-        },
-        order: {
-          createdAt: "DESC",
-        },
-      });
+      // return await bookingRepository.find({
+      //   where: {
+      //     // type: BookingTypeEnum.INTERVIEW,
+      //     account: { id: loginUser },
+      //   },
+      //   relations: {
+      //     brand: { reviewer: true },
+      //     consultantService: {
+      //       account: true,
+      //       systemService: true,
+      //       serviceBookingForm: { questions: { images: true } },
+      //     },
+      //     account: true,
+      //     slot: true,
+      //     bookingFormAnswer: true,
+      //     consultationResult: true,
+      //     statusTrackings: true,
+      //   },
+      //   order: {
+      //     createdAt: "DESC",
+      //   },
+      // });
+      const queryBuilder = bookingRepository
+        .createQueryBuilder("booking")
+        .leftJoinAndSelect("booking.brand", "brand")
+        .leftJoinAndSelect("booking.consultantService", "consultantService")
+        .leftJoinAndSelect("consultantService.account", "consultantAccount")
+        .leftJoinAndSelect(
+          "consultantService.serviceBookingForm",
+          "serviceBookingForm"
+        )
+        .leftJoinAndSelect("serviceBookingForm.questions", "questions")
+        .leftJoinAndSelect("questions.images", "questionImages")
+        .leftJoinAndSelect("consultantService.systemService", "systemService")
+        .leftJoinAndSelect("consultantService.images", "images")
+        .leftJoinAndSelect("booking.account", "account")
+        .leftJoinAndSelect("booking.slot", "slot")
+        .leftJoinAndSelect("booking.bookingFormAnswer", "bookingFormAnswer")
+        .leftJoinAndSelect("booking.consultationResult", "consultationResult")
+        .leftJoinAndSelect("booking.statusTrackings", "statusTrackings")
+        .where("account.id = :loginUser", { loginUser });
+
+      // Apply statuses filter
+      if (statuses && statuses.length > 0) {
+        queryBuilder.andWhere("booking.status IN (:...statuses)", {
+          statuses,
+        });
+      }
+
+      // Apply searchQuery filter
+      if (searchQuery) {
+        queryBuilder.andWhere("systemService.name LIKE :searchQuery", {
+          searchQuery: `%${searchQuery}%`,
+        });
+      }
+
+      queryBuilder.orderBy("booking.createdAt", "DESC");
+
+      return await queryBuilder.getMany();
     } else if (account.role.role == RoleEnum.CONSULTANT) {
-      return await bookingRepository.find({
-        where: {
-          // type: BookingTypeEnum.INTERVIEW,
-          consultantService: { account: { id: loginUser } },
-        },
-        relations: {
-          brand: { reviewer: true },
-          consultantService: {
-            account: true,
-            systemService: {
-              consultationCriteria: { consultationCriteriaSections: true },
-            },
-            serviceBookingForm: true,
-          },
-          account: true,
-          slot: true,
-          bookingFormAnswer: true,
-          consultationResult: true,
-        },
-        order: {
-          createdAt: "DESC",
-        },
-      });
+      // return await bookingRepository.find({
+      //   where: {
+      //     // type: BookingTypeEnum.INTERVIEW,
+      //     consultantService: { account: { id: loginUser } },
+      //   },
+      //   relations: {
+      //     brand: { reviewer: true },
+      //     consultantService: {
+      //       account: true,
+      //       systemService: {
+      //         consultationCriteria: { consultationCriteriaSections: true },
+      //       },
+      //       serviceBookingForm: true,
+      //     },
+      //     account: true,
+      //     slot: true,
+      //     bookingFormAnswer: true,
+      //     consultationResult: true,
+      //     statusTrackings: true,
+      //   },
+      //   order: {
+      //     createdAt: "DESC",
+      //   },
+      // });
+
+      const queryBuilder = bookingRepository
+        .createQueryBuilder("booking")
+        .leftJoinAndSelect("booking.brand", "brand")
+        .leftJoinAndSelect("booking.consultantService", "consultantService")
+        .leftJoinAndSelect("consultantService.account", "consultantAccount")
+        .leftJoinAndSelect(
+          "consultantService.serviceBookingForm",
+          "serviceBookingForm"
+        )
+        .leftJoinAndSelect("serviceBookingForm.questions", "questions")
+        .leftJoinAndSelect("questions.images", "questionImages")
+        .leftJoinAndSelect("consultantService.systemService", "systemService")
+        .leftJoinAndSelect(
+          "systemService.consultationCriteria",
+          "consultationCriteria"
+        )
+        .leftJoinAndSelect(
+          "consultationCriteria.consultationCriteriaSections",
+          "consultationCriteriaSections"
+        )
+        .leftJoinAndSelect("consultantService.images", "images")
+        .leftJoinAndSelect("booking.account", "account")
+        .leftJoinAndSelect("booking.slot", "slot")
+        .leftJoinAndSelect("booking.bookingFormAnswer", "bookingFormAnswer")
+        .leftJoinAndSelect("booking.consultationResult", "consultationResult")
+        .leftJoinAndSelect("booking.statusTrackings", "statusTrackings")
+        .where("consultantService.account.id = :loginUser", { loginUser });
+
+      // Apply statuses filter
+      if (statuses && statuses.length > 0) {
+        queryBuilder.andWhere("booking.status IN (:...statuses)", {
+          statuses,
+        });
+      }
+
+      // Apply searchQuery filter
+      if (searchQuery) {
+        queryBuilder.andWhere("systemService.name LIKE :searchQuery", {
+          searchQuery: `%${searchQuery}%`,
+        });
+      }
+
+      queryBuilder.orderBy("booking.createdAt", "DESC");
+
+      return await queryBuilder.getMany();
     }
     return [];
   }
@@ -438,7 +529,11 @@ class BookingService extends BaseService<Booking> {
       // Find the booking
       const booking = await bookingRepository.findOne({
         where: { id },
-        relations: ["account", "consultantService"],
+        relations: [
+          "account",
+          "consultantService",
+          "consultantService.systemService",
+        ],
       });
 
       if (!booking) {
@@ -477,9 +572,18 @@ class BookingService extends BaseService<Booking> {
         );
         await queryRunner.manager.save(StatusTracking, statusTracking);
 
+        let delay = 240000;
+        if (
+          booking.consultantService.systemService.type ===
+          ServiceTypeEnum.PREMIUM
+        ) {
+          const bookingStartTime = new Date(booking.startTime);
+          // Calculate the difference in milliseconds
+          delay = bookingStartTime.getTime() + 24 * 60 * 60 * 1000;
+        }
         await addBookingToQueue(
           booking.id,
-          240000,
+          delay,
           BookingStatusEnum.SERVICE_BOOKING_FORM_SUBMITED
         );
       } else if (data.consultationResult) {
@@ -534,8 +638,41 @@ class BookingService extends BaseService<Booking> {
           "Consultation result sent"
         );
         await queryRunner.manager.save(StatusTracking, statusTracking);
+      } else if (data.status === BookingStatusEnum.COMPLETED_CONSULTING_CALL) {
+        if (data.note) {
+          booking.resultNote = data.note;
+        }
+        booking.status = data.status;
+        await queryRunner.manager.save(Booking, booking);
+        statusTracking = this.updateBookingStatus(
+          booking,
+          BookingStatusEnum.COMPLETED_CONSULTING_CALL,
+          loginUser,
+          "Booking status updated"
+        );
+        statusTracking = await queryRunner.manager.save(
+          StatusTracking,
+          statusTracking
+        );
+        if (data.mediaFiles && data.mediaFiles.length > 0) {
+          for (const file of data.mediaFiles) {
+            const mediaFile = new MediaFile();
+            mediaFile.fileUrl = file.fileUrl;
+            mediaFile.statusTracking = statusTracking;
+            await queryRunner.manager.save(MediaFile, mediaFile);
+          }
+        }
+
+        await addBookingToQueue(
+          booking.id,
+          240000,
+          BookingStatusEnum.COMPLETED_CONSULTING_CALL
+        );
       } else {
         booking.status = data.status;
+        if (data.meetUrl) {
+          booking.meetUrl = data.meetUrl;
+        }
         await queryRunner.manager.save(Booking, booking);
 
         statusTracking = this.updateBookingStatus(
@@ -546,9 +683,23 @@ class BookingService extends BaseService<Booking> {
         );
         await queryRunner.manager.save(StatusTracking, statusTracking);
         if (data.status === BookingStatusEnum.BOOKING_CONFIRMED) {
+          let delay = 240000;
+          if (
+            booking.consultantService.systemService.type ===
+            ServiceTypeEnum.PREMIUM
+          ) {
+            const bookingStartTime = new Date(booking.startTime);
+            const now = new Date();
+
+            // Subtract 120 minutes (120 * 60 * 1000 milliseconds) from now
+            const nowMinus30Minutes = new Date(now.getTime() - 120 * 60 * 1000);
+
+            // Calculate the difference in milliseconds
+            delay = bookingStartTime.getTime() - nowMinus30Minutes.getTime();
+          }
           await addBookingToQueue(
             booking.id,
-            240000,
+            delay,
             BookingStatusEnum.BOOKING_CONFIRMED
           );
         }
@@ -836,7 +987,8 @@ class BookingService extends BaseService<Booking> {
         booking.status !== BookingStatusEnum.TO_PAY &&
         booking.status !== BookingStatusEnum.WAIT_FOR_CONFIRMATION &&
         booking.status !== BookingStatusEnum.BOOKING_CONFIRMED &&
-        booking.status !== BookingStatusEnum.SERVICE_BOOKING_FORM_SUBMITED
+        booking.status !== BookingStatusEnum.SERVICE_BOOKING_FORM_SUBMITED &&
+        booking.status !== BookingStatusEnum.COMPLETED_CONSULTING_CALL
       ) {
         throw new BadRequestError(
           `Can not cancelled booking in status: ${booking.status}`
