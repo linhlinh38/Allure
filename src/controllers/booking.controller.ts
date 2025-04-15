@@ -228,8 +228,11 @@ export default class BookingController {
       const bookingRequest = plainToInstance(BookingRequest, req.body, {
         excludeExtraneousValues: true,
       });
-      await bookingService.createBooking(bookingRequest, req.loginUser);
-      return createNormalResponse(res, "Create booking success");
+      const booking = await bookingService.createBooking(
+        bookingRequest,
+        req.loginUser
+      );
+      return createNormalResponse(res, "Create booking success", booking);
     } catch (err) {
       next(err);
     }
