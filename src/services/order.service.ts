@@ -2094,8 +2094,8 @@ class OrderService extends BaseService<Order> {
     //check product discount event
     if (productClassification.productDiscount) {
       orderDetail.unitPriceAfterDiscount =
-        productClassification.price *
-        (1 - productClassification.productDiscount.discount);
+        Math.round(productClassification.price *
+        (1 - productClassification.productDiscount.discount));
       orderDetail.type = OrderEnum.FLASH_SALE;
       orderDetail.productDiscount = productClassification.productDiscount;
     } else if (productClassification.preOrderProduct) {
@@ -2115,7 +2115,7 @@ class OrderService extends BaseService<Order> {
         if (!livestreamProduct)
           throw new BadRequestError('Product not found in livestream');
         orderDetail.unitPriceAfterDiscount =
-          productClassification.price * (1 - livestreamProduct.discount);
+          Math.round(productClassification.price * (1 - livestreamProduct.discount));
       }
     }
     orderDetail.subTotal = item.quantity * orderDetail.unitPriceAfterDiscount;
