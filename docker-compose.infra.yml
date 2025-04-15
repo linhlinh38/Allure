@@ -24,7 +24,7 @@ services:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_vol:/data
-    command: redis-server --appendonly yes --replica-read-only no
+    command: redis-server --appendonly no --replica-read-only no
     environment:
       TZ: ${TZ:-"Asia/Ho_Chi_Minh"}
     healthcheck:
