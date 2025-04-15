@@ -704,6 +704,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
             mostMatchingCriteria.voucher,
             groupBuying.groupProduct.products,
             groupBuying.groupProduct.brand,
+            groupBuying.id,
             queryRunner
           );
 
@@ -758,11 +759,12 @@ class GroupBuyingService extends BaseService<GroupBuying> {
     voucher: Voucher,
     products: Product[],
     brand: Brand,
+    groupBuyingId: string,
     queryRunner: QueryRunner
   ) {
     const { id, ...copy } = voucher;
-    copy.name = id + ' - ' + voucher.name;
-    copy.code = id + ' - ' + voucher.code;
+    copy.name = groupBuyingId + ' - ' + voucher.name;
+    copy.code = groupBuyingId + ' - ' + voucher.code;
     copy.applyProducts = products;
     copy.brand = brand;
     copy.applyType = VoucherApplyTypeEnum.SPECIFIC;
