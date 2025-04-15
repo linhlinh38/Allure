@@ -60,7 +60,13 @@ export default class BookingController {
       return createNormalResponse(
         res,
         "Get my bookings successfully",
-        await bookingService.getMyBookings(req.loginUser)
+        await bookingService.getMyBookings(
+          req.loginUser,
+          req.query.statuses
+            ? ((req.query.statuses as string).split(",") as BookingStatusEnum[])
+            : undefined,
+          req.query.search ? (req.query.search as string) : undefined
+        )
       );
     } catch (err) {
       next(err);
