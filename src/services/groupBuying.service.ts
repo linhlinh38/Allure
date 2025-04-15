@@ -737,7 +737,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
                 );
               await queryRunner.manager.save(Transaction, transaction);
             } else {
-              await this.cancelOneOrderInGroupbuying(order, queryRunner);
+              await this.cancelOneOrderInGroupbuying(order, queryRunner, 'Not enough balance');
             }
           }
           isEventEndSuccess = true;
@@ -775,12 +775,14 @@ class GroupBuyingService extends BaseService<GroupBuying> {
 
   private async cancelOneOrderInGroupbuying(
     order: Order,
-    queryRunner: QueryRunner
+    queryRunner: QueryRunner,
+    reason?: string
   ) {
     //update status
     const statusTrackings = orderService.updateOrderStatusBeforeCreation(
       order.parent,
-      ShippingStatusEnum.CANCELLED
+      ShippingStatusEnum.CANCELLED,
+      reason
     );
     await queryRunner.manager.save(StatusTracking, statusTrackings);
     await queryRunner.manager.save(Order, order.parent);
@@ -792,7 +794,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
     queryRunner: QueryRunner
   ) {
     for (const order of orders) {
-      await this.cancelOneOrderInGroupbuying(order, queryRunner);
+      await this.cancelOneOrderInGroupbuying(order, queryRunner, 'Not meet criteria');
     }
   }
 

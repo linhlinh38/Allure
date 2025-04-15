@@ -2239,7 +2239,8 @@ class OrderService extends BaseService<Order> {
 
   updateOrderStatusBeforeCreation(
     parentOrder: Order,
-    status: ShippingStatusEnum
+    status: ShippingStatusEnum,
+    reason?: string
   ) {
     //update status for parent order
     parentOrder.status = status;
@@ -2249,6 +2250,7 @@ class OrderService extends BaseService<Order> {
     statusTracking.updatedBy = new Account();
     statusTracking.updatedBy.id = parentOrder.account.id;
     statusTracking.status = status;
+    if(reason) statusTracking.reason = reason;
 
     const statusTrackings = parentOrder.children.map((childOrder) => {
       //update status for child order
