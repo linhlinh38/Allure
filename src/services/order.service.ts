@@ -86,6 +86,7 @@ class OrderService extends BaseService<Order> {
       },
       relations: {
         parent: true,
+        children: true,
       },
     });
     if (!order) throw new BadRequestError('Order not found');
@@ -101,6 +102,10 @@ class OrderService extends BaseService<Order> {
       throw new BadRequestError(`Please update different payment method`);
     order.paymentMethod = paymentMethod;
     order.isPaymentMethodUpdated = true;
+    order.children.forEach((child) => {
+      child.paymentMethod = paymentMethod;
+      child.isPaymentMethodUpdated = true;
+    });
     await orderRepository.save(order);
   }
   async filter(
@@ -2093,9 +2098,10 @@ class OrderService extends BaseService<Order> {
       productClassification.productDiscount?.product?.name;
     //check product discount event
     if (productClassification.productDiscount) {
-      orderDetail.unitPriceAfterDiscount =
-        Math.round(productClassification.price *
-        (1 - productClassification.productDiscount.discount));
+      orderDetail.unitPriceAfterDiscount = Math.round(
+        productClassification.price *
+          (1 - productClassification.productDiscount.discount)
+      );
       orderDetail.type = OrderEnum.FLASH_SALE;
       orderDetail.productDiscount = productClassification.productDiscount;
     } else if (productClassification.preOrderProduct) {
@@ -2114,8 +2120,9 @@ class OrderService extends BaseService<Order> {
         });
         if (!livestreamProduct)
           throw new BadRequestError('Product not found in livestream');
-        orderDetail.unitPriceAfterDiscount =
-          Math.round(productClassification.price * (1 - livestreamProduct.discount));
+        orderDetail.unitPriceAfterDiscount = Math.round(
+          productClassification.price * (1 - livestreamProduct.discount)
+        );
       }
     }
     orderDetail.subTotal = item.quantity * orderDetail.unitPriceAfterDiscount;
@@ -2250,7 +2257,7 @@ class OrderService extends BaseService<Order> {
     statusTracking.updatedBy = new Account();
     statusTracking.updatedBy.id = parentOrder.account.id;
     statusTracking.status = status;
-    if(reason) statusTracking.reason = reason;
+    if (reason) statusTracking.reason = reason;
 
     const statusTrackings = parentOrder.children.map((childOrder) => {
       //update status for child order
