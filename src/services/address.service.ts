@@ -68,11 +68,23 @@ class AddressService extends BaseService<Address> {
     if (!accountAddress) {
       throw new Error("Address not found");
     }
+    if (!data.isDefault) {
+      const checkAddress = await addressRepository.findOne({
+        where: {
+          account: { id: accountAddress.account.id },
+          isDefault: true,
+        },
+      });
+      if (!checkAddress) {
+        throw new Error("Should be at least one default address");
+      }
+    }
     if (data.isDefault) {
       address = await addressRepository.update(
         { account: { id: accountAddress.account.id } },
         { isDefault: false }
       );
+      address = await addressRepository.save(data);
     } else {
       address = await addressRepository.save(data);
     }
