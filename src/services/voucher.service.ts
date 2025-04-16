@@ -998,11 +998,13 @@ class VoucherService extends BaseService<Voucher> {
         : Math.min(sumPrice, voucher.discountValue);
     } else if (voucher.discountType == DiscountTypeEnum.PERCENTAGE) {
       discount = voucher.maxDiscount
-        ? Math.round(Math.min(
-            sumPrice,
-            sumPrice * voucher.discountValue,
-            voucher.maxDiscount
-          ))
+        ? Math.round(
+            Math.min(
+              sumPrice,
+              sumPrice * voucher.discountValue,
+              voucher.maxDiscount
+            )
+          )
         : Math.round(Math.min(sumPrice, sumPrice * voucher.discountValue));
     }
 
@@ -1088,11 +1090,13 @@ class VoucherService extends BaseService<Voucher> {
         : Math.min(sumPrice, voucher.discountValue);
     } else if (voucher.discountType == DiscountTypeEnum.PERCENTAGE) {
       discount = voucher.maxDiscount
-        ? Math.round(Math.min(
-            sumPrice,
-            sumPrice * voucher.discountValue,
-            voucher.maxDiscount
-          ))
+        ? Math.round(
+            Math.min(
+              sumPrice,
+              sumPrice * voucher.discountValue,
+              voucher.maxDiscount
+            )
+          )
         : Math.round(Math.min(sumPrice, sumPrice * voucher.discountValue));
     }
 
@@ -1182,6 +1186,14 @@ class VoucherService extends BaseService<Voucher> {
   async createVoucher(voucherRequest: VoucherRequest) {
     if (new Date(voucherRequest.startTime) > new Date(voucherRequest.endTime)) {
       throw new BadRequestError('The start time cannot be after the end time');
+    }
+    if (
+      voucherRequest.discountType == DiscountTypeEnum.AMOUNT &&
+      Math.round(voucherRequest.discountValue) != voucherRequest.discountValue
+    ) {
+      throw new BadRequestError(
+        'When discount type is AMOUNT, discount value must be an integer'
+      );
     }
     const existVoucherByCode = await voucherRepository.findOne({
       where: {
