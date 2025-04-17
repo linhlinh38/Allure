@@ -372,6 +372,7 @@ class BookingService extends BaseService<Booking> {
       consultantServiceId?: string;
       consultantAccountId?: string;
       systemServiceType?: ServiceTypeEnum;
+      type?: BookingTypeEnum;
       status?: BookingStatusEnum[];
       minTotalPrice?: number;
       maxTotalPrice?: number;
@@ -390,6 +391,7 @@ class BookingService extends BaseService<Booking> {
       .createQueryBuilder("booking")
       .leftJoinAndSelect("booking.consultantService", "consultantService")
       .leftJoinAndSelect("consultantService.account", "consultantAccount")
+      .leftJoinAndSelect("booking.account", "account")
       .select("booking")
       .addSelect("consultantService")
       .addSelect([
@@ -401,6 +403,15 @@ class BookingService extends BaseService<Booking> {
         "consultantAccount.lastName",
         "consultantAccount.avatar",
       ])
+      .addSelect([
+        "account.id",
+        "account.username",
+        "account.email",
+        "account.phone",
+        "account.firstName",
+        "account.lastName",
+        "account.avatar",
+      ])
       .leftJoinAndSelect("consultantService.systemService", "systemService")
       .leftJoinAndSelect("booking.feedback", "feedback");
 
@@ -408,6 +419,12 @@ class BookingService extends BaseService<Booking> {
     if (filters.consultantServiceId) {
       queryBuilder.andWhere("consultantService.id = :consultantServiceId", {
         consultantServiceId: filters.consultantServiceId,
+      });
+    }
+
+    if (filters.type) {
+      queryBuilder.andWhere("booking.type = :type", {
+        type: filters.type,
       });
     }
 

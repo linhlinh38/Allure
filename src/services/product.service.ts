@@ -201,22 +201,22 @@ class ProductService extends BaseService<Product> {
 
   async getAll(loginUser: string) {
     const queryBuilder = this.repository
-      .createQueryBuilder('product')
-      .leftJoin('product.category', 'category')
+      .createQueryBuilder("product")
+      .leftJoin("product.category", "category")
       .addSelect([
-        'category.id',
-        'category.name',
-        'category.level',
-        'category.status',
+        "category.id",
+        "category.name",
+        "category.level",
+        "category.status",
       ])
-      .leftJoin('category.parentCategory', 'parentCategory')
+      .leftJoin("category.parentCategory", "parentCategory")
       .addSelect([
-        'parentCategory.id',
-        'parentCategory.name',
-        'parentCategory.level',
-        'parentCategory.status',
+        "parentCategory.id",
+        "parentCategory.name",
+        "parentCategory.level",
+        "parentCategory.status",
       ])
-      .leftJoinAndSelect('product.brand', 'brand')
+      .leftJoinAndSelect("product.brand", "brand")
       .leftJoinAndSelect(
         "product.productClassifications",
         "productClassifications"
@@ -288,23 +288,23 @@ class ProductService extends BaseService<Product> {
 
   private queryGetProductAndRelations() {
     return repository
-      .createQueryBuilder('product')
-      .leftJoin('product.category', 'category')
+      .createQueryBuilder("product")
+      .leftJoin("product.category", "category")
       .addSelect([
-        'category.id',
-        'category.name',
-        'category.level',
-        'category.status',
+        "category.id",
+        "category.name",
+        "category.level",
+        "category.status",
       ])
-      .leftJoin('category.parentCategory', 'parentCategory')
+      .leftJoin("category.parentCategory", "parentCategory")
       .addSelect([
-        'parentCategory.id',
-        'parentCategory.name',
-        'parentCategory.level',
-        'parentCategory.status',
+        "parentCategory.id",
+        "parentCategory.name",
+        "parentCategory.level",
+        "parentCategory.status",
       ])
-      .leftJoinAndSelect('product.brand', 'brand')
-      .leftJoinAndSelect('product.certificates', 'certificates')
+      .leftJoinAndSelect("product.brand", "brand")
+      .leftJoinAndSelect("product.certificates", "certificates")
       .leftJoinAndSelect(
         "product.productClassifications",
         "productClassifications",
@@ -408,7 +408,7 @@ class ProductService extends BaseService<Product> {
 
     if (filter.minPrice || filter.maxPrice) {
       const minPrice = filter.minPrice ?? 0;
-      const maxPrice = filter.maxPrice ?? Number.MAX_SAFE_INTEGER;
+      const maxPrice = filter.maxPrice ?? 2147483647;
       queryBuilder.andWhere(
         `EXISTS (
         SELECT 1
@@ -541,6 +541,7 @@ class ProductService extends BaseService<Product> {
   }
 
   async beforeUpdate(id: string, body: any) {
+    console.log("id", id);
     const product = await this.repository.findOne({
       where: {
         id: id,

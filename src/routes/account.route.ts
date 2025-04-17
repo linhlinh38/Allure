@@ -6,6 +6,8 @@ import {
   AccountCreateSchema,
   AccountUpdateSchema,
   AccountUpdateStatusSchema,
+  RequestResetPasswordSchema,
+  ResetPasswordSchema,
 } from "../dtos/request/account.request";
 
 const accountRouter = express.Router();
@@ -18,7 +20,7 @@ accountRouter.post(
 
 accountRouter.put(
   "/set-password/:id",
-  validate(AccountUpdateSchema),
+  validate(ResetPasswordSchema),
   accountController.setPassword
 );
 
@@ -30,19 +32,19 @@ accountRouter.put(
 
 accountRouter.post(
   "/request-reset-pass",
-  validate(AccountUpdateSchema),
+  validate(RequestResetPasswordSchema),
   accountController.requestResetPassword
 );
 
 accountRouter.put(
   "/modify-password/:id",
-  validate(AccountUpdateSchema),
+  validate(ResetPasswordSchema),
   accountController.modifyPassword
 );
 
 accountRouter.post(
   "/resend-verify-email",
-  validate(AccountUpdateSchema),
+  validate(RequestResetPasswordSchema),
   accountController.resendVerifyEmail
 );
 

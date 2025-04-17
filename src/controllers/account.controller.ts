@@ -304,6 +304,10 @@ async function setPassword(
   next: NextFunction
 ) {
   try {
+    const checkAccount = await accountService.findById(req.params.id);
+    if (!checkAccount) {
+      throw new NotFoundError("Account invalid!");
+    }
     const updateData: Partial<Account> = {
       password: await encryptedPassword(req.body.password),
       status: AccountStatusEnum.ACTIVE,
