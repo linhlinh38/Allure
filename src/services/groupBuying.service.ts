@@ -704,6 +704,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
             mostMatchingCriteria.voucher,
             groupBuying.groupProduct.products,
             groupBuying.groupProduct.brand,
+            groupBuying.id,
             queryRunner
           );
 
@@ -737,7 +738,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
                 );
               await queryRunner.manager.save(Transaction, transaction);
             } else {
-              await this.cancelOneOrderInGroupbuying(order, queryRunner);
+              await this.cancelOneOrderInGroupbuying(order, queryRunner, 'Not enough balance');
             }
           }
           isEventEndSuccess = true;
@@ -758,11 +759,12 @@ class GroupBuyingService extends BaseService<GroupBuying> {
     voucher: Voucher,
     products: Product[],
     brand: Brand,
+    groupBuyingId: string,
     queryRunner: QueryRunner
   ) {
     const { id, ...copy } = voucher;
-    copy.name = id + ' - ' + voucher.name;
-    copy.code = id + ' - ' + voucher.code;
+    copy.name = groupBuyingId + ' - ' + voucher.name;
+    copy.code = groupBuyingId + ' - ' + voucher.code;
     copy.applyProducts = products;
     copy.brand = brand;
     copy.applyType = VoucherApplyTypeEnum.SPECIFIC;
@@ -775,12 +777,14 @@ class GroupBuyingService extends BaseService<GroupBuying> {
 
   private async cancelOneOrderInGroupbuying(
     order: Order,
-    queryRunner: QueryRunner
+    queryRunner: QueryRunner,
+    reason?: string
   ) {
     //update status
     const statusTrackings = orderService.updateOrderStatusBeforeCreation(
       order.parent,
-      ShippingStatusEnum.CANCELLED
+      ShippingStatusEnum.CANCELLED,
+      reason
     );
     await queryRunner.manager.save(StatusTracking, statusTrackings);
     await queryRunner.manager.save(Order, order.parent);
@@ -792,7 +796,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
     queryRunner: QueryRunner
   ) {
     for (const order of orders) {
-      await this.cancelOneOrderInGroupbuying(order, queryRunner);
+      await this.cancelOneOrderInGroupbuying(order, queryRunner, 'Not meet criteria');
     }
   }
 

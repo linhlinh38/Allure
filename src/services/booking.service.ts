@@ -310,8 +310,8 @@ class BookingService extends BaseService<Booking> {
   async getSomeoneSlots(startDate: Date, endDate: Date, loginUser: string) {
     startDate = new Date(startDate);
     endDate = new Date(endDate);
-    startDate.setHours(-7, 0, 0, 0);
-    endDate.setHours(16, 59, 59, 999);
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(23, 59, 59, 999);
 
     const account = await accountRepository.findOne({
       where: {

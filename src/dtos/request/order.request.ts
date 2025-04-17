@@ -91,6 +91,15 @@ export const CancelOrderSchema = z.object({
   }),
 });
 
+export const UpdatePaymentMethodSchema = z.object({
+  body: z.object({
+    paymentMethod: z.enum([
+      PaymentMethodEnum.WALLET,
+      PaymentMethodEnum.BANK_TRANSFER,
+    ]),
+  }),
+});
+
 export const CancelOrderStatusSchema = z.object({
   body: z.object({
     status: z.nativeEnum(RequestStatusEnum).optional(),
@@ -129,7 +138,7 @@ export const GetMyRequestsSchema = z.object({
   body: z.object({
     statusList: z.array(z.nativeEnum(RequestStatusEnum)).optional(),
     types: z.array(z.nativeEnum(OrderRequestTypeEnum)).optional(),
-  }), 
+  }),
 });
 
 export const OrderFilterRequestSchema = z.object({

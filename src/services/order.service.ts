@@ -79,6 +79,35 @@ import { livestreamProductRepository } from '../repositories/livestreamProduct.r
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
+  async updatePaymentMethod(orderId: string, paymentMethod: PaymentMethodEnum) {
+    const order = await orderRepository.findOne({
+      where: {
+        id: orderId,
+      },
+      relations: {
+        parent: true,
+        children: true,
+      },
+    });
+    if (!order) throw new BadRequestError('Order not found');
+    if (order.parent)
+      throw new BadRequestError(
+        'Can not update payment method for child order'
+      );
+    if (order.status != ShippingStatusEnum.TO_PAY)
+      throw new BadRequestError(`Only update payment method for order TO PAY`);
+    if (order.isPaymentMethodUpdated)
+      throw new BadRequestError(`Only update payment method once`);
+    if (paymentMethod == order.paymentMethod)
+      throw new BadRequestError(`Please update different payment method`);
+    order.paymentMethod = paymentMethod;
+    order.isPaymentMethodUpdated = true;
+    order.children.forEach((child) => {
+      child.paymentMethod = paymentMethod;
+      child.isPaymentMethodUpdated = true;
+    });
+    await orderRepository.save(order);
+  }
   async filter(
     orderFilterRequest: OrderFilterRequest,
     paging: Paging,
@@ -1072,9 +1101,12 @@ class OrderService extends BaseService<Order> {
     const order = await orderRepository.findOne({
       where: { id: orderId, parent: IsNull() },
       relations: {
+        voucher: true,
         account: true,
         children: {
+          voucher: true,
           orderDetails: {
+            livestream: true,
             feedback: {
               mediaFiles: true,
               replies: {
@@ -1089,7 +1121,6 @@ class OrderService extends BaseService<Order> {
             },
           },
         },
-        voucher: true,
       },
     });
     if (!order) throw new BadRequestError(`Order not found`);
@@ -1270,18 +1301,17 @@ class OrderService extends BaseService<Order> {
       if (!order) {
         throw new BadRequestError(`Order not found`);
       }
+      if (order.status == ShippingStatusEnum.TO_PAY) {
+        throw new BadRequestError('Can not cancel order to pay');
+      }
       if (
         [
           ShippingStatusEnum.WAIT_FOR_CONFIRMATION,
-          ShippingStatusEnum.TO_PAY,
           ShippingStatusEnum.PREPARING_ORDER,
           ShippingStatusEnum.SHIPPING,
         ].includes(order.status)
       ) {
-        if (
-          order.status != ShippingStatusEnum.TO_PAY &&
-          order.paymentMethod != PaymentMethodEnum.CASH
-        ) {
+        if (order.paymentMethod != PaymentMethodEnum.CASH) {
           //refund to wallet
           await walletService.refundFromCancelOrder(order, queryRunner);
           const transaction =
@@ -1408,6 +1438,9 @@ class OrderService extends BaseService<Order> {
       });
       if (!order) {
         throw new BadRequestError(`Order not found`);
+      }
+      if (order.status == ShippingStatusEnum.TO_PAY) {
+        throw new BadRequestError('Can not cancel order to pay');
       }
       const cancelOrderRequest = await orderRequestRepository.findOne({
         where: {
@@ -2067,9 +2100,10 @@ class OrderService extends BaseService<Order> {
       productClassification.productDiscount?.product?.name;
     //check product discount event
     if (productClassification.productDiscount) {
-      orderDetail.unitPriceAfterDiscount =
+      orderDetail.unitPriceAfterDiscount = Math.round(
         productClassification.price *
-        (1 - productClassification.productDiscount.discount);
+          (1 - productClassification.productDiscount.discount)
+      );
       orderDetail.type = OrderEnum.FLASH_SALE;
       orderDetail.productDiscount = productClassification.productDiscount;
     } else if (productClassification.preOrderProduct) {
@@ -2088,8 +2122,10 @@ class OrderService extends BaseService<Order> {
         });
         if (!livestreamProduct)
           throw new BadRequestError('Product not found in livestream');
-        orderDetail.unitPriceAfterDiscount =
-          productClassification.price * (1 - livestreamProduct.discount);
+        orderDetail.unitPriceAfterDiscount = Math.round(
+          productClassification.price * (1 - livestreamProduct.discount)
+        );
+        orderDetail.livestream = { id: item.livestreamId } as LiveStream;
       }
     }
     orderDetail.subTotal = item.quantity * orderDetail.unitPriceAfterDiscount;
@@ -2213,7 +2249,8 @@ class OrderService extends BaseService<Order> {
 
   updateOrderStatusBeforeCreation(
     parentOrder: Order,
-    status: ShippingStatusEnum
+    status: ShippingStatusEnum,
+    reason?: string
   ) {
     //update status for parent order
     parentOrder.status = status;
@@ -2223,6 +2260,7 @@ class OrderService extends BaseService<Order> {
     statusTracking.updatedBy = new Account();
     statusTracking.updatedBy.id = parentOrder.account.id;
     statusTracking.status = status;
+    if (reason) statusTracking.reason = reason;
 
     const statusTrackings = parentOrder.children.map((childOrder) => {
       //update status for child order

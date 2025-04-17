@@ -5,6 +5,7 @@ import { ProductDiscount } from "./productDiscount.entity";
 import { Order } from "./order.entity";
 import { Feedback } from "./feedback.entity";
 import { OrderEnum } from "../utils/enum";
+import { LiveStream } from "./livestream.entity";
 
 @Entity("order_details")
 export class OrderDetail extends BaseEntity {
@@ -69,6 +70,12 @@ export class OrderDetail extends BaseEntity {
   })
   @JoinColumn({ name: "product_classification_id" })
   productClassification: ProductClassification;
+
+  @ManyToOne(() => LiveStream, (livestream) => livestream.orderDetails, {
+      nullable: true,
+    })
+    @JoinColumn({ name: 'livestream_id' })
+    livestream: LiveStream;
 
   // @ManyToOne(() => ProductClassification, {
   //   nullable: true,
