@@ -5,7 +5,10 @@ import { StatusEnum } from '../../utils/enum';
 
 export const GroupProductCreateSchema = z.object({
   body: z.object({
-    name: z.string().min(1, 'Name is required'),
+    name: z
+      .string()
+      .min(1, 'Name is required')
+      .max(255, 'Name cannot exceed 255 characters'),
     description: z
       .string()
       .max(255, 'Description cannot exceed 255 characters')

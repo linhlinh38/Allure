@@ -1101,9 +1101,12 @@ class OrderService extends BaseService<Order> {
     const order = await orderRepository.findOne({
       where: { id: orderId, parent: IsNull() },
       relations: {
+        voucher: true,
         account: true,
         children: {
+          voucher: true,
           orderDetails: {
+            livestream: true,
             feedback: {
               mediaFiles: true,
               replies: {
@@ -1118,7 +1121,6 @@ class OrderService extends BaseService<Order> {
             },
           },
         },
-        voucher: true,
       },
     });
     if (!order) throw new BadRequestError(`Order not found`);
@@ -2123,6 +2125,7 @@ class OrderService extends BaseService<Order> {
         orderDetail.unitPriceAfterDiscount = Math.round(
           productClassification.price * (1 - livestreamProduct.discount)
         );
+        orderDetail.livestream = { id: item.livestreamId } as LiveStream;
       }
     }
     orderDetail.subTotal = item.quantity * orderDetail.unitPriceAfterDiscount;
