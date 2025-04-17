@@ -413,6 +413,7 @@ class BookingService extends BaseService<Booking> {
         "account.avatar",
       ])
       .leftJoinAndSelect("consultantService.systemService", "systemService")
+      .leftJoinAndSelect("systemService.images", "images")
       .leftJoinAndSelect("booking.feedback", "feedback");
 
     // Filter by consultantServiceId
