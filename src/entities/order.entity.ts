@@ -14,7 +14,6 @@ import {
   ShippingStatusEnum,
 } from "../utils/enum";
 import { GroupBuying } from "./groupBuying.entity";
-import { LiveStream } from "./livestream.entity";
 import { Voucher } from "./voucher.entity";
 import { Account } from "./account.entity";
 import { OrderDetail } from "./orderDetail.entity";
@@ -106,12 +105,6 @@ export class Order extends BaseEntity {
   })
   @JoinColumn({ name: 'group_buying_id' })
   groupBuying: GroupBuying;
-
-  @ManyToOne(() => LiveStream, (livestream) => livestream.orders, {
-    nullable: true,
-  })
-  @JoinColumn({ name: 'livestream_id' })
-  livestream: LiveStream;
 
   @ManyToOne(() => Voucher, (voucher) => voucher.orders, {
     nullable: true,
