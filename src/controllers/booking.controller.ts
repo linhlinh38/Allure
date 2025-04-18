@@ -4,7 +4,11 @@ import { createNormalResponse } from "../utils/response";
 import { AuthRequest } from "../middleware/authentication";
 import { plainToInstance } from "class-transformer";
 import { BookingRequest } from "../dtos/request/booking.request";
-import { BookingStatusEnum, ServiceTypeEnum } from "../utils/enum";
+import {
+  BookingStatusEnum,
+  BookingTypeEnum,
+  ServiceTypeEnum,
+} from "../utils/enum";
 import { Booking } from "../entities/booking.entity";
 export default class BookingController {
   static async getBookingOfBrand(
@@ -79,6 +83,7 @@ export default class BookingController {
         consultantServiceId,
         consultantAccountId,
         systemServiceType,
+        type,
         statuses,
         minTotalPrice,
         maxTotalPrice,
@@ -93,6 +98,7 @@ export default class BookingController {
         consultantServiceId: consultantServiceId as string,
         consultantAccountId: consultantAccountId as string,
         systemServiceType: systemServiceType as ServiceTypeEnum,
+        type: type as BookingTypeEnum,
         status: statuses
           ? ((statuses as string).split(",") as BookingStatusEnum[])
           : undefined,
