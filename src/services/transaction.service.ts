@@ -33,7 +33,6 @@ import { bookingRepository } from '../repositories/booking.repository';
 import { Booking } from '../entities/booking.entity';
 import { Wallet } from '../entities/wallet.entity';
 import { walletService } from './wallet.service';
-import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
 import { accountRepository } from '../repositories/account.repository';
 import { orderDetailRepository } from '../repositories/orderDetail.repository';
 
@@ -840,18 +839,16 @@ class TransactionService extends BaseService<Transaction> {
     balance: number,
     order: Order
   ) {
-    const masterConfig = await retrieveMasterConfig();
     const transaction = new Transaction();
     transaction.order = order;
-    transaction.amount = order.totalPrice * (1 - masterConfig.commissionFee);
+    transaction.amount =
+      order.totalPrice + order.platformVoucherDiscount - order.commissionFee;
     transaction.brand = order.brand;
     transaction.buyer = { id: order.account.id } as Account;
     transaction.paymentMethod = PaymentMethodEnum.WALLET;
     transaction.type = TransactionTypeEnum.TRANSFER_TO_WALLET;
     transaction.balanceAfterTransaction = balance;
-    transaction.description = `Comission fee from order ${order.id} is ${
-      order.totalPrice * masterConfig.commissionFee
-    }`;
+    transaction.description = `Comission fee from order ${order.id} is ${order.commissionFee}`;
     return transaction;
   }
 
@@ -859,18 +856,15 @@ class TransactionService extends BaseService<Transaction> {
     balance: number,
     booking: Booking
   ) {
-    const masterConfig = await retrieveMasterConfig();
     const transaction = new Transaction();
     transaction.booking = booking;
-    transaction.amount = booking.totalPrice * (1 - masterConfig.commissionFee);
+    transaction.amount = booking.totalPrice - booking.commissionFee;
     transaction.consultant = booking.consultantService.account;
     transaction.buyer = { id: booking.account.id } as Account;
     transaction.paymentMethod = PaymentMethodEnum.WALLET;
     transaction.type = TransactionTypeEnum.TRANSFER_TO_WALLET;
     transaction.balanceAfterTransaction = balance;
-    transaction.description = `Comission fee from booking ${booking.id} is ${
-      booking.totalPrice * masterConfig.commissionFee
-    }`;
+    transaction.description = `Comission fee from booking ${booking.id} is ${booking.commissionFee}`;
     return transaction;
   }
 
@@ -949,11 +943,9 @@ class TransactionService extends BaseService<Transaction> {
       },
     });
     if (!wallet) throw new BadRequestError('Dont have wallet');
-    const masterConfig = await retrieveMasterConfig();
     walletService.increaseBalance(
       wallet,
-      (order.totalPrice + order.platformVoucherDiscount) *
-        (1 - masterConfig.commissionFee)
+      order.totalPrice + order.platformVoucherDiscount - order.commissionFee
     );
     await queryRunner.manager.save(wallet);
     const transaction =
@@ -987,10 +979,9 @@ class TransactionService extends BaseService<Transaction> {
       },
     });
     if (!wallet) throw new BadRequestError('Dont have wallet');
-    const masterConfig = await retrieveMasterConfig();
     walletService.increaseBalance(
       wallet,
-      booking.totalPrice * (1 - masterConfig.commissionFee)
+      booking.totalPrice - booking.commissionFee
     );
     await queryRunner.manager.save(wallet);
     const transaction =

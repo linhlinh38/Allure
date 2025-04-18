@@ -23,51 +23,58 @@ import { Feedback } from "./feedback.entity";
 import { BookingFormAnswer } from "./bookingFormAnswer.entity";
 import { ConsultationResult } from "./consultationResult.entity";
 
-@Entity("bookings")
+@Entity('bookings')
 export class Booking extends BaseEntity {
-  @Column({ type: "double precision", default: 0, name: "total_price" })
+  @Column({ type: 'double precision', default: 0, name: 'total_price' })
   totalPrice: number;
 
   @Column({
-    type: "timestamp with time zone",
-    name: "start_time",
+    type: 'double precision',
+    name: 'commission_fee',
+    nullable: true,
+  })
+  commissionFee: number;
+
+  @Column({
+    type: 'timestamp with time zone',
+    name: 'start_time',
     nullable: true,
   })
   startTime: Date;
 
   @Column({
-    type: "timestamp with time zone",
-    name: "end_time",
+    type: 'timestamp with time zone',
+    name: 'end_time',
     nullable: true,
   })
   endTime: Date;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: PaymentMethodEnum,
     default: PaymentMethodEnum.BANK_TRANSFER,
     nullable: true,
-    name: "payment_method",
+    name: 'payment_method',
   })
   paymentMethod: PaymentMethodEnum;
 
-  @Column({ type: "varchar", length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   notes: string;
 
-  @Column({ type: "varchar", length: 255, nullable: true, name: "meet_url" })
+  @Column({ type: 'varchar', length: 255, nullable: true, name: 'meet_url' })
   meetUrl: string;
 
-  @Column({ type: "varchar", length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   record: string;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: BookingTypeEnum,
   })
   type: BookingTypeEnum;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: BookingStatusEnum,
   })
   status: BookingStatusEnum;
@@ -75,40 +82,40 @@ export class Booking extends BaseEntity {
   @OneToOne(() => BookingFormAnswer, (answer) => answer.booking, {
     nullable: true,
   })
-  @JoinColumn({ name: "booking_form_answer_id" })
+  @JoinColumn({ name: 'booking_form_answer_id' })
   bookingFormAnswer: BookingFormAnswer;
 
   @OneToOne(() => ConsultationResult, (result) => result.booking, {
     nullable: true,
   })
-  @JoinColumn({ name: "consultation_result_id" })
+  @JoinColumn({ name: 'consultation_result_id' })
   consultationResult: ConsultationResult;
 
   @ManyToOne(() => Slot, (slot) => slot.bookings, {
     nullable: true,
   })
-  @JoinColumn({ name: "slot_id" })
+  @JoinColumn({ name: 'slot_id' })
   slot: Slot;
 
   @ManyToOne(() => Account, (account) => account.bookings)
-  @JoinColumn({ name: "account_id" })
+  @JoinColumn({ name: 'account_id' })
   account: Account;
 
   @ManyToOne(() => Brand, (brand) => brand.bookings)
-  @JoinColumn({ name: "brand_id" })
+  @JoinColumn({ name: 'brand_id' })
   brand: Brand;
 
   // @ManyToOne(() => Account, { nullable: true })
   // @JoinColumn({ name: 'assignee_to_interview_id' })
   // assigneeToInterview: Account;
 
-  @Column({ type: "varchar", length: 255, nullable: true, name: "result_note" })
+  @Column({ type: 'varchar', length: 255, nullable: true, name: 'result_note' })
   resultNote: string;
 
   @ManyToOne(() => ConsultantService, (service) => service.bookings, {
     nullable: true,
   })
-  @JoinColumn({ name: "consultant_service_id" })
+  @JoinColumn({ name: 'consultant_service_id' })
   consultantService: ConsultantService;
 
   @OneToMany(() => StatusTracking, (statusTracking) => statusTracking.booking)

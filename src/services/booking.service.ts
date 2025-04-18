@@ -32,6 +32,7 @@ import { ProductClassification } from "../entities/productClassification.entity"
 import { walletService } from "./wallet.service";
 import { transactionService } from "./transaction.service";
 import { MediaFile } from "../entities/mediaFile.entity";
+import { retrieveMasterConfig } from "../utils/retrieveMasterConfig";
 
 const repository = AppDataSource.getRepository(Booking);
 class BookingService extends BaseService<Booking> {
@@ -797,7 +798,7 @@ class BookingService extends BaseService<Booking> {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
-    let createdBooking;
+    let createdBooking: Booking;
     try {
       // const bookings = await repository.find({
       //   where: { account: { id: loginUser } },
@@ -898,6 +899,9 @@ class BookingService extends BaseService<Booking> {
             "slot",
           ],
         });
+        const masterConfig = await retrieveMasterConfig();
+        createdBooking.commissionFee =
+          createdBooking.totalPrice * masterConfig.commissionFee;
 
         let statusTrackings;
         let transaction;
@@ -916,8 +920,9 @@ class BookingService extends BaseService<Booking> {
           } else {
             walletService.decreaseBalance(wallet, createdBooking.totalPrice);
             await queryRunner.manager.save(Wallet, wallet);
-
+            
             createdBooking.status = BookingStatusEnum.WAIT_FOR_CONFIRMATION;
+            
             await queryRunner.manager.update(
               Booking,
               { id: createdBooking.id },
