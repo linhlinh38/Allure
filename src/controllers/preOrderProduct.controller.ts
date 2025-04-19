@@ -79,7 +79,7 @@ export default class PreOrderProductController {
   }
 
   static async filterPreOrderProducts(
-    req: Request,
+    req: AuthRequest,
     res: Response,
     next: NextFunction
   ) {
@@ -113,7 +113,7 @@ export default class PreOrderProductController {
       };
 
       const preOrderProduct =
-        await preOrderProductService.filterPreOrderProducts(filter);
+        await preOrderProductService.filterPreOrderProducts(filter, req.loginUser);
       return createNormalResponse(
         res,
         "Get preOrderProduct success",
