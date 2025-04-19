@@ -74,7 +74,8 @@ class BookingService extends BaseService<Booking> {
         slot: true,
         bookingFormAnswer: true,
         consultationResult: true,
-        statusTrackings: true,
+        statusTrackings: { mediaFiles: true },
+        report: true,
       },
     });
     if (!booking) throw new BadRequestError("Booking not found");
