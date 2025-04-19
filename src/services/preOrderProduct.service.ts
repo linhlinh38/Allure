@@ -280,7 +280,7 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
       existingProduct.status == ProductEnum.BANNED
     ) {
       throw new BadRequestError(
-        `Product invalid: Product is ${existingProduct.status}`
+        `Product invalid: Product ${existingProduct?.status ?? "not found"}`
       );
     }
 

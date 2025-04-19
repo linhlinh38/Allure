@@ -9,5 +9,11 @@ export const ServiceBookingFormCreateSchema = z.object({
 });
 
 export const ServiceBookingFormUpdateSchema = z.object({
-  body: ServiceBookingFormCreateSchema.partial(),
+  body: z.object({
+    title: z
+      .string()
+      .max(100, "Title must be at most 100 characters long")
+      .optional(),
+    questions: z.array(QuestionCreateSchema.shape.body.partial()).optional(),
+  }),
 });

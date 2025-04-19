@@ -7,6 +7,7 @@ import { ServiceImage } from "../entities/serviceImage.entity";
 import { NotFoundError } from "../errors/error";
 import { ServiceTypeEnum, StatusEnum } from "../utils/enum";
 import { BaseService } from "./base.service";
+import { systemServiceService } from "./systemService.service";
 
 const repository = AppDataSource.getRepository(ConsultantService);
 class ConsultantServiceService extends BaseService<ConsultantService> {
@@ -251,6 +252,19 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
       //await this.beforeCreate(data);
 
       const { serviceBookingFormData, ...serviceData } = data;
+
+      if (serviceData.systemService) {
+        const checkSystemService = await systemServiceService.getById(
+          serviceData.systemService
+        );
+
+        if (
+          !checkSystemService ||
+          checkSystemService.status === StatusEnum.INACTIVE
+        ) {
+          throw new NotFoundError("System service not found or inactive.");
+        }
+      }
 
       if (data.serviceBookingFormData) {
         const form = await queryRunner.manager.save(
