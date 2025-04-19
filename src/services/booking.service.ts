@@ -1,12 +1,12 @@
-import { In } from "typeorm";
-import { Between, SelectQueryBuilder } from "typeorm";
-import { AppDataSource } from "../dataSource";
-import { BookingRequest } from "../dtos/request/booking.request";
-import { Account } from "../entities/account.entity";
-import { Booking } from "../entities/booking.entity";
-import { BadRequestError } from "../errors/error";
-import { bookingRepository } from "../repositories/booking.repository";
-import { slotRepository } from "../repositories/slot.repository";
+import { In } from 'typeorm';
+import { Between, SelectQueryBuilder } from 'typeorm';
+import { AppDataSource } from '../dataSource';
+import { BookingRequest } from '../dtos/request/booking.request';
+import { Account } from '../entities/account.entity';
+import { Booking } from '../entities/booking.entity';
+import { BadRequestError } from '../errors/error';
+import { bookingRepository } from '../repositories/booking.repository';
+import { slotRepository } from '../repositories/slot.repository';
 import {
   BookingStatusEnum,
   BookingTypeEnum,
@@ -17,23 +17,23 @@ import {
   ServiceTypeEnum,
   StatusEnum,
   TransactionTypeEnum,
-} from "../utils/enum";
-import { BaseService } from "./base.service";
-import { accountRepository } from "../repositories/account.repository";
-import { brandRepository } from "../repositories/brand.repository";
-import { consultantServiceRepository } from "../repositories/consultantService.repository";
-import { walletRepository } from "../repositories/wallet.reposirory";
-import { StatusTracking } from "../entities/statusTracking.entity";
-import { Wallet } from "../entities/wallet.entity";
-import { Transaction } from "../entities/transaction.entity";
-import { addBookingToQueue } from "../utils/queue/cancelBookingQueue";
-import { ConsultationResult } from "../entities/consultationResult.entity";
-import { BookingFormAnswer } from "../entities/bookingFormAnswer.entity";
-import { ProductClassification } from "../entities/productClassification.entity";
-import { walletService } from "./wallet.service";
-import { transactionService } from "./transaction.service";
-import { MediaFile } from "../entities/mediaFile.entity";
-import { retrieveMasterConfig } from "../utils/retrieveMasterConfig";
+} from '../utils/enum';
+import { BaseService } from './base.service';
+import { accountRepository } from '../repositories/account.repository';
+import { brandRepository } from '../repositories/brand.repository';
+import { consultantServiceRepository } from '../repositories/consultantService.repository';
+import { walletRepository } from '../repositories/wallet.reposirory';
+import { StatusTracking } from '../entities/statusTracking.entity';
+import { Wallet } from '../entities/wallet.entity';
+import { Transaction } from '../entities/transaction.entity';
+import { addBookingToQueue } from '../utils/queue/cancelBookingQueue';
+import { ConsultationResult } from '../entities/consultationResult.entity';
+import { BookingFormAnswer } from '../entities/bookingFormAnswer.entity';
+import { ProductClassification } from '../entities/productClassification.entity';
+import { walletService } from './wallet.service';
+import { transactionService } from './transaction.service';
+import { MediaFile } from '../entities/mediaFile.entity';
+import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
 
 const repository = AppDataSource.getRepository(Booking);
 class BookingService extends BaseService<Booking> {
@@ -43,7 +43,7 @@ class BookingService extends BaseService<Booking> {
         id: brandId,
       },
     });
-    if (!brand) throw new BadRequestError("Brand not found");
+    if (!brand) throw new BadRequestError('Brand not found');
     const booking = await bookingRepository.findOne({
       where: {
         brand: { id: brandId },
@@ -54,7 +54,7 @@ class BookingService extends BaseService<Booking> {
         ]),
       },
     });
-    if (!booking) throw new BadRequestError("Booking not found");
+    if (!booking) throw new BadRequestError('Booking not found');
     return booking;
   }
   async getById(id: string) {
@@ -78,7 +78,7 @@ class BookingService extends BaseService<Booking> {
         statusTrackings: true,
       },
     });
-    if (!booking) throw new BadRequestError("Booking not found");
+    if (!booking) throw new BadRequestError('Booking not found');
     return booking;
   }
   async noteResult(id: string, resultNote: string, loginUser: string) {
@@ -92,16 +92,16 @@ class BookingService extends BaseService<Booking> {
     });
     if (!booking) throw new BadRequestError(`Booking not found`);
     if (!booking.brand.reviewer || booking.brand.reviewer.id != loginUser)
-      throw new BadRequestError("Only reviewer can note result");
+      throw new BadRequestError('Only reviewer can note result');
     booking.resultNote = resultNote;
     await repository.save(booking);
   }
 
   queryBuilderForBooking(queryBuilder: SelectQueryBuilder<any>) {
     queryBuilder
-      .leftJoinAndSelect("booking.consultantService", "consultantService")
-      .leftJoinAndSelect("consultantService.account", "consultant")
-      .leftJoinAndSelect("consultantService.images", "consultantServiceImages");
+      .leftJoinAndSelect('booking.consultantService', 'consultantService')
+      .leftJoinAndSelect('consultantService.account', 'consultant')
+      .leftJoinAndSelect('consultantService.images', 'consultantServiceImages');
   }
 
   // async assignForInterview(id: string, assigneeId: string) {
@@ -154,7 +154,7 @@ class BookingService extends BaseService<Booking> {
           slot: true,
         },
         order: {
-          createdAt: "DESC",
+          createdAt: 'DESC',
         },
       });
     } else if (account.role.role == RoleEnum.OPERATOR) {
@@ -169,7 +169,7 @@ class BookingService extends BaseService<Booking> {
           slot: true,
         },
         order: {
-          createdAt: "DESC",
+          createdAt: 'DESC',
         },
       });
     } else if (
@@ -230,19 +230,19 @@ class BookingService extends BaseService<Booking> {
 
       // Apply statuses filter
       if (statuses && statuses.length > 0) {
-        queryBuilder.andWhere("booking.status IN (:...statuses)", {
+        queryBuilder.andWhere('booking.status IN (:...statuses)', {
           statuses,
         });
       }
 
       // Apply searchQuery filter
       if (searchQuery) {
-        queryBuilder.andWhere("systemService.name LIKE :searchQuery", {
+        queryBuilder.andWhere('systemService.name LIKE :searchQuery', {
           searchQuery: `%${searchQuery}%`,
         });
       }
 
-      queryBuilder.orderBy("booking.createdAt", "DESC");
+      queryBuilder.orderBy('booking.createdAt', 'DESC');
 
       return await queryBuilder.getMany();
     } else if (account.role.role == RoleEnum.CONSULTANT) {
@@ -303,19 +303,19 @@ class BookingService extends BaseService<Booking> {
 
       // Apply statuses filter
       if (statuses && statuses.length > 0) {
-        queryBuilder.andWhere("booking.status IN (:...statuses)", {
+        queryBuilder.andWhere('booking.status IN (:...statuses)', {
           statuses,
         });
       }
 
       // Apply searchQuery filter
       if (searchQuery) {
-        queryBuilder.andWhere("systemService.name LIKE :searchQuery", {
+        queryBuilder.andWhere('systemService.name LIKE :searchQuery', {
           searchQuery: `%${searchQuery}%`,
         });
       }
 
-      queryBuilder.orderBy("booking.createdAt", "DESC");
+      queryBuilder.orderBy('booking.createdAt', 'DESC');
 
       return await queryBuilder.getMany();
     }
@@ -338,7 +338,7 @@ class BookingService extends BaseService<Booking> {
     });
 
     if (![RoleEnum.CONSULTANT, RoleEnum.OPERATOR].includes(account.role.role)) {
-      throw new BadRequestError("Only apply for consultant or operator");
+      throw new BadRequestError('Only apply for consultant or operator');
     }
 
     // Lấy danh sách các ngày trong tuần từ startDate đến endDate
@@ -382,6 +382,7 @@ class BookingService extends BaseService<Booking> {
   }
 
   async filterBookings(
+    loginUser: string,
     filters: {
       consultantServiceId?: string;
       consultantAccountId?: string;
@@ -393,92 +394,103 @@ class BookingService extends BaseService<Booking> {
       feedbackRating?: number;
     },
     paging: { page: number; limit: number },
-    sortBy: keyof Booking = "createdAt",
-    order: "ASC" | "DESC" = "ASC"
+    sortBy: keyof Booking = 'createdAt',
+    order: 'ASC' | 'DESC' = 'ASC'
   ): Promise<{
     items: Booking[];
     total: number;
     page: number;
     limit: number;
   }> {
+    const account = await accountRepository.findOne({
+      where: { id: loginUser },
+      relations: {
+        role: true,
+      },
+    });
     const queryBuilder = repository
-      .createQueryBuilder("booking")
-      .leftJoinAndSelect("booking.consultantService", "consultantService")
-      .leftJoinAndSelect("consultantService.account", "consultantAccount")
-      .leftJoinAndSelect("booking.account", "account")
-      .select("booking")
-      .addSelect("consultantService")
+      .createQueryBuilder('booking')
+      .leftJoinAndSelect('booking.consultantService', 'consultantService')
+      .leftJoinAndSelect('consultantService.account', 'consultantAccount')
+      .leftJoinAndSelect('booking.account', 'account')
+      .select('booking')
+      .addSelect('consultantService')
       .addSelect([
-        "consultantAccount.id",
-        "consultantAccount.username",
-        "consultantAccount.email",
-        "consultantAccount.phone",
-        "consultantAccount.firstName",
-        "consultantAccount.lastName",
-        "consultantAccount.avatar",
+        'consultantAccount.id',
+        'consultantAccount.username',
+        'consultantAccount.email',
+        'consultantAccount.phone',
+        'consultantAccount.firstName',
+        'consultantAccount.lastName',
+        'consultantAccount.avatar',
       ])
       .addSelect([
-        "account.id",
-        "account.username",
-        "account.email",
-        "account.phone",
-        "account.firstName",
-        "account.lastName",
-        "account.avatar",
+        'account.id',
+        'account.username',
+        'account.email',
+        'account.phone',
+        'account.firstName',
+        'account.lastName',
+        'account.avatar',
       ])
-      .leftJoinAndSelect("consultantService.systemService", "systemService")
-      .leftJoinAndSelect("systemService.images", "images")
-      .leftJoinAndSelect("booking.feedback", "feedback");
+      .leftJoinAndSelect('consultantService.systemService', 'systemService')
+      .leftJoinAndSelect('systemService.images', 'images')
+      .leftJoinAndSelect('booking.feedback', 'feedback');
 
     // Filter by consultantServiceId
     if (filters.consultantServiceId) {
-      queryBuilder.andWhere("consultantService.id = :consultantServiceId", {
+      queryBuilder.andWhere('consultantService.id = :consultantServiceId', {
         consultantServiceId: filters.consultantServiceId,
       });
     }
 
     if (filters.type) {
-      queryBuilder.andWhere("booking.type = :type", {
+      queryBuilder.andWhere('booking.type = :type', {
         type: filters.type,
       });
     }
 
+    if (account.role.role == RoleEnum.CONSULTANT) {
+      queryBuilder.andWhere('consultantAccount.id = :loginUser', {
+        loginUser,
+      });
+    }
     // Filter by consultantAccountId
-    if (filters.consultantAccountId) {
-      queryBuilder.andWhere("consultantAccount.id = :consultantAccountId", {
+    else if (filters.consultantAccountId) {
+      queryBuilder.andWhere('consultantAccount.id = :consultantAccountId', {
         consultantAccountId: filters.consultantAccountId,
       });
     }
 
     // Filter by systemServiceType
     if (filters.systemServiceType) {
-      queryBuilder.andWhere("systemService.type = :systemServiceType", {
+      queryBuilder.andWhere('systemService.type = :systemServiceType', {
         systemServiceType: filters.systemServiceType,
       });
     }
 
     // Filter by status
     if (filters.status && filters.status.length > 0) {
-      queryBuilder.andWhere("booking.status IN (:...status)", {
+      queryBuilder.andWhere('booking.status IN (:...status)', {
         status: filters.status,
       });
     }
 
     // Filter by totalPrice range
     if (filters.minTotalPrice) {
-      queryBuilder.andWhere("booking.totalPrice >= :minTotalPrice", {
+      queryBuilder.andWhere('booking.totalPrice >= :minTotalPrice', {
         minTotalPrice: filters.minTotalPrice,
       });
     }
     if (filters.maxTotalPrice) {
-      queryBuilder.andWhere("booking.totalPrice <= :maxTotalPrice", {
+      queryBuilder.andWhere('booking.totalPrice <= :maxTotalPrice', {
         maxTotalPrice: filters.maxTotalPrice,
       });
     }
 
     // Filter by feedback rating
     if (filters.feedbackRating) {
-      queryBuilder.andWhere("feedback.rating = :feedbackRating", {
+      queryBuilder.andWhere('feedback.rating = :feedbackRating', {
         feedbackRating: filters.feedbackRating,
       });
     }
@@ -505,15 +517,15 @@ class BookingService extends BaseService<Booking> {
     endTime: string
   ): Promise<number> {
     const totalRevenue = await repository
-      .createQueryBuilder("booking")
-      .select("SUM(booking.totalPrice)", "totalRevenue")
-      .leftJoin("booking.consultantService", "consultantService")
-      .where("consultantService.account.id = :consultantId", { consultantId })
-      .andWhere("booking.status = :status", {
+      .createQueryBuilder('booking')
+      .select('SUM(booking.totalPrice)', 'totalRevenue')
+      .leftJoin('booking.consultantService', 'consultantService')
+      .where('consultantService.account.id = :consultantId', { consultantId })
+      .andWhere('booking.status = :status', {
         status: BookingStatusEnum.COMPLETED,
       })
-      .andWhere("booking.createdAt >= :startTime", { startTime })
-      .andWhere("booking.createdAt <= :endTime", { endTime })
+      .andWhere('booking.createdAt >= :startTime', { startTime })
+      .andWhere('booking.createdAt <= :endTime', { endTime })
       .getRawOne();
 
     return totalRevenue?.totalRevenue || 0;
@@ -530,7 +542,7 @@ class BookingService extends BaseService<Booking> {
           id,
         },
       });
-      if (!booking) throw new BadRequestError("Booking not found");
+      if (!booking) throw new BadRequestError('Booking not found');
       booking.status = status;
       if (
         status === BookingStatusEnum.COMPLETED &&
@@ -543,7 +555,7 @@ class BookingService extends BaseService<Booking> {
       }
       await queryRunner.manager.save(booking);
       await queryRunner.commitTransaction();
-      return { message: "Booking service status updated successfully" };
+      return { message: 'Booking service status updated successfully' };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -570,7 +582,7 @@ class BookingService extends BaseService<Booking> {
       });
 
       if (!booking) {
-        throw new BadRequestError("Booking not found");
+        throw new BadRequestError('Booking not found');
       }
 
       let statusTracking;
@@ -601,7 +613,7 @@ class BookingService extends BaseService<Booking> {
           booking,
           BookingStatusEnum.SERVICE_BOOKING_FORM_SUBMITED,
           loginUser,
-          "Service booking form submitted"
+          'Service booking form submitted'
         );
         await queryRunner.manager.save(StatusTracking, statusTracking);
 
@@ -638,12 +650,12 @@ class BookingService extends BaseService<Booking> {
               }
             );
             if (!checkClassification)
-              throw new BadRequestError("Product not found");
+              throw new BadRequestError('Product not found');
             if (
               !checkClassification.product ||
               checkClassification.product.status === ProductEnum.BANNED
             )
-              throw new BadRequestError("Please select active product");
+              throw new BadRequestError('Please select active product');
           }
         }
         let consultationResult = new ConsultationResult();
@@ -670,7 +682,7 @@ class BookingService extends BaseService<Booking> {
           booking,
           BookingStatusEnum.SENDED_RESULT_SHEET,
           loginUser,
-          "Consultation result sent"
+          'Consultation result sent'
         );
         await queryRunner.manager.save(StatusTracking, statusTracking);
       } else if (data.status === BookingStatusEnum.COMPLETED_CONSULTING_CALL) {
@@ -683,7 +695,7 @@ class BookingService extends BaseService<Booking> {
           booking,
           BookingStatusEnum.COMPLETED_CONSULTING_CALL,
           loginUser,
-          "Booking status updated"
+          'Booking status updated'
         );
         statusTracking = await queryRunner.manager.save(
           StatusTracking,
@@ -726,7 +738,7 @@ class BookingService extends BaseService<Booking> {
           booking,
           data.status,
           loginUser,
-          "Booking status updated"
+          'Booking status updated'
         );
         await queryRunner.manager.save(StatusTracking, statusTracking);
         if (data.status === BookingStatusEnum.BOOKING_CONFIRMED) {
@@ -762,7 +774,7 @@ class BookingService extends BaseService<Booking> {
       }
 
       await queryRunner.commitTransaction();
-      return { message: "Booking service status updated successfully" };
+      return { message: 'Booking service status updated successfully' };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -794,7 +806,7 @@ class BookingService extends BaseService<Booking> {
           ]),
         },
       });
-      if (existedBooking) throw new BadRequestError("Slot has been booked");
+      if (existedBooking) throw new BadRequestError('Slot has been booked');
     } else {
       const consultantService = await consultantServiceRepository.findOne({
         where: {
@@ -818,7 +830,7 @@ class BookingService extends BaseService<Booking> {
           ]),
         },
       });
-      if (existedBooking) throw new BadRequestError("Slot has been booked");
+      if (existedBooking) throw new BadRequestError('Slot has been booked');
     }
   }
 
@@ -848,24 +860,24 @@ class BookingService extends BaseService<Booking> {
           id: bookingRequest.slot,
         });
         if (!slot || !slot.isActive)
-          throw new BadRequestError("Slot not found or invalid");
+          throw new BadRequestError('Slot not found or invalid');
       }
 
       if (bookingRequest.type == BookingTypeEnum.INTERVIEW) {
         if (!bookingRequest.brandId)
-          throw new BadRequestError("BrandId required");
+          throw new BadRequestError('BrandId required');
         const brand = await brandRepository.findOne({
           where: { id: bookingRequest.brandId },
         });
-        if (!brand) throw new BadRequestError("Brand not found");
+        if (!brand) throw new BadRequestError('Brand not found');
 
         const bookings = await repository.find({
           where: {
             account: { id: loginUser },
             type: BookingTypeEnum.INTERVIEW,
           },
-          relations: ["slot"],
-          order: { createdAt: "DESC" },
+          relations: ['slot'],
+          order: { createdAt: 'DESC' },
           take: 1,
         });
         const booking = bookings && bookings.length > 0 && bookings[0];
@@ -874,7 +886,7 @@ class BookingService extends BaseService<Booking> {
           booking.status == BookingStatusEnum.WAIT_FOR_CONFIRMATION
         )
           throw new BadRequestError(
-            "You have already booked a slot. Please wait for process"
+            'You have already booked a slot. Please wait for process'
           );
         await this.isSlotBooked(bookingRequest);
 
@@ -887,7 +899,7 @@ class BookingService extends BaseService<Booking> {
         await queryRunner.manager.save(Booking, createdBooking);
       } else {
         if (!bookingRequest.consultantService)
-          throw new BadRequestError("ConsultantServiceId required");
+          throw new BadRequestError('ConsultantServiceId required');
         const consultantService = await consultantServiceRepository.findOne({
           where: { id: bookingRequest.consultantService },
           relations: {
@@ -895,12 +907,12 @@ class BookingService extends BaseService<Booking> {
           },
         });
         if (!consultantService)
-          throw new BadRequestError("ConsultantService not found");
+          throw new BadRequestError('ConsultantService not found');
         if (
           consultantService.systemService.type === ServiceTypeEnum.PREMIUM &&
           !bookingRequest.slot
         ) {
-          throw new BadRequestError("Slot is required");
+          throw new BadRequestError('Slot is required');
         }
         if (bookingRequest.slot) await this.isSlotBooked(bookingRequest);
 
@@ -949,9 +961,9 @@ class BookingService extends BaseService<Booking> {
           } else {
             walletService.decreaseBalance(wallet, createdBooking.totalPrice);
             await queryRunner.manager.save(Wallet, wallet);
-            
+
             createdBooking.status = BookingStatusEnum.WAIT_FOR_CONFIRMATION;
-            
+
             await queryRunner.manager.update(
               Booking,
               { id: createdBooking.id },
@@ -1032,22 +1044,22 @@ class BookingService extends BaseService<Booking> {
       const booking = await bookingRepository.findOne({
         where: { id: bookingId },
         relations: [
-          "account",
-          "consultantService",
-          "consultantService.account",
-          "slot",
+          'account',
+          'consultantService',
+          'consultantService.account',
+          'slot',
         ],
       });
 
       if (loginUser) {
         const user = await accountRepository.findOne({
           where: { id: loginUser },
-          relations: ["role"],
+          relations: ['role'],
         });
       }
 
       if (!booking) {
-        throw new BadRequestError("Booking not found");
+        throw new BadRequestError('Booking not found');
       }
 
       if (
@@ -1087,7 +1099,7 @@ class BookingService extends BaseService<Booking> {
             owner: { id: booking.account.id },
           },
         });
-        if (!wallet) throw new BadRequestError("Dont have wallet");
+        if (!wallet) throw new BadRequestError('Dont have wallet');
 
         walletService.increaseBalance(wallet, booking.totalPrice);
         await queryRunner.manager.save(Wallet, wallet);
@@ -1102,7 +1114,7 @@ class BookingService extends BaseService<Booking> {
 
       await queryRunner.commitTransaction();
 
-      return { message: "Booking cancelled successfully" };
+      return { message: 'Booking cancelled successfully' };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -1145,12 +1157,12 @@ class BookingService extends BaseService<Booking> {
   async getStatusBookingInterview(loginUser: string) {
     const bookings = await repository.find({
       where: { account: { id: loginUser } },
-      relations: ["slot"],
-      order: { createdAt: "DESC" },
+      relations: ['slot'],
+      order: { createdAt: 'DESC' },
       take: 1,
     });
     const booking = bookings[0];
-    if (!booking) throw new BadRequestError("Booking not found");
+    if (!booking) throw new BadRequestError('Booking not found');
     if (
       booking.startTime.getTime() <= Date.now() &&
       booking.status == BookingStatusEnum.WAIT_FOR_CONFIRMATION
