@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ProductClassificationCreateSchema } from "./productClassification.request";
 import { ProductCreateSchema } from "./product.request";
 
-export const PreOrderProductCreateSchema = z.object({
+export const ProductDiscountCreateSchema = z.object({
   body: z.object({
     startTime: z
       .string({ message: "Start time is required" })
@@ -16,6 +16,7 @@ export const PreOrderProductCreateSchema = z.object({
         (value) => !isNaN(Date.parse(value)),
         "End time must be a valid date string"
       ),
+    discount: z.number().nonnegative("Discount must be non-negative"),
     productClassifications: z.array(
       ProductClassificationCreateSchema.shape.body
     ),
@@ -26,7 +27,7 @@ export const PreOrderProductCreateSchema = z.object({
   }),
 });
 
-export const PreOrderProductUpdateSchema = z.object({
+export const ProductDiscountUpdateSchema = z.object({
   body: z.object({
     startTime: z
       .string({ message: "Start time is required" })
@@ -42,6 +43,7 @@ export const PreOrderProductUpdateSchema = z.object({
         "End time must be a valid date string"
       )
       .optional(),
+    discount: z.number().nonnegative("Price must be non-negative").optional(),
     productClassifications: z
       .array(ProductClassificationCreateSchema.shape.body.partial())
       .optional(),

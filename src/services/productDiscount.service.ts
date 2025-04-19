@@ -370,7 +370,7 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
       existingProduct.status == ProductEnum.BANNED
     ) {
       throw new BadRequestError(
-        `Product invalid: Product is ${existingProduct.status}`
+        `Product invalid: Product ${existingProduct?.status ?? "not found"}`
       );
     }
 

@@ -18,5 +18,5 @@ export const QuestionCreateSchema = z.object({
 });
 
 export const QuestionUpdateSchema = z.object({
-  body: QuestionCreateSchema.partial(),
+  body: QuestionCreateSchema.shape.body.partial(),
 });

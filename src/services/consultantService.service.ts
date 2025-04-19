@@ -1,13 +1,13 @@
-import { Not } from 'typeorm';
-import { AppDataSource } from '../dataSource';
-import { ConsultantService } from '../entities/consultantService.entity';
-import { Question } from '../entities/question.entity';
-import { ServiceBookingForm } from '../entities/serviceBookingForm.entity';
-import { ServiceImage } from '../entities/serviceImage.entity';
-import { NotFoundError } from '../errors/error';
-import { RoleEnum, ServiceTypeEnum, StatusEnum } from '../utils/enum';
-import { BaseService } from './base.service';
-import { accountRepository } from '../repositories/account.repository';
+import { Not } from "typeorm";
+import { AppDataSource } from "../dataSource";
+import { ConsultantService } from "../entities/consultantService.entity";
+import { Question } from "../entities/question.entity";
+import { ServiceBookingForm } from "../entities/serviceBookingForm.entity";
+import { ServiceImage } from "../entities/serviceImage.entity";
+import { NotFoundError } from "../errors/error";
+import { ServiceTypeEnum, StatusEnum } from "../utils/enum";
+import { BaseService } from "./base.service";
+import { systemServiceService } from "./systemService.service";
 
 const repository = AppDataSource.getRepository(ConsultantService);
 class ConsultantServiceService extends BaseService<ConsultantService> {
@@ -258,6 +258,19 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
       //await this.beforeCreate(data);
 
       const { serviceBookingFormData, ...serviceData } = data;
+
+      if (serviceData.systemService) {
+        const checkSystemService = await systemServiceService.getById(
+          serviceData.systemService
+        );
+
+        if (
+          !checkSystemService ||
+          checkSystemService.status === StatusEnum.INACTIVE
+        ) {
+          throw new NotFoundError("System service not found or inactive.");
+        }
+      }
 
       if (data.serviceBookingFormData) {
         const form = await queryRunner.manager.save(
