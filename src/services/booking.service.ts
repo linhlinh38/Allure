@@ -33,8 +33,10 @@ import { ProductClassification } from "../entities/productClassification.entity"
 import { walletService } from "./wallet.service";
 import { transactionService } from "./transaction.service";
 import { MediaFile } from "../entities/mediaFile.entity";
+import { retrieveMasterConfig } from "../utils/retrieveMasterConfig";
 
 const repository = AppDataSource.getRepository(Booking);
+
 class BookingService extends BaseService<Booking> {
   async getBookingOfBrand(brandId: string) {
     const brand = await brandRepository.findOne({
@@ -553,6 +555,7 @@ class BookingService extends BaseService<Booking> {
   }
 
   async updateBookingServiceStatus(id: string, data: any, loginUser: string) {
+    const masterConfig = await retrieveMasterConfig();
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -605,7 +608,7 @@ class BookingService extends BaseService<Booking> {
         );
         await queryRunner.manager.save(StatusTracking, statusTracking);
 
-        let delay = 240000;
+        let delay = masterConfig.expiredBookinFormSubmited;
         if (
           booking.consultantService.systemService.type ===
           ServiceTypeEnum.PREMIUM
@@ -700,7 +703,7 @@ class BookingService extends BaseService<Booking> {
 
         await addBookingToQueue(
           booking.id,
-          240000,
+          masterConfig.expiredBookinCompletedCall,
           BookingStatusEnum.COMPLETED_CONSULTING_CALL
         );
       } else {
@@ -730,7 +733,7 @@ class BookingService extends BaseService<Booking> {
         );
         await queryRunner.manager.save(StatusTracking, statusTracking);
         if (data.status === BookingStatusEnum.BOOKING_CONFIRMED) {
-          let delay = 240000;
+          let delay = masterConfig.expiredBookingConfirmed;
           if (
             booking.consultantService.systemService.type ===
             ServiceTypeEnum.PREMIUM
@@ -824,6 +827,7 @@ class BookingService extends BaseService<Booking> {
 
   async createBooking(bookingRequest: BookingRequest, loginUser: string) {
     const queryRunner = AppDataSource.createQueryRunner();
+    const masterConfig = await retrieveMasterConfig();
     await queryRunner.connect();
     await queryRunner.startTransaction();
     let createdBooking;
@@ -980,11 +984,11 @@ class BookingService extends BaseService<Booking> {
         if (createdBooking.status === BookingStatusEnum.TO_PAY) {
           await addBookingToQueue(
             createdBooking.id,
-            120000,
+            masterConfig.expiredBookingToPay,
             BookingStatusEnum.TO_PAY
           );
         }
-        let delay = 240000;
+        let delay = masterConfig.expiredBookingWaitForConfirm;
         if (
           createdBooking.consultantService.systemService.type ===
           ServiceTypeEnum.PREMIUM
@@ -998,7 +1002,10 @@ class BookingService extends BaseService<Booking> {
           // Calculate the difference in milliseconds
           delay = bookingStartTime.getTime() - nowMinus30Minutes.getTime();
 
-          delay = delay > 240000 ? 240000 : delay;
+          delay =
+            delay > masterConfig.expiredBookingWaitForConfirm
+              ? masterConfig.expiredBookingWaitForConfirm
+              : delay;
         }
         if (createdBooking.status === BookingStatusEnum.WAIT_FOR_CONFIRMATION) {
           await addBookingToQueue(
