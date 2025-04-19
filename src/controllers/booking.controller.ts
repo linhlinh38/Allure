@@ -77,7 +77,7 @@ export default class BookingController {
     }
   }
 
-  static async filterBookings(req: Request, res: Response, next: NextFunction) {
+  static async filterBookings(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const {
         consultantServiceId,
@@ -113,6 +113,7 @@ export default class BookingController {
       };
 
       const result = await bookingService.filterBookings(
+        req.loginUser,
         filters,
         paging,
         sortBy as keyof Booking,
