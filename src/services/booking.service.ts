@@ -12,6 +12,7 @@ import {
   BookingTypeEnum,
   PaymentMethodEnum,
   ProductEnum,
+  ReportStatusEnum,
   RoleEnum,
   ServiceTypeEnum,
   StatusEnum,
@@ -32,6 +33,7 @@ import { ProductClassification } from "../entities/productClassification.entity"
 import { walletService } from "./wallet.service";
 import { transactionService } from "./transaction.service";
 import { MediaFile } from "../entities/mediaFile.entity";
+import { retrieveMasterConfig } from "../utils/retrieveMasterConfig";
 
 const repository = AppDataSource.getRepository(Booking);
 class BookingService extends BaseService<Booking> {
@@ -198,21 +200,31 @@ class BookingService extends BaseService<Booking> {
       // });
       const queryBuilder = bookingRepository
         .createQueryBuilder("booking")
-        .leftJoinAndSelect("booking.brand", "brand")
         .leftJoinAndSelect("booking.consultantService", "consultantService")
         .leftJoinAndSelect("consultantService.account", "consultantAccount")
-        .leftJoinAndSelect(
-          "consultantService.serviceBookingForm",
-          "serviceBookingForm"
-        )
-        .leftJoinAndSelect("serviceBookingForm.questions", "questions")
-        .leftJoinAndSelect("questions.images", "questionImages")
+        .leftJoinAndSelect("booking.account", "account")
+        .select("booking")
+        .addSelect("consultantService")
+        .addSelect([
+          "consultantAccount.id",
+          "consultantAccount.username",
+          "consultantAccount.email",
+          "consultantAccount.firstName",
+          "consultantAccount.lastName",
+          "consultantAccount.avatar",
+        ])
+        .addSelect([
+          "account.id",
+          "account.username",
+          "account.email",
+          "account.phone",
+          "account.firstName",
+          "account.lastName",
+          "account.avatar",
+        ])
         .leftJoinAndSelect("consultantService.systemService", "systemService")
         .leftJoinAndSelect("consultantService.images", "images")
-        .leftJoinAndSelect("booking.account", "account")
         .leftJoinAndSelect("booking.slot", "slot")
-        .leftJoinAndSelect("booking.bookingFormAnswer", "bookingFormAnswer")
-        .leftJoinAndSelect("booking.consultationResult", "consultationResult")
         .leftJoinAndSelect("booking.statusTrackings", "statusTrackings")
         .where("account.id = :loginUser", { loginUser });
 
@@ -261,29 +273,31 @@ class BookingService extends BaseService<Booking> {
 
       const queryBuilder = bookingRepository
         .createQueryBuilder("booking")
-        .leftJoinAndSelect("booking.brand", "brand")
         .leftJoinAndSelect("booking.consultantService", "consultantService")
         .leftJoinAndSelect("consultantService.account", "consultantAccount")
-        .leftJoinAndSelect(
-          "consultantService.serviceBookingForm",
-          "serviceBookingForm"
-        )
-        .leftJoinAndSelect("serviceBookingForm.questions", "questions")
-        .leftJoinAndSelect("questions.images", "questionImages")
-        .leftJoinAndSelect("consultantService.systemService", "systemService")
-        .leftJoinAndSelect(
-          "systemService.consultationCriteria",
-          "consultationCriteria"
-        )
-        .leftJoinAndSelect(
-          "consultationCriteria.consultationCriteriaSections",
-          "consultationCriteriaSections"
-        )
-        .leftJoinAndSelect("consultantService.images", "images")
         .leftJoinAndSelect("booking.account", "account")
+        .select("booking")
+        .addSelect("consultantService")
+        .addSelect([
+          "consultantAccount.id",
+          "consultantAccount.username",
+          "consultantAccount.email",
+          "consultantAccount.firstName",
+          "consultantAccount.lastName",
+          "consultantAccount.avatar",
+        ])
+        .addSelect([
+          "account.id",
+          "account.username",
+          "account.email",
+          "account.phone",
+          "account.firstName",
+          "account.lastName",
+          "account.avatar",
+        ])
+        .leftJoinAndSelect("consultantService.systemService", "systemService")
+        .leftJoinAndSelect("consultantService.images", "images")
         .leftJoinAndSelect("booking.slot", "slot")
-        .leftJoinAndSelect("booking.bookingFormAnswer", "bookingFormAnswer")
-        .leftJoinAndSelect("booking.consultationResult", "consultationResult")
         .leftJoinAndSelect("booking.statusTrackings", "statusTrackings")
         .where("consultantService.account.id = :loginUser", { loginUser });
 
@@ -551,6 +565,7 @@ class BookingService extends BaseService<Booking> {
           "account",
           "consultantService",
           "consultantService.systemService",
+          "report",
         ],
       });
 
@@ -595,9 +610,11 @@ class BookingService extends BaseService<Booking> {
           booking.consultantService.systemService.type ===
           ServiceTypeEnum.PREMIUM
         ) {
-          const bookingStartTime = new Date(booking.startTime);
+          const bookingEndTime = new Date(booking.endTime);
+          const now = new Date();
           // Calculate the difference in milliseconds
-          delay = bookingStartTime.getTime() + 24 * 60 * 60 * 1000;
+          delay =
+            bookingEndTime.getTime() - now.getTime() + 24 * 60 * 60 * 1000;
         }
         await addBookingToQueue(
           booking.id,
@@ -691,6 +708,18 @@ class BookingService extends BaseService<Booking> {
         if (data.meetUrl) {
           booking.meetUrl = data.meetUrl;
         }
+        if (
+          data.status === BookingStatusEnum.COMPLETED &&
+          booking.type == BookingTypeEnum.SERVICE &&
+          booking.report &&
+          booking.report.status !== ReportStatusEnum.REJECTED &&
+          booking.report.status !== ReportStatusEnum.CANCELLED
+        ) {
+          throw new BadRequestError(
+            "You cannot complete the booking because the report has not been completed yet."
+          );
+        }
+
         await queryRunner.manager.save(Booking, booking);
 
         statusTracking = this.updateBookingStatus(
@@ -709,11 +738,11 @@ class BookingService extends BaseService<Booking> {
             const bookingStartTime = new Date(booking.startTime);
             const now = new Date();
 
-            // Subtract 120 minutes (120 * 60 * 1000 milliseconds) from now
-            const nowMinus30Minutes = new Date(now.getTime() - 120 * 60 * 1000);
+            // Subtract 15 minutes (15 * 60 * 1000 milliseconds) from now
+            const nowMinus15Minutes = new Date(now.getTime() + 15 * 60 * 1000);
 
             // Calculate the difference in milliseconds
-            delay = bookingStartTime.getTime() - nowMinus30Minutes.getTime();
+            delay = bookingStartTime.getTime() - nowMinus15Minutes.getTime();
           }
           await addBookingToQueue(
             booking.id,
@@ -797,7 +826,7 @@ class BookingService extends BaseService<Booking> {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
-    let createdBooking;
+    let createdBooking: Booking;
     try {
       // const bookings = await repository.find({
       //   where: { account: { id: loginUser } },
@@ -894,10 +923,14 @@ class BookingService extends BaseService<Booking> {
           relations: [
             "account",
             "consultantService",
+            "consultantService.systemService",
             "consultantService.account",
             "slot",
           ],
         });
+        const masterConfig = await retrieveMasterConfig();
+        createdBooking.commissionFee =
+          createdBooking.totalPrice * masterConfig.commissionFee;
 
         let statusTrackings;
         let transaction;
@@ -916,8 +949,9 @@ class BookingService extends BaseService<Booking> {
           } else {
             walletService.decreaseBalance(wallet, createdBooking.totalPrice);
             await queryRunner.manager.save(Wallet, wallet);
-
+            
             createdBooking.status = BookingStatusEnum.WAIT_FOR_CONFIRMATION;
+            
             await queryRunner.manager.update(
               Booking,
               { id: createdBooking.id },
@@ -954,10 +988,26 @@ class BookingService extends BaseService<Booking> {
             BookingStatusEnum.TO_PAY
           );
         }
+        let delay = 240000;
+        if (
+          createdBooking.consultantService.systemService.type ===
+          ServiceTypeEnum.PREMIUM
+        ) {
+          const bookingStartTime = new Date(createdBooking.startTime);
+          const now = new Date();
+
+          // Subtract 30 minutes (30 * 60 * 1000 milliseconds) from now
+          const nowMinus30Minutes = new Date(now.getTime() + 30 * 60 * 1000);
+
+          // Calculate the difference in milliseconds
+          delay = bookingStartTime.getTime() - nowMinus30Minutes.getTime();
+
+          delay = delay > 240000 ? 240000 : delay;
+        }
         if (createdBooking.status === BookingStatusEnum.WAIT_FOR_CONFIRMATION) {
           await addBookingToQueue(
             createdBooking.id,
-            240000,
+            delay,
             BookingStatusEnum.WAIT_FOR_CONFIRMATION
           );
         }
@@ -1006,7 +1056,8 @@ class BookingService extends BaseService<Booking> {
         booking.status !== BookingStatusEnum.WAIT_FOR_CONFIRMATION &&
         booking.status !== BookingStatusEnum.BOOKING_CONFIRMED &&
         booking.status !== BookingStatusEnum.SERVICE_BOOKING_FORM_SUBMITED &&
-        booking.status !== BookingStatusEnum.COMPLETED_CONSULTING_CALL
+        booking.status !== BookingStatusEnum.COMPLETED_CONSULTING_CALL &&
+        booking.status !== BookingStatusEnum.SENDED_RESULT_SHEET
       ) {
         throw new BadRequestError(
           `Can not cancelled booking in status: ${booking.status}`

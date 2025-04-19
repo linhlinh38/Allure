@@ -42,6 +42,7 @@ import { ProductClassification } from '../entities/productClassification.entity'
 import { Account } from '../entities/account.entity';
 import { FilterVouchersRequest } from '../dtos/request/voucher.request';
 import { Paging } from '../dtos/other/paging.dto';
+import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
 
 class VoucherService extends BaseService<Voucher> {
   async canApplyVoucher(
@@ -1128,18 +1129,25 @@ class VoucherService extends BaseService<Voucher> {
     });
   }
 
-  calculateOrderPrice(totalOrder: Order) {
+  async calculateOrderPrice(totalOrder: Order) {
+    const masterConfig = await retrieveMasterConfig();
     totalOrder.subTotal = 0;
     totalOrder.totalPrice = 0;
     totalOrder.children.forEach((childOrder) => {
       childOrder.subTotal = 0;
       childOrder.totalPrice = 0;
       childOrder.orderDetails.forEach((orderDetail) => {
+        orderDetail.commissionFee = Math.round(
+          (orderDetail.totalPrice +
+            (orderDetail.platformVoucherDiscount || 0)) *
+            masterConfig.commissionFee
+        );
         childOrder.subTotal += orderDetail.subTotal;
         childOrder.totalPrice += orderDetail.totalPrice;
         childOrder.platformVoucherDiscount +=
           orderDetail.platformVoucherDiscount;
         childOrder.shopVoucherDiscount += orderDetail.shopVoucherDiscount;
+        childOrder.commissionFee += orderDetail.commissionFee;
       });
       totalOrder.subTotal += childOrder.subTotal;
       totalOrder.totalPrice += childOrder.totalPrice;

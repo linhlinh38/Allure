@@ -146,6 +146,13 @@ export class Order extends BaseEntity {
   })
   expiredReceivedTime: Date;
 
+  @Column({
+    type: 'double precision',
+    name: 'commission_fee',
+    nullable: true,
+  })
+  commissionFee: number;
+
   @OneToMany(() => Transaction, (transaction) => transaction.order)
   transactions: Transaction[];
 

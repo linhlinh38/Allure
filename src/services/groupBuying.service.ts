@@ -411,7 +411,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
           (orderDetail) => orderDetail.productClassification
         )
       );
-      voucherService.calculateOrderPrice(parentOrder);
+      await voucherService.calculateOrderPrice(parentOrder);
       await queryRunner.manager.save(parentOrder);
 
       await queryRunner.commitTransaction();
@@ -591,7 +591,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       )[0];
       childOrder.voucher = smallestCriteria.voucher;
       voucherService.applyShopVoucher(childOrder);
-      voucherService.calculateOrderPrice(parentOrder);
+      await voucherService.calculateOrderPrice(parentOrder);
       const wallet = await walletRepository.findOne({
         where: {
           owner: { id: userId },
@@ -680,7 +680,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
           //apply voucher
           order.voucher = criteriasDescThreshold[0].voucher;
           voucherService.applyShopVoucher(order);
-          voucherService.calculateOrderPrice(order.parent);
+          await voucherService.calculateOrderPrice(order.parent);
 
           if (wallet && wallet.availableBalance >= order.totalPrice) {
             countAffordableOrder++;
@@ -717,7 +717,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
             //apply voucher
             order.voucher = voucherCopy;
             voucherService.applyShopVoucher(order);
-            voucherService.calculateOrderPrice(order.parent);
+            await voucherService.calculateOrderPrice(order.parent);
             //check if order is affordable or not
             if (orderIdCanAffordMap[order.id]) {
               walletService.decreaseBalance(wallet, order.totalPrice);

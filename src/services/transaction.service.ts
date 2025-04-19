@@ -33,7 +33,6 @@ import { bookingRepository } from '../repositories/booking.repository';
 import { Booking } from '../entities/booking.entity';
 import { Wallet } from '../entities/wallet.entity';
 import { walletService } from './wallet.service';
-import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
 import { accountRepository } from '../repositories/account.repository';
 import { orderDetailRepository } from '../repositories/orderDetail.repository';
 
@@ -128,6 +127,54 @@ class TransactionService extends BaseService<Transaction> {
       });
     }
     return query;
+  }
+
+  async generalRevenueOrderBooking(
+    startDate: Date,
+    endDate: Date,
+    loginUser: string
+  ) {
+    if (!startDate || !endDate) {
+      startDate = new Date();
+      endDate = new Date();
+      startDate.setMonth(endDate.getMonth() - 1);
+    }
+    startDate = new Date(startDate);
+    endDate = new Date(endDate);
+    startDate.setHours(-7, 0, 0, 0);
+    endDate.setHours(16, 59, 59, 999);
+
+    // Calculate from transactions
+    const result = await transactionRepository
+      .createQueryBuilder('transaction')
+      .leftJoinAndSelect('transaction.order', 'order')
+      .leftJoinAndSelect('transaction.booking', 'booking')
+      .select([
+        'SUM(CASE WHEN transaction.order IS NOT NULL THEN order.totalPrice ELSE 0 END) as totalOrderPrice',
+        'SUM(CASE WHEN transaction.order IS NOT NULL THEN order.commissionFee ELSE 0 END) as totalOrderCommissionFee',
+        'SUM(CASE WHEN transaction.booking IS NOT NULL THEN booking.totalPrice ELSE 0 END) as totalBookingPrice',
+        'SUM(CASE WHEN transaction.booking IS NOT NULL THEN booking.commissionFee ELSE 0 END) as totalBookingCommissionFee',
+      ])
+      .where('transaction.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      })
+      .andWhere('transaction.type = ')
+      .getRawOne();
+
+    const totalPrice =
+      parseFloat(result?.totalorderprice || '0') +
+      parseFloat(result?.totalbookingprice || '0');
+    const totalCommissionFee =
+      parseFloat(result?.totalordercommissionfee || '0') +
+      parseFloat(result?.totalbookingcommissionfee || '0');
+
+    return {
+      totalPrice,
+      totalCommissionFee,
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
+    };
   }
 
   async consultantRevenue(
@@ -840,18 +887,16 @@ class TransactionService extends BaseService<Transaction> {
     balance: number,
     order: Order
   ) {
-    const masterConfig = await retrieveMasterConfig();
     const transaction = new Transaction();
     transaction.order = order;
-    transaction.amount = order.totalPrice * (1 - masterConfig.commissionFee);
+    transaction.amount =
+      order.totalPrice + order.platformVoucherDiscount - order.commissionFee;
     transaction.brand = order.brand;
     transaction.buyer = { id: order.account.id } as Account;
     transaction.paymentMethod = PaymentMethodEnum.WALLET;
     transaction.type = TransactionTypeEnum.TRANSFER_TO_WALLET;
     transaction.balanceAfterTransaction = balance;
-    transaction.description = `Comission fee from order ${order.id} is ${
-      order.totalPrice * masterConfig.commissionFee
-    }`;
+    transaction.description = `Comission fee from order ${order.id} is ${order.commissionFee}`;
     return transaction;
   }
 
@@ -859,18 +904,15 @@ class TransactionService extends BaseService<Transaction> {
     balance: number,
     booking: Booking
   ) {
-    const masterConfig = await retrieveMasterConfig();
     const transaction = new Transaction();
     transaction.booking = booking;
-    transaction.amount = booking.totalPrice * (1 - masterConfig.commissionFee);
+    transaction.amount = booking.totalPrice - booking.commissionFee;
     transaction.consultant = booking.consultantService.account;
     transaction.buyer = { id: booking.account.id } as Account;
     transaction.paymentMethod = PaymentMethodEnum.WALLET;
     transaction.type = TransactionTypeEnum.TRANSFER_TO_WALLET;
     transaction.balanceAfterTransaction = balance;
-    transaction.description = `Comission fee from booking ${booking.id} is ${
-      booking.totalPrice * masterConfig.commissionFee
-    }`;
+    transaction.description = `Comission fee from booking ${booking.id} is ${booking.commissionFee}`;
     return transaction;
   }
 
@@ -949,11 +991,9 @@ class TransactionService extends BaseService<Transaction> {
       },
     });
     if (!wallet) throw new BadRequestError('Dont have wallet');
-    const masterConfig = await retrieveMasterConfig();
     walletService.increaseBalance(
       wallet,
-      (order.totalPrice + order.platformVoucherDiscount) *
-        (1 - masterConfig.commissionFee)
+      order.totalPrice + order.platformVoucherDiscount - order.commissionFee
     );
     await queryRunner.manager.save(wallet);
     const transaction =
@@ -987,10 +1027,9 @@ class TransactionService extends BaseService<Transaction> {
       },
     });
     if (!wallet) throw new BadRequestError('Dont have wallet');
-    const masterConfig = await retrieveMasterConfig();
     walletService.increaseBalance(
       wallet,
-      booking.totalPrice * (1 - masterConfig.commissionFee)
+      booking.totalPrice - booking.commissionFee
     );
     await queryRunner.manager.save(wallet);
     const transaction =
@@ -1102,6 +1141,8 @@ class TransactionService extends BaseService<Transaction> {
       .select([
         "DATE_TRUNC('day', statusTracking.createdAt) as date",
         'SUM(orderDetail.totalPrice) as totalRevenue',
+        'SUM(orderDetail.commissionFee) as totalCommissionFee',
+        'SUM(orderDetail.totalPrice + orderDetail.platformVoucherDiscount - orderDetail.commissionFee) as actualRevenue',
         'SUM(orderDetail.quantity) as totalQuantity',
         'SUM(orderDetail.platformVoucherDiscount) as totalPlatformVoucherDiscount',
         'SUM(orderDetail.shopVoucherDiscount) as totalShopVoucherDiscount',
@@ -1159,13 +1200,14 @@ class TransactionService extends BaseService<Transaction> {
         );
       }
     } else if (orderType == OrderEnum.NORMAL) {
-      queryBuilder.andWhere(
-        ' orderDetail.type = :type AND product.id IN (:...productIds)',
-        {
-          type: OrderEnum.NORMAL,
+      queryBuilder.andWhere(' orderDetail.type = :type', {
+        type: OrderEnum.NORMAL,
+      });
+      if (productIds && productIds.length > 0) {
+        queryBuilder.andWhere('product.id IN (:...productIds)', {
           productIds,
-        }
-      );
+        });
+      }
     } else if (orderType == OrderEnum.GROUP_BUYING) {
       queryBuilder.andWhere('orderDetail.type = :type', {
         type: OrderEnum.GROUP_BUYING,
@@ -1181,7 +1223,11 @@ class TransactionService extends BaseService<Transaction> {
         });
       }
     }
+    console.log('dcm');
+
     const results = await queryBuilder.getRawMany();
+    console.log('dcm 123');
+
     const dateRange = this.generateDateRange(startDate, endDate);
 
     const statistics = dateRange.map((date) => {
@@ -1192,6 +1238,8 @@ class TransactionService extends BaseService<Transaction> {
         date,
         totalRevenue: result ? parseFloat(result.totalrevenue) : 0,
         totalQuantity: result ? parseInt(result.totalquantity) : 0,
+        totalCommissionFee: result ? parseFloat(result.totalcommissionfee) : 0,
+        actualRevenue: result ? parseFloat(result.actualrevenue) : 0,
         totalPlatformVoucherDiscount: result
           ? parseFloat(result.totalplatformvoucherdiscount)
           : 0,
@@ -1206,6 +1254,8 @@ class TransactionService extends BaseService<Transaction> {
       (acc, curr) => {
         acc.totalRevenue += curr.totalRevenue;
         acc.totalQuantity += curr.totalQuantity;
+        acc.totalCommissionFee += curr.totalCommissionFee;
+        acc.actualRevenue += curr.actualRevenue;
         acc.totalPlatformVoucherDiscount += curr.totalPlatformVoucherDiscount;
         acc.totalShopVoucherDiscount += curr.totalShopVoucherDiscount;
         acc.orderCount += curr.orderCount;
@@ -1214,6 +1264,8 @@ class TransactionService extends BaseService<Transaction> {
       {
         totalRevenue: 0,
         totalQuantity: 0,
+        totalCommissionFee: 0,
+        actualRevenue: 0,
         totalPlatformVoucherDiscount: 0,
         totalShopVoucherDiscount: 0,
         orderCount: 0,

@@ -1878,7 +1878,7 @@ class OrderService extends BaseService<Order> {
         voucherService.applyPlatformVoucher(parentOrder);
       }
 
-      voucherService.calculateOrderPrice(parentOrder);
+      await voucherService.calculateOrderPrice(parentOrder);
 
       await queryRunner.manager.save(Order, parentOrder);
       await queryRunner.commitTransaction();
@@ -2024,7 +2024,7 @@ class OrderService extends BaseService<Order> {
 
       this.separatePreOrders(parentOrder);
 
-      voucherService.calculateOrderPrice(parentOrder);
+      await voucherService.calculateOrderPrice(parentOrder);
 
       //check its payment method and corresponding logic for each method
       const statusTrackings =
@@ -2094,6 +2094,8 @@ class OrderService extends BaseService<Order> {
     orderDetail.unitPriceBeforeDiscount = productClassification.price;
     orderDetail.unitPriceAfterDiscount = productClassification.price;
     orderDetail.classificationName = productClassification.title;
+    orderDetail.platformVoucherDiscount = 0;
+    orderDetail.shopVoucherDiscount = 0;
     orderDetail.productName =
       productClassification.product?.name ??
       productClassification.preOrderProduct?.product?.name ??
