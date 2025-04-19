@@ -129,6 +129,54 @@ class TransactionService extends BaseService<Transaction> {
     return query;
   }
 
+  async generalRevenueOrderBooking(
+    startDate: Date,
+    endDate: Date,
+    loginUser: string
+  ) {
+    if (!startDate || !endDate) {
+      startDate = new Date();
+      endDate = new Date();
+      startDate.setMonth(endDate.getMonth() - 1);
+    }
+    startDate = new Date(startDate);
+    endDate = new Date(endDate);
+    startDate.setHours(-7, 0, 0, 0);
+    endDate.setHours(16, 59, 59, 999);
+
+    // Calculate from transactions
+    const result = await transactionRepository
+      .createQueryBuilder('transaction')
+      .leftJoinAndSelect('transaction.order', 'order')
+      .leftJoinAndSelect('transaction.booking', 'booking')
+      .select([
+        'SUM(CASE WHEN transaction.order IS NOT NULL THEN order.totalPrice ELSE 0 END) as totalOrderPrice',
+        'SUM(CASE WHEN transaction.order IS NOT NULL THEN order.commissionFee ELSE 0 END) as totalOrderCommissionFee',
+        'SUM(CASE WHEN transaction.booking IS NOT NULL THEN booking.totalPrice ELSE 0 END) as totalBookingPrice',
+        'SUM(CASE WHEN transaction.booking IS NOT NULL THEN booking.commissionFee ELSE 0 END) as totalBookingCommissionFee',
+      ])
+      .where('transaction.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      })
+      .andWhere('transaction.type = ')
+      .getRawOne();
+
+    const totalPrice =
+      parseFloat(result?.totalorderprice || '0') +
+      parseFloat(result?.totalbookingprice || '0');
+    const totalCommissionFee =
+      parseFloat(result?.totalordercommissionfee || '0') +
+      parseFloat(result?.totalbookingcommissionfee || '0');
+
+    return {
+      totalPrice,
+      totalCommissionFee,
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
+    };
+  }
+
   async consultantRevenue(
     startDate: Date,
     endDate: Date,
@@ -1093,6 +1141,8 @@ class TransactionService extends BaseService<Transaction> {
       .select([
         "DATE_TRUNC('day', statusTracking.createdAt) as date",
         'SUM(orderDetail.totalPrice) as totalRevenue',
+        'SUM(orderDetail.commissionFee) as totalCommissionFee',
+        'SUM(orderDetail.totalPrice + orderDetail.platformVoucherDiscount - orderDetail.commissionFee) as actualRevenue',
         'SUM(orderDetail.quantity) as totalQuantity',
         'SUM(orderDetail.platformVoucherDiscount) as totalPlatformVoucherDiscount',
         'SUM(orderDetail.shopVoucherDiscount) as totalShopVoucherDiscount',
@@ -1150,13 +1200,14 @@ class TransactionService extends BaseService<Transaction> {
         );
       }
     } else if (orderType == OrderEnum.NORMAL) {
-      queryBuilder.andWhere(
-        ' orderDetail.type = :type AND product.id IN (:...productIds)',
-        {
-          type: OrderEnum.NORMAL,
+      queryBuilder.andWhere(' orderDetail.type = :type', {
+        type: OrderEnum.NORMAL,
+      });
+      if (productIds && productIds.length > 0) {
+        queryBuilder.andWhere('product.id IN (:...productIds)', {
           productIds,
-        }
-      );
+        });
+      }
     } else if (orderType == OrderEnum.GROUP_BUYING) {
       queryBuilder.andWhere('orderDetail.type = :type', {
         type: OrderEnum.GROUP_BUYING,
@@ -1172,7 +1223,11 @@ class TransactionService extends BaseService<Transaction> {
         });
       }
     }
+    console.log('dcm');
+
     const results = await queryBuilder.getRawMany();
+    console.log('dcm 123');
+
     const dateRange = this.generateDateRange(startDate, endDate);
 
     const statistics = dateRange.map((date) => {
@@ -1183,6 +1238,8 @@ class TransactionService extends BaseService<Transaction> {
         date,
         totalRevenue: result ? parseFloat(result.totalrevenue) : 0,
         totalQuantity: result ? parseInt(result.totalquantity) : 0,
+        totalCommissionFee: result ? parseFloat(result.totalcommissionfee) : 0,
+        actualRevenue: result ? parseFloat(result.actualrevenue) : 0,
         totalPlatformVoucherDiscount: result
           ? parseFloat(result.totalplatformvoucherdiscount)
           : 0,
@@ -1197,6 +1254,8 @@ class TransactionService extends BaseService<Transaction> {
       (acc, curr) => {
         acc.totalRevenue += curr.totalRevenue;
         acc.totalQuantity += curr.totalQuantity;
+        acc.totalCommissionFee += curr.totalCommissionFee;
+        acc.actualRevenue += curr.actualRevenue;
         acc.totalPlatformVoucherDiscount += curr.totalPlatformVoucherDiscount;
         acc.totalShopVoucherDiscount += curr.totalShopVoucherDiscount;
         acc.orderCount += curr.orderCount;
@@ -1205,6 +1264,8 @@ class TransactionService extends BaseService<Transaction> {
       {
         totalRevenue: 0,
         totalQuantity: 0,
+        totalCommissionFee: 0,
+        actualRevenue: 0,
         totalPlatformVoucherDiscount: 0,
         totalShopVoucherDiscount: 0,
         orderCount: 0,
