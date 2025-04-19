@@ -168,7 +168,7 @@ export default class GroupProductController {
     }
   }
 
-  static async filter(req: Request, res: Response, next: NextFunction) {
+  static async filter(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const filterRequest = plainToClass(FilterGroupProductRequest, req.body);
 
@@ -178,7 +178,7 @@ export default class GroupProductController {
         limit: parseInt(req.query.limit as string) || 10,
       } as FilterGroupProductPaging;
 
-      const result = await groupProductService.filter(filterRequest, paging);
+      const result = await groupProductService.filter(filterRequest, paging, req.loginUser);
       return createNormalResponse(
         res,
         'Filter group products successfully',

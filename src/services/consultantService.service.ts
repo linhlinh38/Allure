@@ -5,8 +5,10 @@ import { Question } from "../entities/question.entity";
 import { ServiceBookingForm } from "../entities/serviceBookingForm.entity";
 import { ServiceImage } from "../entities/serviceImage.entity";
 import { NotFoundError } from "../errors/error";
-import { ServiceTypeEnum, StatusEnum } from "../utils/enum";
+import { RoleEnum, ServiceTypeEnum, StatusEnum } from "../utils/enum";
 import { BaseService } from "./base.service";
+import { systemServiceService } from "./systemService.service";
+import { accountRepository } from "../repositories/account.repository";
 
 const repository = AppDataSource.getRepository(ConsultantService);
 class ConsultantServiceService extends BaseService<ConsultantService> {
@@ -24,40 +26,40 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
     });
 
     if (!consultantService) {
-      throw new NotFoundError("Consultant service not found.");
+      throw new NotFoundError('Consultant service not found.');
     }
 
     if (!form) {
-      throw new NotFoundError("Booking Form not found.");
+      throw new NotFoundError('Booking Form not found.');
     }
   }
 
   async getAll() {
     const services = await this.repository
-      .createQueryBuilder("consultantService")
-      .leftJoinAndSelect("consultantService.systemService", "systemService")
-      .leftJoinAndSelect("systemService.category", "category")
-      .leftJoinAndSelect("systemService.images", "systemServiceImages")
+      .createQueryBuilder('consultantService')
+      .leftJoinAndSelect('consultantService.systemService', 'systemService')
+      .leftJoinAndSelect('systemService.category', 'category')
+      .leftJoinAndSelect('systemService.images', 'systemServiceImages')
       .leftJoinAndSelect(
-        "consultantService.images",
-        "images",
-        "images.status = :imageStatus",
+        'consultantService.images',
+        'images',
+        'images.status = :imageStatus',
         { imageStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "consultantService.serviceBookingForm",
-        "serviceBookingForm"
+        'consultantService.serviceBookingForm',
+        'serviceBookingForm'
       )
       .leftJoinAndSelect(
-        "serviceBookingForm.questions",
-        "questions",
-        "questions.status = :questionStatus",
+        'serviceBookingForm.questions',
+        'questions',
+        'questions.status = :questionStatus',
         { questionStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "questions.images",
-        "questionImages",
-        "questionImages.status = :questionImageStatus",
+        'questions.images',
+        'questionImages',
+        'questionImages.status = :questionImageStatus',
         { questionImageStatus: StatusEnum.ACTIVE }
       )
       .getMany();
@@ -67,120 +69,126 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
 
   async getAllServiceOfConsultant(account: string) {
     const services = await this.repository
-      .createQueryBuilder("consultantService")
-      .leftJoinAndSelect("consultantService.systemService", "systemService")
-      .leftJoinAndSelect("systemService.category", "category")
+      .createQueryBuilder('consultantService')
+      .leftJoinAndSelect('consultantService.systemService', 'systemService')
+      .leftJoinAndSelect('systemService.category', 'category')
       .leftJoinAndSelect(
-        "consultantService.images",
-        "images",
-        "images.status = :imageStatus",
+        'consultantService.images',
+        'images',
+        'images.status = :imageStatus',
         { imageStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "consultantService.serviceBookingForm",
-        "serviceBookingForm"
+        'consultantService.serviceBookingForm',
+        'serviceBookingForm'
       )
       .leftJoinAndSelect(
-        "serviceBookingForm.questions",
-        "questions",
-        "questions.status = :questionStatus",
+        'serviceBookingForm.questions',
+        'questions',
+        'questions.status = :questionStatus',
         { questionStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "questions.images",
-        "questionImages",
-        "questionImages.status = :questionImageStatus",
+        'questions.images',
+        'questionImages',
+        'questionImages.status = :questionImageStatus',
         { questionImageStatus: StatusEnum.ACTIVE }
       )
-      .where("consultantService.account = :account", { account })
+      .where('consultantService.account = :account', { account })
       .getMany();
 
     return services;
   }
 
   async filterConsultantServices(
+    loginUser: string,
     price?: number,
     accountIds?: string[],
     systemServiceId?: string,
     types?: ServiceTypeEnum[],
     statuses?: StatusEnum[],
-    sortBy: keyof ConsultantService = "id",
-    order: "ASC" | "DESC" = "ASC",
+    sortBy: keyof ConsultantService = 'id',
+    order: 'ASC' | 'DESC' = 'ASC',
     page: number = 1,
     limit: number = 10
-  ): Promise<{
-    items: ConsultantService[];
-    total: number;
-    page: number;
-    limit: number;
-  }> {
+  ) {
+    const account = await accountRepository.findOne({
+      where: { id: loginUser },
+      relations: {
+        role: true,
+      },
+    });
     const query = this.repository
-      .createQueryBuilder("consultantService")
-      .leftJoinAndSelect("consultantService.account", "account")
-      .select("consultantService")
+      .createQueryBuilder('consultantService')
+      .leftJoinAndSelect('consultantService.account', 'account')
+      .select('consultantService')
       .addSelect([
-        "account.id",
-        "account.username",
-        "account.email",
-        "account.phone",
-        "account.firstName",
-        "account.lastName",
-        "account.avatar",
-        "account.majorTitle",
+        'account.id',
+        'account.username',
+        'account.email',
+        'account.phone',
+        'account.firstName',
+        'account.lastName',
+        'account.avatar',
+        'account.majorTitle',
       ])
       .leftJoinAndSelect(
-        "consultantService.serviceBookingForm",
-        "serviceBookingForm"
+        'consultantService.serviceBookingForm',
+        'serviceBookingForm'
       )
       .leftJoinAndSelect(
-        "serviceBookingForm.questions",
-        "questions",
-        "questions.status = :questionStatus",
+        'serviceBookingForm.questions',
+        'questions',
+        'questions.status = :questionStatus',
         { questionStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "questions.images",
-        "imageQuestions",
-        "imageQuestions.status = :imageStatus",
+        'questions.images',
+        'imageQuestions',
+        'imageQuestions.status = :imageStatus',
         { imageStatus: StatusEnum.ACTIVE }
       )
-      .leftJoinAndSelect("consultantService.systemService", "systemService")
+      .leftJoinAndSelect('consultantService.systemService', 'systemService')
       .leftJoinAndSelect(
-        "systemService.images",
-        "systemServiceImages",
-        "systemServiceImages.status = :imageActiveStatus",
+        'systemService.images',
+        'systemServiceImages',
+        'systemServiceImages.status = :imageActiveStatus',
         { imageActiveStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "consultantService.images",
-        "images",
-        "images.status = :activeStatus",
+        'consultantService.images',
+        'images',
+        'images.status = :activeStatus',
         { activeStatus: StatusEnum.ACTIVE }
       )
       .orderBy(`consultantService.${sortBy}`, order)
-      .addOrderBy("questions.orderIndex", "DESC")
+      .addOrderBy('questions.orderIndex', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
 
     if (price) {
-      query.andWhere("consultantService.price = :price", { price });
+      query.andWhere('consultantService.price = :price', { price });
     }
-    if (accountIds && accountIds.length > 0) {
-      query.andWhere("account.id IN (:...accountIds)", { accountIds });
+    if (account.role.role == RoleEnum.CONSULTANT) {
+      query.andWhere('account.id = :loginUser', {
+        loginUser,
+      });
+    } else if (accountIds && accountIds.length > 0) {
+      query.andWhere('account.id IN (:...accountIds)', { accountIds });
     }
 
     if (systemServiceId) {
-      query.andWhere("systemService.id = :systemServiceId", {
+      query.andWhere('systemService.id = :systemServiceId', {
         systemServiceId,
       });
     }
 
     if (types && types.length > 0) {
-      query.andWhere("systemService.type IN (:...types)", { types });
+      query.andWhere('systemService.type IN (:...types)', { types });
     }
 
     if (statuses && statuses.length > 0) {
-      query.andWhere("consultantService.status IN (:...statuses)", {
+      query.andWhere('consultantService.status IN (:...statuses)', {
         statuses,
       });
     }
@@ -197,44 +205,44 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
 
   async getById(id: string) {
     const services = await this.repository
-      .createQueryBuilder("consultantService")
-      .leftJoinAndSelect("consultantService.account", "account")
-      .select("consultantService")
+      .createQueryBuilder('consultantService')
+      .leftJoinAndSelect('consultantService.account', 'account')
+      .select('consultantService')
       .addSelect([
-        "account.id",
-        "account.username",
-        "account.email",
-        "account.phone",
-        "account.firstName",
-        "account.lastName",
-        "account.avatar",
-        "account.majorTitle",
+        'account.id',
+        'account.username',
+        'account.email',
+        'account.phone',
+        'account.firstName',
+        'account.lastName',
+        'account.avatar',
+        'account.majorTitle',
       ])
-      .leftJoinAndSelect("consultantService.systemService", "systemService")
-      .leftJoinAndSelect("systemService.category", "category")
+      .leftJoinAndSelect('consultantService.systemService', 'systemService')
+      .leftJoinAndSelect('systemService.category', 'category')
       .leftJoinAndSelect(
-        "consultantService.images",
-        "images",
-        "images.status = :imageStatus",
+        'consultantService.images',
+        'images',
+        'images.status = :imageStatus',
         { imageStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "consultantService.serviceBookingForm",
-        "serviceBookingForm"
+        'consultantService.serviceBookingForm',
+        'serviceBookingForm'
       )
       .leftJoinAndSelect(
-        "serviceBookingForm.questions",
-        "questions",
-        "questions.status = :questionStatus",
+        'serviceBookingForm.questions',
+        'questions',
+        'questions.status = :questionStatus',
         { questionStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "questions.images",
-        "questionImages",
-        "questionImages.status = :questionImageStatus",
+        'questions.images',
+        'questionImages',
+        'questionImages.status = :questionImageStatus',
         { questionImageStatus: StatusEnum.ACTIVE }
       )
-      .where("consultantService.id = :id", { id })
+      .where('consultantService.id = :id', { id })
       .getOne();
 
     return services;
@@ -251,6 +259,19 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
       //await this.beforeCreate(data);
 
       const { serviceBookingFormData, ...serviceData } = data;
+
+      if (serviceData.systemService) {
+        const checkSystemService = await systemServiceService.getById(
+          serviceData.systemService
+        );
+
+        if (
+          !checkSystemService ||
+          checkSystemService.status === StatusEnum.INACTIVE
+        ) {
+          throw new NotFoundError("System service not found or inactive.");
+        }
+      }
 
       if (data.serviceBookingFormData) {
         const form = await queryRunner.manager.save(
@@ -400,10 +421,10 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
         await consultantServiceRepository.findOne({
           where: { id },
           relations: [
-            "serviceBookingForm",
-            "serviceBookingForm.questions",
-            "serviceBookingForm.questions.images",
-            "images",
+            'serviceBookingForm',
+            'serviceBookingForm.questions',
+            'serviceBookingForm.questions.images',
+            'images',
           ],
         });
 
@@ -437,14 +458,14 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
       const consultantService = await consultantServiceRepository.findOne({
         where: { id },
         relations: [
-          "serviceBookingForm",
-          "serviceBookingForm.questions",
-          "serviceBookingForm.questions.images",
+          'serviceBookingForm',
+          'serviceBookingForm.questions',
+          'serviceBookingForm.questions.images',
         ],
       });
 
       if (!consultantService) {
-        throw new NotFoundError("Consultant service not found.");
+        throw new NotFoundError('Consultant service not found.');
       }
       if (status === StatusEnum.INACTIVE) {
         const activeServicesUsingForm = await consultantServiceRepository.count(
@@ -503,9 +524,9 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
         await consultantServiceRepository.findOne({
           where: { id },
           relations: [
-            "serviceBookingForm",
-            "serviceBookingForm.questions",
-            "serviceBookingForm.questions.images",
+            'serviceBookingForm',
+            'serviceBookingForm.questions',
+            'serviceBookingForm.questions.images',
           ],
         });
       await queryRunner.commitTransaction();

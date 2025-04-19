@@ -21,13 +21,12 @@ preOrderProductRouter.get(
   "/get-pre-order-product-of-product/:productId",
   PreOrderProductController.getPreOrderProductOfProduct
 );
-preOrderProductRouter.get(
-  "/filter-pre-order-product",
-  PreOrderProductController.filterPreOrderProducts
-);
 preOrderProductRouter.get('/', PreOrderProductController.getAll);
 preOrderProductRouter.use(authentication);
-
+preOrderProductRouter.get(
+  '/filter-pre-order-product',
+  PreOrderProductController.filterPreOrderProducts
+);
 
 preOrderProductRouter.post(
   "/",

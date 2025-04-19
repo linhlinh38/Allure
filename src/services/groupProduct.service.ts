@@ -325,8 +325,16 @@ class GroupProductService extends BaseService<GroupProduct> {
 
   async filter(
     filterRequest: FilterGroupProductRequest,
-    paging: FilterGroupProductPaging
+    paging: FilterGroupProductPaging,
+    loginUser: string
   ) {
+    const account = await accountRepository.findOne({
+      where: { id: loginUser },
+      relations: {
+        role: true,
+        brands: true,
+      },
+    });
     const { productIds, name, statuses, brandId } = filterRequest;
     const { page, limit } = paging;
     const offset = (page - 1) * limit;
@@ -355,8 +363,11 @@ class GroupProductService extends BaseService<GroupProduct> {
         statuses,
       });
     }
-
-    if (brandId) {
+    if(account.role.role == RoleEnum.MANAGER || account.role.role == RoleEnum.STAFF) {
+      const brand = account.brands[0];
+      queryBuilder.andWhere('brand.id = :brandId', { brandId: brand.id });
+    }
+    else if (brandId) {
       queryBuilder.andWhere('brand.id = :brandId', { brandId });
     }
 

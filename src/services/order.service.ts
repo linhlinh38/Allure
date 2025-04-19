@@ -236,16 +236,7 @@ class OrderService extends BaseService<Order> {
     } else if (account.role.role == RoleEnum.MANAGER) {
       const brand = account.brands[0];
       queryBuilder.where('brand.id = :brandId', { brandId: brand.id });
-      queryBuilder.andWhere('orderRequest.type IN (:...types)', {
-        types: [OrderRequestTypeEnum.CANCEL, OrderRequestTypeEnum.REFUND],
-      });
     } else if (account.role.role == RoleEnum.ADMIN) {
-      queryBuilder.andWhere('orderRequest.type IN (:...types)', {
-        types: [
-          OrderRequestTypeEnum.COMPLAINT,
-          OrderRequestTypeEnum.REJECT_REFUND,
-        ],
-      });
     } else {
       throw new BadRequestError(
         'You do not have permission to access this resource'

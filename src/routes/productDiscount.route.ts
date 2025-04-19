@@ -2,6 +2,11 @@ import express from "express";
 import authentication from "../middleware/authentication";
 
 import ProductDiscountController from "../controllers/productDiscount.controller";
+import validate from "../utils/validate";
+import {
+  ProductDiscountCreateSchema,
+  ProductDiscountUpdateSchema,
+} from "../dtos/request/productDiscount.request";
 const productDiscountRouter = express.Router();
 
 productDiscountRouter.get("/get-by-id/:id", ProductDiscountController.getById);
@@ -10,7 +15,7 @@ productDiscountRouter.get(
   ProductDiscountController.getProductDiscountActiveOfBrand
 );
 productDiscountRouter.get(
-  '/get-sold-amount/:id',
+  "/get-sold-amount/:id",
   ProductDiscountController.getSoldAmount
 );
 productDiscountRouter.get(
@@ -25,8 +30,16 @@ productDiscountRouter.get(
   "/filter-product-discount",
   ProductDiscountController.filterProductDiscounts
 );
-productDiscountRouter.get('/', ProductDiscountController.getAll);
+productDiscountRouter.get("/", ProductDiscountController.getAll);
 productDiscountRouter.use(authentication);
-productDiscountRouter.post("/", ProductDiscountController.create);
-productDiscountRouter.put("/:id", ProductDiscountController.update);
+productDiscountRouter.post(
+  "/",
+  validate(ProductDiscountCreateSchema),
+  ProductDiscountController.create
+);
+productDiscountRouter.put(
+  "/:id",
+  validate(ProductDiscountUpdateSchema),
+  ProductDiscountController.update
+);
 export default productDiscountRouter;

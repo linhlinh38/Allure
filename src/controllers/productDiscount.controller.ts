@@ -89,7 +89,7 @@ export default class ProductDiscountController {
   }
 
   static async filterProductDiscounts(
-    req: Request,
+    req: AuthRequest,
     res: Response,
     next: NextFunction
   ) {
@@ -123,7 +123,7 @@ export default class ProductDiscountController {
       };
 
       const productDiscount =
-        await productDiscountService.filterProductDiscounts(filter);
+        await productDiscountService.filterProductDiscounts(filter, req.loginUser);
       return createNormalResponse(
         res,
         "Get productDiscount success",

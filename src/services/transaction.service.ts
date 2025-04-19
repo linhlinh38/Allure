@@ -306,23 +306,21 @@ class TransactionService extends BaseService<Transaction> {
           await queryRunner.manager.save(Transaction, transactions);
         } else if (order.paymentMethod == PaymentMethodEnum.BANK_TRANSFER) {
           await this.getPaymentData(payRequest.orderId);
+          const transactions = [];
+          for (const childOrder of order.children) {
+            const transaction = await this.createTransactionFromChildOrder(
+              childOrder,
+              TransactionTypeEnum.ORDER_PURCHASE,
+              queryRunner
+            );
+            transactions.push(transaction);
+          }
+          await queryRunner.manager.save(Transaction, transactions);
         } else {
           throw new BadRequestError(
             `Only pay for with wallet or bank transfer`
           );
         }
-        const transactions = [];
-        // Create transactions for child orders
-        for (const childOrder of order.children) {
-          const transaction = await this.createTransactionFromChildOrder(
-            childOrder,
-            TransactionTypeEnum.ORDER_PURCHASE,
-            queryRunner
-          );
-          transactions.push(transaction);
-        }
-        await queryRunner.manager.save(Transaction, transactions);
-
         //update order status and save
         order.status = ShippingStatusEnum.WAIT_FOR_CONFIRMATION;
         await queryRunner.manager.save(Order, order);
