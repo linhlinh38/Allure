@@ -2094,6 +2094,8 @@ class OrderService extends BaseService<Order> {
     orderDetail.unitPriceBeforeDiscount = productClassification.price;
     orderDetail.unitPriceAfterDiscount = productClassification.price;
     orderDetail.classificationName = productClassification.title;
+    orderDetail.platformVoucherDiscount = 0;
+    orderDetail.shopVoucherDiscount = 0;
     orderDetail.productName =
       productClassification.product?.name ??
       productClassification.preOrderProduct?.product?.name ??

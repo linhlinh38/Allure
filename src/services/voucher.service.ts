@@ -1137,15 +1137,17 @@ class VoucherService extends BaseService<Voucher> {
       childOrder.subTotal = 0;
       childOrder.totalPrice = 0;
       childOrder.orderDetails.forEach((orderDetail) => {
+        orderDetail.commissionFee = Math.round(
+          (orderDetail.totalPrice +
+            (orderDetail.platformVoucherDiscount || 0)) *
+            masterConfig.commissionFee
+        );
         childOrder.subTotal += orderDetail.subTotal;
         childOrder.totalPrice += orderDetail.totalPrice;
         childOrder.platformVoucherDiscount +=
           orderDetail.platformVoucherDiscount;
         childOrder.shopVoucherDiscount += orderDetail.shopVoucherDiscount;
-        childOrder.commissionFee = Math.floor(
-          (childOrder.totalPrice + childOrder.platformVoucherDiscount) *
-            masterConfig.commissionFee
-        );
+        childOrder.commissionFee += orderDetail.commissionFee;
       });
       totalOrder.subTotal += childOrder.subTotal;
       totalOrder.totalPrice += childOrder.totalPrice;
