@@ -384,6 +384,7 @@ class BookingService extends BaseService<Booking> {
   }
 
   async filterBookings(
+    loginUser: string,
     filters: {
       consultantServiceId?: string;
       consultantAccountId?: string;
@@ -403,6 +404,12 @@ class BookingService extends BaseService<Booking> {
     page: number;
     limit: number;
   }> {
+    const account = await accountRepository.findOne({
+      where: { id: loginUser },
+      relations: {
+        role: true,
+      },
+    });
     const queryBuilder = repository
       .createQueryBuilder("booking")
       .leftJoinAndSelect("booking.consultantService", "consultantService")
@@ -445,8 +452,13 @@ class BookingService extends BaseService<Booking> {
       });
     }
 
+    if (account.role.role == RoleEnum.CONSULTANT) {
+      queryBuilder.andWhere("consultantAccount.id = :loginUser", {
+        loginUser,
+      });
+    }
     // Filter by consultantAccountId
-    if (filters.consultantAccountId) {
+    else if (filters.consultantAccountId) {
       queryBuilder.andWhere("consultantAccount.id = :consultantAccountId", {
         consultantAccountId: filters.consultantAccountId,
       });
@@ -830,7 +842,7 @@ class BookingService extends BaseService<Booking> {
     const masterConfig = await retrieveMasterConfig();
     await queryRunner.connect();
     await queryRunner.startTransaction();
-    let createdBooking;
+    let createdBooking: Booking;
     try {
       // const bookings = await repository.find({
       //   where: { account: { id: loginUser } },
@@ -932,6 +944,9 @@ class BookingService extends BaseService<Booking> {
             "slot",
           ],
         });
+        const masterConfig = await retrieveMasterConfig();
+        createdBooking.commissionFee =
+          createdBooking.totalPrice * masterConfig.commissionFee;
 
         let statusTrackings;
         let transaction;
@@ -952,6 +967,7 @@ class BookingService extends BaseService<Booking> {
             await queryRunner.manager.save(Wallet, wallet);
 
             createdBooking.status = BookingStatusEnum.WAIT_FOR_CONFIRMATION;
+
             await queryRunner.manager.update(
               Booking,
               { id: createdBooking.id },

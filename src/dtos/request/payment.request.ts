@@ -8,6 +8,8 @@ export const CreatePaymentUrlSchema = z.object({
       .string()
       .max(255, 'Description cannot exceed 255 characters')
       .optional(),
+    returnUrl: z.string().optional(),
+    cancelUrl: z.string().optional(),
   }),
 });
 
@@ -16,4 +18,8 @@ export class CreatePaymentUrlRequest {
   amount: number;
   @Expose()
   description: string;
+  @Expose()
+  returnUrl: string;
+  @Expose()
+  cancelUrl: string;
 }

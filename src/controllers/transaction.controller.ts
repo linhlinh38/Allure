@@ -12,6 +12,25 @@ import { transactionService } from '../services/transaction.service';
 import { Paging } from '../dtos/other/paging.dto';
 
 export default class TransactionController {
+  static async generalRevenueOrderBooking(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get general revenue successfully',
+        await transactionService.generalRevenueOrderBooking(
+          req.body.startDate,
+          req.body.endDate,
+          req.loginUser
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async consultantRevenue(
     req: AuthRequest,
     res: Response,

@@ -236,16 +236,7 @@ class OrderService extends BaseService<Order> {
     } else if (account.role.role == RoleEnum.MANAGER) {
       const brand = account.brands[0];
       queryBuilder.where('brand.id = :brandId', { brandId: brand.id });
-      queryBuilder.andWhere('orderRequest.type IN (:...types)', {
-        types: [OrderRequestTypeEnum.CANCEL, OrderRequestTypeEnum.REFUND],
-      });
     } else if (account.role.role == RoleEnum.ADMIN) {
-      queryBuilder.andWhere('orderRequest.type IN (:...types)', {
-        types: [
-          OrderRequestTypeEnum.COMPLAINT,
-          OrderRequestTypeEnum.REJECT_REFUND,
-        ],
-      });
     } else {
       throw new BadRequestError(
         'You do not have permission to access this resource'
@@ -1878,7 +1869,7 @@ class OrderService extends BaseService<Order> {
         voucherService.applyPlatformVoucher(parentOrder);
       }
 
-      voucherService.calculateOrderPrice(parentOrder);
+      await voucherService.calculateOrderPrice(parentOrder);
 
       await queryRunner.manager.save(Order, parentOrder);
       await queryRunner.commitTransaction();
@@ -2024,7 +2015,7 @@ class OrderService extends BaseService<Order> {
 
       this.separatePreOrders(parentOrder);
 
-      voucherService.calculateOrderPrice(parentOrder);
+      await voucherService.calculateOrderPrice(parentOrder);
 
       //check its payment method and corresponding logic for each method
       const statusTrackings =
@@ -2094,6 +2085,8 @@ class OrderService extends BaseService<Order> {
     orderDetail.unitPriceBeforeDiscount = productClassification.price;
     orderDetail.unitPriceAfterDiscount = productClassification.price;
     orderDetail.classificationName = productClassification.title;
+    orderDetail.platformVoucherDiscount = 0;
+    orderDetail.shopVoucherDiscount = 0;
     orderDetail.productName =
       productClassification.product?.name ??
       productClassification.preOrderProduct?.product?.name ??
