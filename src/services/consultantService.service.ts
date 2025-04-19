@@ -5,9 +5,10 @@ import { Question } from "../entities/question.entity";
 import { ServiceBookingForm } from "../entities/serviceBookingForm.entity";
 import { ServiceImage } from "../entities/serviceImage.entity";
 import { NotFoundError } from "../errors/error";
-import { ServiceTypeEnum, StatusEnum } from "../utils/enum";
+import { RoleEnum, ServiceTypeEnum, StatusEnum } from "../utils/enum";
 import { BaseService } from "./base.service";
 import { systemServiceService } from "./systemService.service";
+import { accountRepository } from "../repositories/account.repository";
 
 const repository = AppDataSource.getRepository(ConsultantService);
 class ConsultantServiceService extends BaseService<ConsultantService> {
