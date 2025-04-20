@@ -46,7 +46,14 @@ export async function loginGoogle(code) {
 
   const account = await repository.findOneBy({ email: userData.email });
   if (!account) {
-    throw new BadRequestError("Email not exist");
+    const newAccount = new Account();
+    newAccount.email = userData.email;
+    newAccount.username = userData.email.split("@")[0];
+    newAccount.firstName = userData?.given_name;
+    newAccount.lastName = userData?.family_name;
+    newAccount.avatar = userData?.picture;
+    newAccount.isEmailVerify = true;
+    await repository.save(newAccount);
   }
   const payload = { accountId: account.id.toString() };
 
