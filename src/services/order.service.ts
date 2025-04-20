@@ -1983,8 +1983,8 @@ class OrderService extends BaseService<Order> {
               where: { id: item.productClassificationId },
               relations: {
                 product: true,
-                productDiscount: true,
-                preOrderProduct: true,
+                productDiscount: { product: true },
+                preOrderProduct: { product: true },
               },
             });
           if (!productClassification)
