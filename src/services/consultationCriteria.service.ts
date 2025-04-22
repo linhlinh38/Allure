@@ -91,7 +91,7 @@ class ConsultationCriteriaService extends BaseService<ConsultationCriteria> {
       );
 
       if (!consultationCriteria) {
-        throw new Error(`Consultation Criteria with id ${id} not found`);
+        throw new Error(`Consultation Criteria not found`);
       }
 
       const { consultationCriteriaSections, ...criteriaData } = data;
@@ -156,7 +156,7 @@ class ConsultationCriteriaService extends BaseService<ConsultationCriteria> {
       );
 
       if (!consultationCriteria) {
-        throw new Error(`Consultation Criteria with id ${id} not found`);
+        throw new Error(`Consultation Criteria not found`);
       }
 
       await consultationCriteriaRepository.update(id, { status });
