@@ -26,7 +26,7 @@ class QuestionService extends BaseService<Question> {
       });
 
       if (!question) {
-        throw new NotFoundError(`Question with id ${questionId} not found`);
+        throw new NotFoundError(`Question not found`);
       }
 
       const { serviceBookingForm, orderIndex } = question;

@@ -26,6 +26,7 @@ import { consultationResultRepository } from "../repositories/consultationResult
 import { productClassificationRepository } from "../repositories/productClassification.repository";
 import { bookingRepository } from "../repositories/booking.repository";
 import { reportRepository } from "../repositories/report.repository";
+import { accountRepository } from "../repositories/account.repository";
 const repository = AppDataSource.getRepository(Account);
 
 interface FilterOptions {
@@ -140,9 +141,20 @@ class AccountService extends BaseService<Account> {
     }));
   }
 
-  async filterAccounts(options: FilterOptions) {
+  async filterAccounts(options: FilterOptions, loginUser?: string) {
     const { username, email, role, brand, status, sortBy, order, limit, page } =
       options;
+
+    let account: any = null;
+    if (loginUser) {
+      account = await accountRepository.findOne({
+        where: { id: loginUser },
+        relations: {
+          role: true,
+          brands: true,
+        },
+      });
+    }
 
     const queryBuilder = this.repository
       .createQueryBuilder("account")
@@ -170,8 +182,16 @@ class AccountService extends BaseService<Account> {
     } else if (role) {
       queryBuilder.andWhere("role.role = :role", { role });
     }
-
-    if (brand) {
+    if (
+      account &&
+      (account.role.role == RoleEnum.MANAGER ||
+        account.role.role == RoleEnum.STAFF)
+    ) {
+      const brand = account.brands[0];
+      queryBuilder.andWhere("brand.id = :brandId", {
+        brandId: brand.id,
+      });
+    } else if (brand) {
       queryBuilder.andWhere("brand.name = :brand", { brand });
     }
 
