@@ -19,9 +19,9 @@ export async function addBookingToQueue(
 ) {
   const masterConfig = await retrieveMasterConfig();
   await cancelBookingQueue.add(
-    "checkBookingStatus",
+    'checkBookingStatus',
     { bookingId, currentStatus },
-    { delay } // Delay in milliseconds
+    { delay: Number(delay) } // Delay in milliseconds
   );
 }
 
