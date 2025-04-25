@@ -112,6 +112,26 @@ export const GetConsultantRevenueStatisticsSchema = z.object({
   }),
 });
 
+export const GetDailyBookingStatisticsSchema = z.object({
+  body: z.object({
+    startDate: z
+      .string()
+      .refine(
+        (value) => !isNaN(Date.parse(value)),
+        'Start date must be a valid date string'
+      )
+      .optional(),
+    endDate: z
+      .string()
+      .refine(
+        (value) => !isNaN(Date.parse(value)),
+        'End date must be a valid date string'
+      )
+      .optional(),
+    consultantId: z.string().uuid().optional(),
+  }),
+});
+
 export const GetDailyOrderStatisticsSchema = z.object({
   body: z.object({
     startDate: z
@@ -135,6 +155,18 @@ export const GetDailyOrderStatisticsSchema = z.object({
     brandId: z.string().uuid().optional(),
   }),
 });
+
+
+export class GetDailyBookingStatisticsRequest {
+  @Expose()
+  startDate: Date;
+
+  @Expose()
+  endDate: Date;
+
+  @Expose()
+  consultantId: string;
+}
 
 export class GetDailyOrderStatisticsRequest {
   @Expose()
