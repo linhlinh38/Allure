@@ -77,7 +77,7 @@ export default class ConsultantServiceController {
       };
       const consultantServices =
         await consultantServiceService.filterConsultantServices(
-          req.loginUser,
+          req?.loginUser,
           filter.price,
           filter.accountIds,
           filter.systemServiceId,
@@ -86,11 +86,11 @@ export default class ConsultantServiceController {
           filter.sortBy,
           filter.order as "ASC" | "DESC",
           filter.page,
-          filter.limit,
+          filter.limit
         );
       return createNormalResponse(
         res,
-        'Filter services success',
+        "Filter services success",
         consultantServices
       );
     } catch (err) {
