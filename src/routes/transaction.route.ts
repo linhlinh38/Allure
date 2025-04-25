@@ -14,6 +14,7 @@ const transactionRouter = express.Router();
 
 transactionRouter.use(authentication);
 
+transactionRouter.get('/', TransactionController.getAll);
 transactionRouter.post('/deposit', TransactionController.deposit);
 transactionRouter.post('/pay', validate(PaySchema), TransactionController.pay);
 
