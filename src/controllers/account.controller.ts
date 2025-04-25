@@ -54,7 +54,11 @@ async function getAccountBy(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-async function filterAccounts(req: Request, res: Response, next: NextFunction) {
+async function filterAccounts(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
   try {
     const {
       username,
@@ -82,7 +86,10 @@ async function filterAccounts(req: Request, res: Response, next: NextFunction) {
       limit: limit ? Number(limit) : 10,
     };
 
-    const accounts = await accountService.filterAccounts(filter);
+    const accounts = await accountService.filterAccounts(
+      filter,
+      req?.loginUser
+    );
     const responseData = accounts.items.map((acc) =>
       plainToClass(AccountResponse, acc)
     );

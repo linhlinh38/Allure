@@ -69,7 +69,11 @@ export default class ProductController {
     }
   }
 
-  static async filterProduct(req: Request, res: Response, next: NextFunction) {
+  static async filterProduct(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const {
         search,
@@ -137,7 +141,7 @@ export default class ProductController {
       return createNormalResponse(
         res,
         "Get products success",
-        await productService.filteredProducts(filter)
+        await productService.filteredProducts(filter, req?.loginUser)
       );
     } catch (err) {
       next(err);
