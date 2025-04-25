@@ -291,7 +291,11 @@ class BrandService extends BaseService<Brand> {
     return follows.flatMap((follow) => [follow.brand]);
   }
 
-  async filter(filterRequest: FilterBrandRequest, paging: Paging) {
+  async filter(
+    filterRequest: FilterBrandRequest,
+    paging: Paging,
+    loginUser: string
+  ) {
     const { name, reviewerId, statuses } = filterRequest;
     const { page, limit } = paging;
     const offset = (page - 1) * limit;
@@ -300,6 +304,23 @@ class BrandService extends BaseService<Brand> {
       .createQueryBuilder('brand')
       .leftJoinAndSelect('brand.documents', 'documents')
       .leftJoinAndSelect('brand.reviewer', 'reviewer');
+
+    if (loginUser) {
+      const account = await accountRepository.findOne({
+        where: {
+          id: loginUser,
+        },
+        relations: {
+          role: true,
+          brands: true,
+        },
+      });
+      if (account.role.role == RoleEnum.OPERATOR) {
+        queryBuilder.andWhere('reviewer.id = :loginUser', {
+          loginUser,
+        });
+      }
+    }
 
     // Apply filters
     if (name) {

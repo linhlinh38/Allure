@@ -179,13 +179,6 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
   }
 
   async filterPreOrderProducts(options: FilterOptions, loginUser: string) {
-    const account = await accountRepository.findOne({
-      where: { id: loginUser },
-      relations: {
-        role: true,
-        brands: true,
-      },
-    });
     const {
       startTime,
       endTime,
@@ -240,13 +233,21 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
         productIds,
       });
     }
-
-    if (
-      account.role.role == RoleEnum.MANAGER ||
-      account.role.role == RoleEnum.STAFF
-    ) {
-      const brand = account.brands[0];
-      queryBuilder.andWhere('brand.id = :brandId', { brandId: brand.id });
+    if (loginUser) {
+      const account = await accountRepository.findOne({
+        where: { id: loginUser },
+        relations: {
+          role: true,
+          brands: true,
+        },
+      });
+      if (
+        account.role.role == RoleEnum.MANAGER ||
+        account.role.role == RoleEnum.STAFF
+      ) {
+        const brand = account.brands[0];
+        queryBuilder.andWhere('brand.id = :brandId', { brandId: brand.id });
+      }
     } else if (brandId) {
       queryBuilder.andWhere('brand.id = :brandId', { brandId });
     }
@@ -293,7 +294,7 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
       existingProduct.status == ProductEnum.BANNED
     ) {
       throw new BadRequestError(
-        `Product invalid: Product ${existingProduct?.status ?? "not found"}`
+        `Product invalid: Product ${existingProduct?.status ?? 'not found'}`
       );
     }
 
