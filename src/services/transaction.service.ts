@@ -473,6 +473,9 @@ class TransactionService extends BaseService<Transaction> {
       } else if (payRequest.type == PayTypeEnum.BOOKING) {
         const booking = await bookingRepository.findOne({
           where: { id: payRequest.id },
+          relations: {
+            account: true,
+          },
         });
         if (!booking) throw new BadRequestError(`Booking not found`);
         if (booking.status != BookingStatusEnum.TO_PAY) {
