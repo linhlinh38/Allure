@@ -63,6 +63,7 @@ export const FilterTransactionSchema = z.object({
         'End date must be a valid date string'
       )
       .optional(),
+    accountId: z.string().uuid().optional(),
   }),
 });
 
@@ -200,6 +201,9 @@ export class FilterTransactionRequest {
 
   @Expose()
   endDate: Date;
+
+  @Expose()
+  accountId: string;
 }
 
 export class GetStatisticsRequest {
