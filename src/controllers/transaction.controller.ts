@@ -4,6 +4,7 @@ import { AuthRequest } from '../middleware/authentication';
 import { NextFunction, Response } from 'express';
 import {
   FilterTransactionRequest,
+  GetDailyBookingStatisticsRequest,
   GetDailyOrderStatisticsRequest,
   GetStatisticsRequest,
   PayRequest,
@@ -12,6 +13,31 @@ import { transactionService } from '../services/transaction.service';
 import { Paging } from '../dtos/other/paging.dto';
 
 export default class TransactionController {
+  static async getDailyBookingStatistics(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const getDailyBookingStatisticsRequest = plainToInstance(
+        GetDailyBookingStatisticsRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Get daily booking statistics successfully',
+        await transactionService.getDailyBookingStatistics(
+          getDailyBookingStatisticsRequest,
+          req.loginUser
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async generalRevenueOrderBooking(
     req: AuthRequest,
     res: Response,
