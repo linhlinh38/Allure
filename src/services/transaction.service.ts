@@ -691,7 +691,7 @@ class TransactionService extends BaseService<Transaction> {
     });
     const limit = paging.limit;
     const offset = (paging.page - 1) * paging.limit;
-    const { types, startDate, endDate } = filterTransactionRequest;
+    const { types, startDate, endDate, accountId } = filterTransactionRequest;
 
     const query = transactionRepository
       .createQueryBuilder('transaction')
@@ -722,6 +722,7 @@ class TransactionService extends BaseService<Transaction> {
         }
       );
     } else if (account.role.role == RoleEnum.ADMIN) {
+      query.where('buyer.id = :accountId', { accountId });
     } else
       throw new BadRequestError(
         'You dont have permission to access this resource'
