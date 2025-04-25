@@ -114,6 +114,17 @@ export default class TransactionController {
       next(err);
     }
   }
+  static async getAll(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get transactions successfully',
+        await transactionService.getAll(req.loginUser)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async deposit(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       return createNormalResponse(

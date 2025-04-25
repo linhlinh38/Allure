@@ -79,6 +79,35 @@ import { livestreamProductRepository } from '../repositories/livestreamProduct.r
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
+  async getChildren(loginUser: string) {
+    const query = repository.createQueryBuilder('order');
+    this.queryBuilderForOrder(query);
+    query.andWhere('order.parent_id is NOT NULL');
+    query.orderBy('order.createdAt', 'DESC');
+    const account = await accountRepository.findOne({
+      where: {
+        id: loginUser,
+      },
+      relations: {
+        role: true,
+        brands: true,
+      },
+    });
+    if (account.role.role == RoleEnum.CUSTOMER) {
+      query.where('order.account_id = :loginUser', { loginUser });
+    } else if (
+      account.role.role == RoleEnum.MANAGER ||
+      account.role.role == RoleEnum.STAFF
+    ) {
+      const brand = account.brands[0];
+      query.where('order.brand_id = :brandId', { brandId: brand.id });
+    } else if (account.role.role == RoleEnum.ADMIN) {
+    } else
+      throw new BadRequestError(
+        'You dont have permission to access this resource'
+      );
+    return await query.getMany();
+  }
   async updatePaymentMethod(orderId: string, paymentMethod: PaymentMethodEnum) {
     const order = await orderRepository.findOne({
       where: {

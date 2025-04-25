@@ -505,6 +505,51 @@ class TransactionService extends BaseService<Transaction> {
     };
   }
 
+  async getAll(loginUser: string) {
+    const account = await accountRepository.findOne({
+      where: {
+        id: loginUser,
+      },
+      relations: {
+        role: true,
+      },
+    });
+    const query = transactionRepository
+      .createQueryBuilder('transaction')
+      .leftJoinAndSelect('transaction.buyer', 'buyer')
+      .leftJoinAndSelect('transaction.brand', 'brand')
+      .leftJoinAndSelect('transaction.order', 'order')
+      .leftJoinAndSelect('transaction.consultant', 'consultant')
+      .orderBy('transaction.createdAt', 'DESC');
+    // orderService.queryBuilderForOrder(query);
+    if (account.role.role == RoleEnum.CUSTOMER) {
+      query.where('buyer.id = :loginUser', { loginUser });
+    } else if (
+      account.role.role == RoleEnum.MANAGER ||
+      account.role.role == RoleEnum.STAFF
+    ) {
+      const brand = account.brands[0];
+      query
+        .where('brand.id = :brandId', { brandId: brand.id })
+        .andWhere('transaction.type = :type', {
+          type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+        });
+    } else if (account.role.role == RoleEnum.CONSULTANT) {
+      query.where(
+        '(consultant.id = :loginUser AND transaction.type = :type) OR buyer.id = :loginUser',
+        {
+          loginUser,
+          type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+        }
+      );
+    } else if (account.role.role == RoleEnum.ADMIN) {
+    } else
+      throw new BadRequestError(
+        'You dont have permission to access this resource'
+      );
+    return await query.getMany();
+  }
+
   async filter(
     filterTransactionRequest: FilterTransactionRequest,
     loginUser: string,
