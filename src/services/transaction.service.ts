@@ -375,16 +375,16 @@ class TransactionService extends BaseService<Transaction> {
           })
           .getRawOne()
       )?.totalAmountFromDeposit || 0;
-    const balance =
-      (
-        await walletRepository.findOne({
-          where: { owner: { id: loginUser } },
-        })
-      )?.balance || 0;
+    const wallet = await walletRepository.findOne({
+      where: { owner: { id: loginUser } },
+    });
+    const balance = wallet?.balance || 0;
+    const availableBalance = wallet?.availableBalance || 0;
     return {
       totalAmountFromDeposit,
       totalAmountFromWithDrawal,
       balance,
+      availableBalance
     };
   }
   async pay(payRequest: PayRequest) {
