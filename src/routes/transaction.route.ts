@@ -6,6 +6,7 @@ import {
   FilterTransactionSchema,
   GetBrandRevenueStatisticsSchema,
   GetConsultantRevenueStatisticsSchema,
+  GetDailyBookingStatisticsSchema,
   GetDailyOrderStatisticsSchema,
   OrderStatisticsSchema,
   PaySchema,
@@ -46,6 +47,12 @@ transactionRouter.post(
   '/get-daily-order-statistics',
   validate(GetDailyOrderStatisticsSchema),
   TransactionController.getDailyOrderStatistics
+);
+
+transactionRouter.post(
+  '/get-daily-booking-statistics',
+  validate(GetDailyBookingStatisticsSchema),
+  TransactionController.getDailyBookingStatistics
 );
 
 transactionRouter.post(

@@ -10,12 +10,14 @@ import {
   ShippingStatusEnum,
   StatisticsTimeEnum,
   TransactionTypeEnum,
+  BookingTypeEnum,
 } from '../utils/enum';
 import { BaseService } from './base.service';
 import { Order } from '../entities/order.entity';
 import { GroupBuying } from '../entities/groupBuying.entity';
 import {
   FilterTransactionRequest,
+  GetDailyBookingStatisticsRequest,
   GetDailyOrderStatisticsRequest,
   GetStatisticsRequest,
   PayRequest,
@@ -38,6 +40,130 @@ import { orderDetailRepository } from '../repositories/orderDetail.repository';
 
 const repository = AppDataSource.getRepository(Transaction);
 class TransactionService extends BaseService<Transaction> {
+  async getDailyBookingStatistics(
+    getDailyBookingStatisticsRequest: GetDailyBookingStatisticsRequest,
+    loginUser: string
+  ) {
+    const account = await accountRepository.findOne({
+      where: { id: loginUser },
+      relations: { role: true },
+    });
+    if (
+      !getDailyBookingStatisticsRequest.startDate ||
+      !getDailyBookingStatisticsRequest.endDate
+    ) {
+      const today = new Date();
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(today.getMonth() - 1);
+      getDailyBookingStatisticsRequest.startDate = oneMonthAgo;
+      getDailyBookingStatisticsRequest.endDate = today;
+    } else {
+      const { startDate, endDate } = getDailyBookingStatisticsRequest;
+      getDailyBookingStatisticsRequest.startDate = new Date(startDate);
+      getDailyBookingStatisticsRequest.endDate = new Date(endDate);
+    }
+    const { startDate, endDate, consultantId } =
+      getDailyBookingStatisticsRequest;
+
+    const queryBuilder = bookingRepository
+      .createQueryBuilder('booking')
+      .innerJoin(
+        'booking.statusTrackings',
+        'statusTracking',
+        'statusTracking.status = :status AND statusTracking.createdAt BETWEEN :startDate AND :endDate',
+        { status: BookingStatusEnum.WAIT_FOR_CONFIRMATION, startDate, endDate }
+      )
+      .innerJoin('booking.consultantService', 'consultantService')
+      .where('booking.type = :type', { type: BookingTypeEnum.SERVICE });
+    if (account && account.role.role == RoleEnum.CONSULTANT) {
+      queryBuilder.andWhere('consultantService.account_id = :loginUser', {
+        loginUser,
+      });
+    } else if (consultantId) {
+      queryBuilder.andWhere('consultantService.account_id = :consultantId', {
+        consultantId,
+      });
+    }
+
+    const results = await queryBuilder
+      .select([
+        "DATE_TRUNC('day', statusTracking.createdAt) as date",
+        'COUNT(CASE WHEN booking.status = :refundedStatus THEN 1 END) as refundedCount',
+        'COUNT(CASE WHEN booking.status != :refundedStatus THEN 1 END) as bookedCount',
+        'SUM(CASE WHEN booking.status = :refundedStatus THEN booking.totalPrice ELSE 0 END) as refundedTotalPrice',
+        'SUM(CASE WHEN booking.status = :refundedStatus THEN booking.commissionFee ELSE 0 END) as refundedCommissionFee',
+        'SUM(CASE WHEN booking.status = :refundedStatus THEN booking.totalPrice - booking.commissionFee ELSE 0 END) as refundedActualRevenue',
+        'SUM(CASE WHEN booking.status != :refundedStatus THEN booking.totalPrice ELSE 0 END) as bookedTotalPrice',
+        'SUM(CASE WHEN booking.status != :refundedStatus THEN booking.commissionFee ELSE 0 END) as bookedCommissionFee',
+        'SUM(CASE WHEN booking.status != :refundedStatus THEN booking.totalPrice - booking.commissionFee ELSE 0 END) as bookedActualRevenue',
+      ])
+      .setParameter('refundedStatus', BookingStatusEnum.REFUNDED)
+      .groupBy("DATE_TRUNC('day', statusTracking.createdAt)")
+      .orderBy('date', 'DESC')
+      .getRawMany();
+
+    const dateRange = this.generateDateRange(startDate, endDate);
+
+    const dailyStatistics = dateRange.map((date) => {
+      const result = results.find(
+        (r) => r.date.toISOString().split('T')[0] === date
+      );
+      return {
+        date,
+        refunded: {
+          count: parseInt(result?.refundedcount || '0'),
+          totalPrice: parseFloat(result?.refundedtotalprice || '0'),
+          commissionFee: parseFloat(result?.refundedcommissionfee || '0'),
+          actualRevenue: parseFloat(result?.refundedactualrevenue || '0'),
+        },
+        booked: {
+          count: parseInt(result?.bookedcount || '0'),
+          totalPrice: parseFloat(result?.bookedtotalprice || '0'),
+          commissionFee: parseFloat(result?.bookedcommissionfee || '0'),
+          actualRevenue: parseFloat(result?.bookedactualrevenue || '0'),
+        },
+      };
+    });
+
+    const total = results.reduce(
+      (acc, curr) => {
+        acc.refunded.count += parseInt(curr.refundedcount || '0');
+        acc.refunded.totalPrice += parseFloat(curr.refundedtotalprice || '0');
+        acc.refunded.commissionFee += parseFloat(
+          curr.refundedcommissionfee || '0'
+        );
+        acc.refunded.actualRevenue += parseFloat(
+          curr.refundedactualrevenue || '0'
+        );
+        acc.booked.count += parseInt(curr.bookedcount || '0');
+        acc.booked.totalPrice += parseFloat(curr.bookedtotalprice || '0');
+        acc.booked.commissionFee += parseFloat(curr.bookedcommissionfee || '0');
+        acc.booked.actualRevenue += parseFloat(curr.bookedactualrevenue || '0');
+        return acc;
+      },
+      {
+        refunded: {
+          count: 0,
+          totalPrice: 0,
+          commissionFee: 0,
+          actualRevenue: 0,
+        },
+        booked: {
+          count: 0,
+          totalPrice: 0,
+          commissionFee: 0,
+          actualRevenue: 0,
+        },
+      }
+    );
+
+    return {
+      total,
+      items: dailyStatistics,
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
+    };
+  }
   async getOrderStatistics(brandId: string) {
     let cancelledOrders,
       refundedOrders,
@@ -1266,11 +1392,7 @@ class TransactionService extends BaseService<Transaction> {
         });
       }
     }
-    console.log('dcm');
-
     const results = await queryBuilder.getRawMany();
-    console.log('dcm 123');
-
     const dateRange = this.generateDateRange(startDate, endDate);
 
     const statistics = dateRange.map((date) => {
