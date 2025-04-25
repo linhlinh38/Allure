@@ -2099,6 +2099,9 @@ class OrderService extends BaseService<Order> {
       });
       order.orderDetails = remainingOrderDetails;
     });
+    parentOrder.children = parentOrder.children.filter(
+      (order) => order.orderDetails.length > 0
+    );
     parentOrder.children.push(...preOrders);
   }
 
