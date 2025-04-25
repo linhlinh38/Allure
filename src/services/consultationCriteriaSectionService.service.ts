@@ -25,7 +25,7 @@ class ConsultationCriteriaSectionService extends BaseService<ConsultationCriteri
       });
 
       if (!section) {
-        throw new NotFoundError(`Section with id ${sectionId} not found`);
+        throw new NotFoundError(`Section not found`);
       }
 
       const { consultationCriteria, orderIndex } = section;
