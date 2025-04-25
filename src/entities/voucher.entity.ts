@@ -99,7 +99,7 @@ export class Voucher extends BaseEntity {
   @ManyToMany(() => Product)
   @JoinTable({
     name: "voucher_apply_product",
-    joinColumn: { name: "account_id", referencedColumnName: "id" },
+    joinColumn: { name: "voucher_id", referencedColumnName: "id" },
     inverseJoinColumn: { name: "product_id", referencedColumnName: "id" },
   })
   applyProducts: Product[];

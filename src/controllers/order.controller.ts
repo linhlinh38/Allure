@@ -36,7 +36,7 @@ export default class OrderController {
         'Update payment method success',
         await orderService.updatePaymentMethod(
           req.params.orderId,
-          req.body.paymentMethod,
+          req.body.paymentMethod
         )
       );
     } catch (err) {
@@ -551,6 +551,15 @@ export default class OrderController {
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
       const orders = await orderService.getAllTotalOrders();
+      return createNormalResponse(res, 'Get all orders success', orders);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async getChildren(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const orders = await orderService.getChildren(req.loginUser);
       return createNormalResponse(res, 'Get all orders success', orders);
     } catch (err) {
       next(err);

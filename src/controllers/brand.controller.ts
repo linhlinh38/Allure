@@ -159,7 +159,7 @@ export default class BrandController {
     }
   }
 
-  static async filter(req: Request, res: Response, next: NextFunction) {
+  static async filter(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const filterRequest = plainToInstance(FilterBrandRequest, req.body, {
         excludeExtraneousValues: true,
@@ -171,7 +171,7 @@ export default class BrandController {
       return createNormalResponse(
         res,
         'Filter brands successfully',
-        await brandService.filter(filterRequest, paging)
+        await brandService.filter(filterRequest, paging, req.loginUser)
       );
     } catch (error) {
       next(error);

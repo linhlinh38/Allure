@@ -6,6 +6,7 @@ import {
   FilterTransactionSchema,
   GetBrandRevenueStatisticsSchema,
   GetConsultantRevenueStatisticsSchema,
+  GetDailyBookingStatisticsSchema,
   GetDailyOrderStatisticsSchema,
   OrderStatisticsSchema,
   PaySchema,
@@ -14,6 +15,7 @@ const transactionRouter = express.Router();
 
 transactionRouter.use(authentication);
 
+transactionRouter.get('/', TransactionController.getAll);
 transactionRouter.post('/deposit', TransactionController.deposit);
 transactionRouter.post('/pay', validate(PaySchema), TransactionController.pay);
 
@@ -45,6 +47,12 @@ transactionRouter.post(
   '/get-daily-order-statistics',
   validate(GetDailyOrderStatisticsSchema),
   TransactionController.getDailyOrderStatistics
+);
+
+transactionRouter.post(
+  '/get-daily-booking-statistics',
+  validate(GetDailyBookingStatisticsSchema),
+  TransactionController.getDailyBookingStatistics
 );
 
 transactionRouter.post(
