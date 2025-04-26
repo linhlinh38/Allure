@@ -723,7 +723,6 @@ class TransactionService extends BaseService<Transaction> {
         }
       );
     } else if (account.role.role == RoleEnum.ADMIN) {
-      query.where('buyer.id = :accountId', { accountId });
     } else
       throw new BadRequestError(
         'You dont have permission to access this resource'
