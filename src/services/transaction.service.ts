@@ -1016,12 +1016,14 @@ class TransactionService extends BaseService<Transaction> {
 
   createTransactionFromOrderGroupBuying(
     order: Order,
-    groupBuying: GroupBuying
+    groupBuying: GroupBuying,
+    balance?: number
   ) {
     const transaction = new Transaction();
     transaction.order = order;
     transaction.buyer = order.account;
     transaction.amount = order.totalPrice;
+    transaction.balanceAfterTransaction = balance;
     transaction.brand = groupBuying.groupProduct.brand;
     transaction.paymentMethod = PaymentMethodEnum.WALLET;
     transaction.type = TransactionTypeEnum.ORDER_PURCHASE;

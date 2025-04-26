@@ -734,7 +734,8 @@ class GroupBuyingService extends BaseService<GroupBuying> {
               const transaction =
                 transactionService.createTransactionFromOrderGroupBuying(
                   order,
-                  groupBuying
+                  groupBuying,
+                  wallet.balance
                 );
               await queryRunner.manager.save(Transaction, transaction);
             } else {
