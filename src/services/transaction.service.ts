@@ -687,6 +687,7 @@ class TransactionService extends BaseService<Transaction> {
       },
       relations: {
         role: true,
+        brands: true
       },
     });
     const limit = paging.limit;
