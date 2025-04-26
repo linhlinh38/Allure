@@ -707,6 +707,9 @@ class TransactionService extends BaseService<Transaction> {
     orderService.queryBuilderForOrder(query);
     if (account.role.role == RoleEnum.CUSTOMER) {
       query.where('buyer.id = :loginUser', { loginUser });
+      query.andWhere('transaction.type != :type', {
+          type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+        });
     } else if (
       account.role.role == RoleEnum.MANAGER ||
       account.role.role == RoleEnum.STAFF
