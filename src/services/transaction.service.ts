@@ -716,10 +716,17 @@ class TransactionService extends BaseService<Transaction> {
     ) {
       const brand = account.brands[0];
       query
-        .where('brand.id = :brandId', { brandId: brand.id })
-        .andWhere('transaction.type = :type', {
-          type: TransactionTypeEnum.TRANSFER_TO_WALLET,
-        });
+        .where(
+          '((brand.id = :brandId AND transaction.type = :type) OR (buyer.id = :loginUser AND transaction.type != :type))',
+          {
+            brandId: brand.id,
+            type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+            loginUser
+          }
+        )
+        // .andWhere('transaction.type = :type', {
+        //   type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+        // });
     } else if (account.role.role == RoleEnum.CONSULTANT) {
       query.where(
         '(consultant.id = :loginUser AND transaction.type = :type) OR buyer.id = :loginUser',
