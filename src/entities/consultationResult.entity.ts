@@ -28,6 +28,7 @@ export class ConsultationResult extends BaseEntity {
   @Column({ type: "jsonb", nullable: true })
   suggestedProductClassifications: {
     productClassificationId: string;
+    productid: string;
     name: string;
   }[];
 }

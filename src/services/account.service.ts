@@ -27,6 +27,9 @@ import { productClassificationRepository } from "../repositories/productClassifi
 import { bookingRepository } from "../repositories/booking.repository";
 import { reportRepository } from "../repositories/report.repository";
 import { accountRepository } from "../repositories/account.repository";
+import { brandRepository } from "../repositories/brand.repository";
+import { log } from "console";
+import { ProductClassification } from "../entities/productClassification.entity";
 const repository = AppDataSource.getRepository(Account);
 
 interface FilterOptions {
@@ -606,42 +609,42 @@ class AccountService extends BaseService<Account> {
     if (!consultant) {
       throw new Error("Consultant not found");
     }
-    const monthlyData = await bookingRepository
-      .createQueryBuilder("booking")
-      .select("to_char(date(booking.createdAt), 'YYYY-MM')", "month")
-      .addSelect("COUNT(booking.id)", "totalBookings")
-      .addSelect("SUM(booking.totalPrice)", "totalRevenue")
-      .leftJoin("booking.consultantService", "consultantService")
-      .leftJoin("consultantService.account", "account")
-      .where("account.id = :consultantId", { consultantId })
-      .andWhere("booking.status = :status", {
-        status: BookingStatusEnum.COMPLETED,
-      })
-      .groupBy("to_char(date(booking.createdAt), 'YYYY-MM')")
-      .orderBy("month", "ASC")
-      .getRawMany();
+    // const monthlyData = await bookingRepository
+    //   .createQueryBuilder("booking")
+    //   .select("to_char(date(booking.createdAt), 'YYYY-MM')", "month")
+    //   .addSelect("COUNT(booking.id)", "totalBookings")
+    //   .addSelect("SUM(booking.totalPrice)", "totalRevenue")
+    //   .leftJoin("booking.consultantService", "consultantService")
+    //   .leftJoin("consultantService.account", "account")
+    //   .where("account.id = :consultantId", { consultantId })
+    //   .andWhere("booking.status = :status", {
+    //     status: BookingStatusEnum.COMPLETED,
+    //   })
+    //   .groupBy("to_char(date(booking.createdAt), 'YYYY-MM')")
+    //   .orderBy("month", "ASC")
+    //   .getRawMany();
 
-    // Query to calculate total bookings grouped by service in each month
-    const serviceMonthlyData = await bookingRepository
-      .createQueryBuilder("booking")
-      .leftJoinAndSelect("booking.consultantService", "consultantService")
-      .leftJoinAndSelect("consultantService.account", "account")
-      .leftJoinAndSelect("consultantService.systemService", "systemService")
-      .select("to_char(date(booking.createdAt), 'YYYY-MM')", "month")
-      .addSelect("consultantService.id", "serviceId")
-      .addSelect("systemService.name", "serviceName")
-      .addSelect("COUNT(booking.id)", "totalBookings")
-      .addSelect("SUM(booking.totalPrice)", "totalRevenue")
-      .where("account.id = :consultantId", { consultantId })
-      .andWhere("booking.status = :status", {
-        status: BookingStatusEnum.COMPLETED,
-      })
-      .groupBy("to_char(date(booking.createdAt), 'YYYY-MM')")
-      .addGroupBy("consultantService.id")
-      .addGroupBy("systemService.name")
-      .orderBy("month", "ASC")
-      .addOrderBy("systemService.name", "ASC")
-      .getRawMany();
+    // // Query to calculate total bookings grouped by service in each month
+    // const serviceMonthlyData = await bookingRepository
+    //   .createQueryBuilder("booking")
+    //   .leftJoinAndSelect("booking.consultantService", "consultantService")
+    //   .leftJoinAndSelect("consultantService.account", "account")
+    //   .leftJoinAndSelect("consultantService.systemService", "systemService")
+    //   .select("to_char(date(booking.createdAt), 'YYYY-MM')", "month")
+    //   .addSelect("consultantService.id", "serviceId")
+    //   .addSelect("systemService.name", "serviceName")
+    //   .addSelect("COUNT(booking.id)", "totalBookings")
+    //   .addSelect("SUM(booking.totalPrice)", "totalRevenue")
+    //   .where("account.id = :consultantId", { consultantId })
+    //   .andWhere("booking.status = :status", {
+    //     status: BookingStatusEnum.COMPLETED,
+    //   })
+    //   .groupBy("to_char(date(booking.createdAt), 'YYYY-MM')")
+    //   .addGroupBy("consultantService.id")
+    //   .addGroupBy("systemService.name")
+    //   .orderBy("month", "ASC")
+    //   .addOrderBy("systemService.name", "ASC")
+    //   .getRawMany();
     const consultationResults = await consultationResultRepository.find({
       where: {
         booking: { consultantService: { account: { id: consultantId } } },
@@ -659,17 +662,23 @@ class AccountService extends BaseService<Account> {
     });
 
     const brandCounts: Record<string, number> = {};
-    const totalSuggestions = productClassifications.length;
+    const totalSuggestions = productClassificationIds.length;
 
     productClassifications.forEach((classification) => {
       const brandId = classification.product.brand.id;
       brandCounts[brandId] = (brandCounts[brandId] || 0) + 1;
     });
 
-    const brandPercentages = Object.entries(brandCounts).map(
-      ([brandId, count]) => ({
-        brandId,
-        percentage: (count / totalSuggestions) * 100,
+    const brandPercentages = await Promise.all(
+      Object.entries(brandCounts).map(async ([brandId, count]) => {
+        const brand = await brandRepository.findOneBy({ id: brandId });
+
+        return {
+          brandId,
+          brandName: brand?.name || "Unknown",
+          brandLogo: brand?.logo || null,
+          percentage: (count / totalSuggestions) * 100,
+        };
       })
     );
 
@@ -688,9 +697,56 @@ class AccountService extends BaseService<Account> {
       },
       brandRecommendations: brandPercentages,
       totalProductSuggestions: totalSuggestions,
-      productSuggestList: productClassifications,
-      monthlyData,
-      serviceMonthlyData,
+      // productSuggestList: productClassifications,
+      // monthlyData,
+      // serviceMonthlyData,
+    };
+  }
+
+  async filterSuggestedProductsByConsultantAndBrand(
+    consultantId: string,
+    brandId: string,
+    page: number,
+    limit: number
+  ): Promise<{
+    items: ProductClassification[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    // Fetch consultation results for the consultant
+    const consultationResults = await consultationResultRepository.find({
+      where: {
+        booking: { consultantService: { account: { id: consultantId } } },
+      },
+      select: ["suggestedProductClassifications"],
+    });
+
+    // Extract product classification IDs from consultation results
+    const productClassificationIds = consultationResults
+      .flatMap((result) => result.suggestedProductClassifications)
+      .map((item) => item.productClassificationId);
+
+    const queryBuilder = productClassificationRepository
+      .createQueryBuilder("productClassification")
+      .leftJoinAndSelect("productClassification.product", "product")
+      .leftJoinAndSelect("product.brand", "brand")
+      .where("productClassification.id IN (:...ids)", {
+        ids: productClassificationIds,
+      })
+      .andWhere("brand.id = :brandId", { brandId });
+
+    // Pagination
+    queryBuilder.skip((page - 1) * limit).take(limit);
+
+    // Execute query and get total count
+    const [items, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      items,
+      total,
+      page,
+      limit,
     };
   }
 
