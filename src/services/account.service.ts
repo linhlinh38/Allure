@@ -121,7 +121,7 @@ class AccountService extends BaseService<Account> {
   }
 
   async getBy(value: any, option: string) {
-    const accounts = repository.find({
+    const accounts = await repository.find({
       where: {
         [option]: value,
       },
@@ -134,8 +134,52 @@ class AccountService extends BaseService<Account> {
         "files",
       ],
     });
+    if(accounts.length === 1 && accounts[0].role.role === RoleEnum.CONSULTANT) {
+      const account = accounts[0];
+      const certificates = account.files
+        ?.filter((file) => file.type === FileEnum.CERTIFICATE)
+        .map(({ id, name, fileUrl, type, status }) => ({
+          id,
+          name,
+          fileUrl,
+          type,
+          status,
+        }));
 
-    return (await accounts).map((account) => ({
+      const thumbnailImageList = account.files
+        ?.filter((file) => file.type === FileEnum.CONSULTANT_THUMBNAIL)
+        .map(({ id, name, fileUrl, type, status }) => ({
+          id,
+          name,
+          fileUrl,
+          type,
+          status,
+        }));
+
+      const otherFiles = account.files
+        ?.filter(
+          (file) =>
+            file.type !== FileEnum.CERTIFICATE &&
+            file.type !== FileEnum.CONSULTANT_THUMBNAIL
+        )
+        .map(({ id, name, fileUrl, type, status }) => ({
+          id,
+          name,
+          fileUrl,
+          type,
+          status,
+        }));
+
+      return [{
+        ...account,
+        role: account.role.role,
+        certificates: certificates?.length > 0 ? certificates : undefined,
+        thumbnailImageList:
+          thumbnailImageList?.length > 0 ? thumbnailImageList : undefined,
+        files: otherFiles?.length > 0 ? otherFiles : undefined,
+      }];
+    }
+    return  accounts.map((account) => ({
       ...account,
       role: account.role ? account.role.role : null,
     }));
