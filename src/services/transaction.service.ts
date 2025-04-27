@@ -1,4 +1,4 @@
-import { QueryRunner } from 'typeorm';
+import { QueryRunner, SelectQueryBuilder } from 'typeorm';
 import { AppDataSource } from '../dataSource';
 import { Transaction } from '../entities/transaction.entity';
 import {
@@ -384,7 +384,7 @@ class TransactionService extends BaseService<Transaction> {
       totalAmountFromDeposit,
       totalAmountFromWithDrawal,
       balance,
-      availableBalance
+      availableBalance,
     };
   }
   async pay(payRequest: PayRequest) {
@@ -639,7 +639,7 @@ class TransactionService extends BaseService<Transaction> {
       relations: {
         role: true,
       },
-    });
+    });    
     const query = transactionRepository
       .createQueryBuilder('transaction')
       .leftJoinAndSelect('transaction.buyer', 'buyer')
@@ -687,7 +687,7 @@ class TransactionService extends BaseService<Transaction> {
       },
       relations: {
         role: true,
-        brands: true
+        brands: true,
       },
     });
     const limit = paging.limit;
@@ -702,41 +702,23 @@ class TransactionService extends BaseService<Transaction> {
       .leftJoinAndSelect('transaction.consultant', 'consultant')
       .orderBy('transaction.createdAt', 'DESC');
     orderService.queryBuilderForOrder(query);
-    if (account.role.role == RoleEnum.CUSTOMER) {
-      query.where('buyer.id = :loginUser', { loginUser });
-      query.andWhere('transaction.type != :type', {
-          type: TransactionTypeEnum.TRANSFER_TO_WALLET,
-        });
-    } else if (
-      account.role.role == RoleEnum.MANAGER ||
-      account.role.role == RoleEnum.STAFF
-    ) {
-      const brand = account.brands[0];
-      query
-        .where(
-          '((brand.id = :brandId AND transaction.type = :type) OR (buyer.id = :loginUser AND transaction.type != :type))',
-          {
-            brandId: brand.id,
-            type: TransactionTypeEnum.TRANSFER_TO_WALLET,
-            loginUser
-          }
-        )
-        // .andWhere('transaction.type = :type', {
-        //   type: TransactionTypeEnum.TRANSFER_TO_WALLET,
-        // });
-    } else if (account.role.role == RoleEnum.CONSULTANT) {
-      query.where(
-        '(consultant.id = :loginUser AND transaction.type = :type) OR buyer.id = :loginUser',
-        {
-          loginUser,
-          type: TransactionTypeEnum.TRANSFER_TO_WALLET,
-        }
-      );
-    } else if (account.role.role == RoleEnum.ADMIN) {
-    } else
-      throw new BadRequestError(
-        'You dont have permission to access this resource'
-      );
+    this.queryTransactionForEachRole(account, query);
+    if (account.role.role == RoleEnum.ADMIN) {
+      const filterAccount = await accountRepository.findOne({
+        where: {
+          id: accountId,
+        },
+        relations: {
+          role: true,
+          brands: true,
+        },
+      });
+      if (!filterAccount) throw new BadRequestError('Account not found');
+      if (filterAccount.role.role == RoleEnum.ADMIN) {
+        throw new BadRequestError('Can not filter admin');
+      }
+      this.queryTransactionForEachRole(filterAccount, query);
+    }
     if (types && types.length > 0)
       query.andWhere('transaction.type IN (:...types)', { types });
     if (startDate && endDate)
@@ -756,6 +738,40 @@ class TransactionService extends BaseService<Transaction> {
       totalPages,
       items,
     };
+  }
+
+  queryTransactionForEachRole(
+    account: Account,
+    query: SelectQueryBuilder<Transaction>
+  ) {
+    if (account.role.role == RoleEnum.CUSTOMER) {
+      query.where('buyer.id = :id', { id: account.id });
+      query.andWhere('transaction.type != :type', {
+        type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+      });
+    } else if (
+      account.role.role == RoleEnum.MANAGER ||
+      account.role.role == RoleEnum.STAFF
+    ) {
+      const brand = account.brands[0];
+      query.where(
+        '((brand.id = :brandId AND transaction.type = :type) OR (buyer.id = :id AND transaction.type != :type))',
+        {
+          brandId: brand.id,
+          type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+          id: account.id,
+        }
+      );
+    } else if (account.role.role == RoleEnum.CONSULTANT) {
+      query.where(
+        '(consultant.id = :id AND transaction.type = :type) OR buyer.id = :id',
+        {
+          id: account.id,
+          type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+        }
+      );
+    }
+    return query;
   }
 
   getTransactionsQueryForConsultant(
