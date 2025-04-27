@@ -565,42 +565,42 @@ class AccountService extends BaseService<Account> {
     if (!consultant) {
       throw new Error("Consultant not found");
     }
-    const monthlyData = await bookingRepository
-      .createQueryBuilder("booking")
-      .select("to_char(date(booking.createdAt), 'YYYY-MM')", "month")
-      .addSelect("COUNT(booking.id)", "totalBookings")
-      .addSelect("SUM(booking.totalPrice)", "totalRevenue")
-      .leftJoin("booking.consultantService", "consultantService")
-      .leftJoin("consultantService.account", "account")
-      .where("account.id = :consultantId", { consultantId })
-      .andWhere("booking.status = :status", {
-        status: BookingStatusEnum.COMPLETED,
-      })
-      .groupBy("to_char(date(booking.createdAt), 'YYYY-MM')")
-      .orderBy("month", "ASC")
-      .getRawMany();
+    // const monthlyData = await bookingRepository
+    //   .createQueryBuilder("booking")
+    //   .select("to_char(date(booking.createdAt), 'YYYY-MM')", "month")
+    //   .addSelect("COUNT(booking.id)", "totalBookings")
+    //   .addSelect("SUM(booking.totalPrice)", "totalRevenue")
+    //   .leftJoin("booking.consultantService", "consultantService")
+    //   .leftJoin("consultantService.account", "account")
+    //   .where("account.id = :consultantId", { consultantId })
+    //   .andWhere("booking.status = :status", {
+    //     status: BookingStatusEnum.COMPLETED,
+    //   })
+    //   .groupBy("to_char(date(booking.createdAt), 'YYYY-MM')")
+    //   .orderBy("month", "ASC")
+    //   .getRawMany();
 
-    // Query to calculate total bookings grouped by service in each month
-    const serviceMonthlyData = await bookingRepository
-      .createQueryBuilder("booking")
-      .leftJoinAndSelect("booking.consultantService", "consultantService")
-      .leftJoinAndSelect("consultantService.account", "account")
-      .leftJoinAndSelect("consultantService.systemService", "systemService")
-      .select("to_char(date(booking.createdAt), 'YYYY-MM')", "month")
-      .addSelect("consultantService.id", "serviceId")
-      .addSelect("systemService.name", "serviceName")
-      .addSelect("COUNT(booking.id)", "totalBookings")
-      .addSelect("SUM(booking.totalPrice)", "totalRevenue")
-      .where("account.id = :consultantId", { consultantId })
-      .andWhere("booking.status = :status", {
-        status: BookingStatusEnum.COMPLETED,
-      })
-      .groupBy("to_char(date(booking.createdAt), 'YYYY-MM')")
-      .addGroupBy("consultantService.id")
-      .addGroupBy("systemService.name")
-      .orderBy("month", "ASC")
-      .addOrderBy("systemService.name", "ASC")
-      .getRawMany();
+    // // Query to calculate total bookings grouped by service in each month
+    // const serviceMonthlyData = await bookingRepository
+    //   .createQueryBuilder("booking")
+    //   .leftJoinAndSelect("booking.consultantService", "consultantService")
+    //   .leftJoinAndSelect("consultantService.account", "account")
+    //   .leftJoinAndSelect("consultantService.systemService", "systemService")
+    //   .select("to_char(date(booking.createdAt), 'YYYY-MM')", "month")
+    //   .addSelect("consultantService.id", "serviceId")
+    //   .addSelect("systemService.name", "serviceName")
+    //   .addSelect("COUNT(booking.id)", "totalBookings")
+    //   .addSelect("SUM(booking.totalPrice)", "totalRevenue")
+    //   .where("account.id = :consultantId", { consultantId })
+    //   .andWhere("booking.status = :status", {
+    //     status: BookingStatusEnum.COMPLETED,
+    //   })
+    //   .groupBy("to_char(date(booking.createdAt), 'YYYY-MM')")
+    //   .addGroupBy("consultantService.id")
+    //   .addGroupBy("systemService.name")
+    //   .orderBy("month", "ASC")
+    //   .addOrderBy("systemService.name", "ASC")
+    //   .getRawMany();
     const consultationResults = await consultationResultRepository.find({
       where: {
         booking: { consultantService: { account: { id: consultantId } } },
@@ -618,7 +618,7 @@ class AccountService extends BaseService<Account> {
     });
 
     const brandCounts: Record<string, number> = {};
-    const totalSuggestions = productClassifications.length;
+    const totalSuggestions = productClassificationIds.length;
 
     productClassifications.forEach((classification) => {
       const brandId = classification.product.brand.id;
