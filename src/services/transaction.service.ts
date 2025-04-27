@@ -704,20 +704,22 @@ class TransactionService extends BaseService<Transaction> {
     orderService.queryBuilderForOrder(query);
     this.queryTransactionForEachRole(account, query);
     if (account.role.role == RoleEnum.ADMIN) {
-      const filterAccount = await accountRepository.findOne({
-        where: {
-          id: accountId,
-        },
-        relations: {
-          role: true,
-          brands: true,
-        },
-      });
-      if (!filterAccount) throw new BadRequestError('Account not found');
-      if (filterAccount.role.role == RoleEnum.ADMIN) {
-        throw new BadRequestError('Can not filter admin');
+      if(accountId) {
+        const filterAccount = await accountRepository.findOne({
+          where: {
+            id: accountId,
+          },
+          relations: {
+            role: true,
+            brands: true,
+          },
+        });
+        if (!filterAccount) throw new BadRequestError('Account not found');
+        if (filterAccount.role.role == RoleEnum.ADMIN) {
+          throw new BadRequestError('Can not filter admin');
+        }
+        this.queryTransactionForEachRole(filterAccount, query);
       }
-      this.queryTransactionForEachRole(filterAccount, query);
     }
     if (types && types.length > 0)
       query.andWhere('transaction.type IN (:...types)', { types });
