@@ -15,6 +15,7 @@ import {
   UpdateOrderStatusSchema,
   OrderRequestFilterSchema,
   UpdatePaymentMethodSchema,
+  GetQuantitySoldSchema,
 } from '../dtos/request/order.request';
 import validate from '../utils/validate';
 
@@ -146,5 +147,10 @@ orderRouter.post(
   '/update-payment-method/:orderId',
   validate(UpdatePaymentMethodSchema),
   OrderController.updatePaymentMethod
+);
+orderRouter.post(
+  '/get-quantity-sold',
+  validate(GetQuantitySoldSchema),
+  OrderController.getQuantitySold
 );
 export default orderRouter;

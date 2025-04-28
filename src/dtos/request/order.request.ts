@@ -100,6 +100,21 @@ export const UpdatePaymentMethodSchema = z.object({
   }),
 });
 
+export const GetQuantitySoldSchema = z.object({
+  body: z.object({
+    eventId: z.enum([
+      PaymentMethodEnum.WALLET,
+      PaymentMethodEnum.BANK_TRANSFER,
+    ]),
+    type: z.enum([
+      OrderEnum.FLASH_SALE,
+      OrderEnum.PRE_ORDER,
+      OrderEnum.GROUP_BUYING,
+      OrderEnum.LIVE_STREAM,
+    ]),
+  }),
+});
+
 export const CancelOrderStatusSchema = z.object({
   body: z.object({
     status: z.nativeEnum(RequestStatusEnum).optional(),
@@ -150,6 +165,14 @@ export const OrderFilterRequestSchema = z.object({
     productIds: z.array(z.string()).optional(),
   }),
 });
+
+export class GetQuantitySoldRequest {
+  @Expose()
+  eventId: string;
+
+  @Expose()
+  type: OrderEnum;
+}
 
 export class OrderFilterRequest {
   @Expose()

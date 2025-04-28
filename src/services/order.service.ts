@@ -24,6 +24,7 @@ import {
   GetMyRequestsRequest,
   OrderFilterRequest,
   OrderRequestFilterRequest,
+  GetQuantitySoldRequest,
 } from '../dtos/request/order.request';
 import { voucherRepository } from '../repositories/voucher.repository';
 import { productClassificationRepository } from '../repositories/productClassification.repository';
@@ -79,6 +80,11 @@ import { livestreamProductRepository } from '../repositories/livestreamProduct.r
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
+  async getQuantitySold(getQuantitySoldRequest: GetQuantitySoldRequest)
+  {
+    const { eventId,   } = getQuantitySoldRequest;
+  }
+
   async getChildren(loginUser: string) {
     const query = repository.createQueryBuilder('order');
     this.queryBuilderForOrder(query);
