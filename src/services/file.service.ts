@@ -10,10 +10,17 @@ export default class FileService {
     }
 
     const uploadPromises = files.map((file: Express.Multer.File) => {
-      const blob = bucket.file(Date.now() + path.extname(file.originalname));
+      const uniqueName = `${Date.now()}${path.extname(
+        file.originalname
+      )}`;
+      const blob = bucket.file(uniqueName);
+
       const blobStream = blob.createWriteStream({
+        resumable: true, 
+        gzip: true,
         metadata: {
           contentType: file.mimetype,
+          cacheControl: 'public, max-age=31536000', // ✅ Cache for 1 year
         },
       });
 
@@ -23,7 +30,8 @@ export default class FileService {
           const publicUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
           resolve(publicUrl);
         });
-        blobStream.end(file.buffer);
+
+        blobStream.end(file.buffer); // Send buffer
       });
     });
 
