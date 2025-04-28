@@ -104,6 +104,35 @@ async function filterAccounts(
   }
 }
 
+async function filterSuggestedProductsByConsultantAndBrand(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const { consultantId, brandId, limit, page } = req.query;
+
+    const filter = {
+      consultantId: consultantId?.toString(),
+      brandId: brandId?.toString(),
+      page: page ? Number(page) : 1,
+      limit: limit ? Number(limit) : 10,
+    };
+
+    const data =
+      await accountService.filterSuggestedProductsByConsultantAndBrand(
+        filter.consultantId,
+        filter.brandId,
+        filter.page,
+        filter.limit
+      );
+
+    return createNormalResponse(res, "Get product suggest list success", data);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getStaffByBrandAndStatus(
   req: Request,
   res: Response,
@@ -417,4 +446,5 @@ export const accountController = {
   resendVerifyEmail,
   calculateBrandRecommendationPercentage,
   checkAllAccountsAndBanIfNecessary,
+  filterSuggestedProductsByConsultantAndBrand,
 };

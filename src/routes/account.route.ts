@@ -70,6 +70,10 @@ accountRouter.post(
 accountRouter.post("/brand-staff", accountController.getStaffByBrandAndStatus);
 accountRouter.get("/", accountController.getAllAccount);
 accountRouter.get("/me", accountController.getMyProfile);
+accountRouter.get(
+  "/consultant-suggested-products",
+  accountController.filterSuggestedProductsByConsultantAndBrand
+);
 accountRouter.put(
   "/",
   validate(AccountUpdateSchema),
