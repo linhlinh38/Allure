@@ -1,5 +1,6 @@
 # Allure App Deployment Guide
 
+Allure App Deployment Guide
 This guide provides step-by-step instructions on how to deploy the Allure application using Docker Compose.
 
 ## Prerequisites
