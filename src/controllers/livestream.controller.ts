@@ -37,7 +37,7 @@ export default class livestreamController {
   static async getById(req: Request, res: Response, next: NextFunction) {
     try {
       const livestream = await livestreamService.findById(req.params.id);
-      if (!livestream) throw new NotFoundError("livestream not found");
+      if (!livestream) throw new NotFoundError("Livestream not found");
       return createNormalResponse(res, "Get livestream success", livestream);
     } catch (err) {
       next(err);

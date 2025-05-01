@@ -17,7 +17,9 @@ export default class ProductDiscountController {
   }
   static async getAll(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const productDiscounts = await productDiscountService.getAll(req.loginUser);
+      const productDiscounts = await productDiscountService.getAll(
+        req.loginUser
+      );
       return createNormalResponse(
         res,
         "Get all Product Discounts success",
@@ -123,7 +125,10 @@ export default class ProductDiscountController {
       };
 
       const productDiscount =
-        await productDiscountService.filterProductDiscounts(filter, req.loginUser);
+        await productDiscountService.filterProductDiscounts(
+          filter,
+          req.loginUser
+        );
       return createNormalResponse(
         res,
         "Get productDiscount success",
@@ -140,7 +145,7 @@ export default class ProductDiscountController {
         req.params.id
       );
       if (!productDiscount)
-        throw new NotFoundError("Product Discount not found");
+        throw new NotFoundError("ProductDiscount not found");
       return createNormalResponse(
         res,
         "Get Product Discount success",

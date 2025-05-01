@@ -52,7 +52,7 @@ export default class ProductController {
   static async getByBrand(req: Request, res: Response, next: NextFunction) {
     try {
       const product = await productService.getByBrand(req.params.id);
-      if (!product) throw new NotFoundError("product not found");
+      if (!product) throw new NotFoundError("Product not found");
       return createNormalResponse(res, "Get product success", product);
     } catch (err) {
       next(err);
@@ -62,7 +62,7 @@ export default class ProductController {
   static async getByCategory(req: Request, res: Response, next: NextFunction) {
     try {
       const product = await productService.getByCategory(req.params.id);
-      if (!product) throw new NotFoundError("product not found");
+      if (!product) throw new NotFoundError("Product not found");
       return createNormalResponse(res, "Get product success", product);
     } catch (err) {
       next(err);
