@@ -17,7 +17,7 @@ export default class SystemServiceController {
   static async getById(req: Request, res: Response, next: NextFunction) {
     try {
       const service = await systemServiceService.getById(req.params.id);
-      if (!service) throw new NotFoundError("service not found");
+      if (!service) throw new NotFoundError("System service not found.");
       return createNormalResponse(res, "Get service success", service);
     } catch (err) {
       next(err);
