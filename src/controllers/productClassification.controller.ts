@@ -23,7 +23,7 @@ export default class ProductClassificationController {
         req.params.id
       );
       if (!productClassification)
-        throw new NotFoundError("Product Classification not found");
+        throw new NotFoundError("Classification not found");
       return createNormalResponse(
         res,
         "Get Product Classification success",
@@ -37,7 +37,7 @@ export default class ProductClassificationController {
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
       if (req.body.title) {
-        throw new BadRequestError("cannot update product title");
+        throw new BadRequestError("Không thể thay đổi tên của phân loại");
       }
       await productClassificationService.update(req.params.id, req.body);
       return createNormalResponse(res, "Update Product Classification success");

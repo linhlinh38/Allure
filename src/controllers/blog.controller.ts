@@ -19,7 +19,7 @@ export default class BlogController {
   static async getById(req: Request, res: Response, next: NextFunction) {
     try {
       const blog = await blogService.findById(req.params.id);
-      if (!blog) throw new NotFoundError("Blog not found");
+      if (!blog) throw new NotFoundError("Blog Not Existed!");
       return createNormalResponse(res, "Get blog success", blog);
     } catch (err) {
       next(err);
@@ -29,7 +29,7 @@ export default class BlogController {
   static async findByTag(req: Request, res: Response, next: NextFunction) {
     try {
       const blog = await blogService.findByTag(req.params.tag);
-      if (!blog) throw new NotFoundError("Blog not found");
+      if (!blog) throw new NotFoundError("Blog Not Existed!");
       return createNormalResponse(res, "Get blog success", blog);
     } catch (err) {
       next(err);

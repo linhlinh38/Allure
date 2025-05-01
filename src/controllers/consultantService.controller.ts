@@ -18,7 +18,7 @@ export default class ConsultantServiceController {
   static async getById(req: Request, res: Response, next: NextFunction) {
     try {
       const service = await consultantServiceService.getById(req.params.id);
-      if (!service) throw new NotFoundError("service not found");
+      if (!service) throw new NotFoundError("ConsultantService not found");
       return createNormalResponse(res, "Get service success", service);
     } catch (err) {
       next(err);
@@ -34,7 +34,7 @@ export default class ConsultantServiceController {
       const service = await consultantServiceService.getAllServiceOfConsultant(
         req.params.id
       );
-      if (!service) throw new NotFoundError("service not found");
+      if (!service) throw new NotFoundError("ConsultantService not found");
       return createNormalResponse(res, "Get service success", service);
     } catch (err) {
       next(err);
