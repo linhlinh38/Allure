@@ -77,12 +77,154 @@ import { addtransferToBrandWalletToQueue } from '../utils/queue/transferToBrandW
 import { Paging } from '../dtos/other/paging.dto';
 import { LiveStream } from '../entities/livestream.entity';
 import { livestreamProductRepository } from '../repositories/livestreamProduct.repository';
+import { preOrderProductRepository } from '../repositories/preOrderProduct.repository';
+import { orderDetailRepository } from '../repositories/orderDetail.repository';
+import { productDiscountRepository } from '../repositories/productDiscount.repository';
+import { livestreamRepository } from '../repositories/livestream.repository';
+import { groupBuyingRepository } from '../repositories/groupBuying.repository';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
-  async getQuantitySold(getQuantitySoldRequest: GetQuantitySoldRequest)
-  {
-    const { eventId,   } = getQuantitySoldRequest;
+  async getQuantitySold(getQuantitySoldRequest: GetQuantitySoldRequest) {
+    const { eventId, type } = getQuantitySoldRequest;
+    const initQuery = orderDetailRepository
+      .createQueryBuilder('orderDetail')
+      .innerJoin('orderDetail.productClassification', 'productClassification')
+      .innerJoin('orderDetail.order', 'order')
+      .innerJoin(
+        'order.statusTrackings',
+        'statusTracking',
+        'statusTracking.status = :status',
+        {
+          status: ShippingStatusEnum.WAIT_FOR_CONFIRMATION,
+        }
+      )
+      .andWhere('order.parent_id IS NOT NULL');
+    switch (type) {
+      case OrderEnum.PRE_ORDER: {
+        const preOrderProduct = await preOrderProductRepository.findOne({
+          where: {
+            id: eventId,
+          },
+        });
+        if (!preOrderProduct) throw new BadRequestError('Event not found');
+        const result = await initQuery
+          .innerJoin('productClassification.preOrderProduct', 'preOrderProduct')
+          .andWhere('preOrderProduct.id = :eventId', {
+            eventId,
+          })
+          .select('SUM(orderDetail.quantity)', 'quantity')
+          .getRawOne();
+        return { total: Number(result.quantity || 0) };
+      }
+      case OrderEnum.FLASH_SALE: {
+        const flashSaleProduct = await productDiscountRepository.findOne({
+          where: {
+            id: eventId,
+          },
+        });
+        if (!flashSaleProduct) throw new BadRequestError('Event not found');
+        const result = await initQuery
+          .innerJoin('productClassification.productDiscount', 'productDiscount')
+          .andWhere('productDiscount.id = :eventId', {
+            eventId,
+          })
+          .select('SUM(orderDetail.quantity)', 'quantity')
+          .getRawOne();
+        return { total: Number(result.quantity || 0) };
+      }
+      case OrderEnum.LIVE_STREAM: {
+        const livestream = await livestreamRepository.findOne({
+          where: {
+            id: eventId,
+          },
+          relations: {
+            livestreamProducts: {
+              product: true,
+            },
+          },
+        });
+        const productIds = livestream.livestreamProducts.map(
+          (product) => product.product.id
+        );
+        if (!livestream) throw new BadRequestError('Event not found');
+        const result = await initQuery
+          .innerJoin('orderDetail.livestream', 'livestream')
+          .leftJoin('livestream.livestreamProducts', 'livestreamProduct')
+          .innerJoin('livestreamProduct.product', 'product')
+          .andWhere('livestream.id = :eventId', {
+            eventId,
+          })
+          .select([
+            'SUM(orderDetail.quantity) AS quantity',
+            'product.id AS productId',
+          ])
+          .groupBy('product.id')
+          .getRawMany();
+
+        const mapResult = {};
+        let total = 0;
+        result.forEach((item) => {
+          total += Number(item.quantity);
+          mapResult[item.productid] = item.quantity;
+        });
+        const items = productIds.map((productId) => {
+          return {
+            productId,
+            quantity: Number(mapResult[productId] || 0),
+          };
+        });
+        return {
+          total,
+          items,
+        };
+      }
+      case OrderEnum.GROUP_BUYING: {
+        const groupBuying = await groupBuyingRepository.findOne({
+          where: {
+            id: eventId,
+          },
+          relations: {
+            groupProduct: {
+              products: true,
+            },
+          },
+        });
+        if (!groupBuying) throw new BadRequestError('Event not found');
+        const productIds = groupBuying.groupProduct.products.map(
+          (product) => product.id
+        );
+        const result = await initQuery
+          .innerJoin('order.groupBuying', 'groupBuying')
+          .leftJoin('productClassification.product', 'product')
+          .andWhere('groupBuying.id = :eventId', {
+            eventId,
+          })
+          .select([
+            'SUM(orderDetail.quantity) AS quantity',
+            'product.id AS productId',
+          ])
+          .groupBy('product.id')
+          .getRawMany();
+
+        const mapResult = {};
+        let total = 0;
+        result.forEach((item) => {
+          total += Number(item.quantity);
+          mapResult[item.productId] = Number(item.quantity);
+        });
+        const items = productIds.map((productId) => {
+          return {
+            productId,
+            quantity: mapResult[productId] || 0,
+          };
+        });
+        return {
+          total,
+          items,
+        };
+      }
+    }
   }
 
   async getChildren(loginUser: string) {

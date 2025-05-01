@@ -557,7 +557,7 @@ class TransactionService extends BaseService<Transaction> {
       return data;
     } catch (error) {
       throw new BadRequestError(`Invalid transaction code`);
-    }
+    } 
   }
 
   async filterForConsultant(
