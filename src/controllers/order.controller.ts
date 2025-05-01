@@ -15,6 +15,7 @@ import {
   GetMyRequestsRequest,
   OrderFilterRequest,
   OrderRequestFilterRequest,
+  GetQuantitySoldRequest,
 } from '../dtos/request/order.request';
 import { AuthRequest } from '../middleware/authentication';
 import {
@@ -25,6 +26,24 @@ import {
 import { Paging } from '../dtos/other/paging.dto';
 
 export default class OrderController {
+  static async getQuantitySold(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const getQuantitySoldRequest = plainToInstance(
+        GetQuantitySoldRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Get quantity sold success',
+        await orderService.getQuantitySold(getQuantitySoldRequest)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async updatePaymentMethod(
     req: AuthRequest,
     res: Response,
@@ -557,7 +576,11 @@ export default class OrderController {
     }
   }
 
-  static async getChildren(req: AuthRequest, res: Response, next: NextFunction) {
+  static async getChildren(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const orders = await orderService.getChildren(req.loginUser);
       return createNormalResponse(res, 'Get all orders success', orders);

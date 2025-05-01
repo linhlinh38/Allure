@@ -100,6 +100,23 @@ export const UpdatePaymentMethodSchema = z.object({
   }),
 });
 
+export const GetQuantitySoldSchema = z.object({
+  body: z.object({
+    eventId: z.string().uuid('Invalid event ID'),
+    type: z.enum(
+      [
+        OrderEnum.FLASH_SALE,
+        OrderEnum.PRE_ORDER,
+        OrderEnum.GROUP_BUYING,
+        OrderEnum.LIVE_STREAM,
+      ],
+      {
+        errorMap: () => ({ message: 'Invalid order type' }),
+      }
+    ),
+  }),
+});
+
 export const CancelOrderStatusSchema = z.object({
   body: z.object({
     status: z.nativeEnum(RequestStatusEnum).optional(),
@@ -150,6 +167,14 @@ export const OrderFilterRequestSchema = z.object({
     productIds: z.array(z.string()).optional(),
   }),
 });
+
+export class GetQuantitySoldRequest {
+  @Expose()
+  eventId: string;
+
+  @Expose()
+  type: OrderEnum;
+}
 
 export class OrderFilterRequest {
   @Expose()

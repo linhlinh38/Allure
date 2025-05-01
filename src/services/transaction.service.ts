@@ -1,4 +1,4 @@
-import { QueryRunner } from 'typeorm';
+import { QueryRunner, SelectQueryBuilder } from 'typeorm';
 import { AppDataSource } from '../dataSource';
 import { Transaction } from '../entities/transaction.entity';
 import {
@@ -88,16 +88,16 @@ class TransactionService extends BaseService<Transaction> {
     const results = await queryBuilder
       .select([
         "DATE_TRUNC('day', statusTracking.createdAt) as date",
-        'COUNT(CASE WHEN booking.status = :refundedStatus THEN 1 END) as refundedCount',
-        'COUNT(CASE WHEN booking.status != :refundedStatus THEN 1 END) as bookedCount',
-        'SUM(CASE WHEN booking.status = :refundedStatus THEN booking.totalPrice ELSE 0 END) as refundedTotalPrice',
-        'SUM(CASE WHEN booking.status = :refundedStatus THEN booking.commissionFee ELSE 0 END) as refundedCommissionFee',
-        'SUM(CASE WHEN booking.status = :refundedStatus THEN booking.totalPrice - booking.commissionFee ELSE 0 END) as refundedActualRevenue',
-        'SUM(CASE WHEN booking.status != :refundedStatus THEN booking.totalPrice ELSE 0 END) as bookedTotalPrice',
-        'SUM(CASE WHEN booking.status != :refundedStatus THEN booking.commissionFee ELSE 0 END) as bookedCommissionFee',
-        'SUM(CASE WHEN booking.status != :refundedStatus THEN booking.totalPrice - booking.commissionFee ELSE 0 END) as bookedActualRevenue',
+        'COUNT(CASE WHEN booking.status = :cancelledStatus THEN 1 END) as cancelledCount',
+        'COUNT(CASE WHEN booking.status != :cancelledStatus THEN 1 END) as bookedCount',
+        'SUM(CASE WHEN booking.status = :cancelledStatus THEN booking.totalPrice ELSE 0 END) as cancelledTotalPrice',
+        'SUM(CASE WHEN booking.status = :cancelledStatus THEN booking.commissionFee ELSE 0 END) as cancelledCommissionFee',
+        'SUM(CASE WHEN booking.status = :cancelledStatus THEN booking.totalPrice - booking.commissionFee ELSE 0 END) as cancelledActualRevenue',
+        'SUM(CASE WHEN booking.status != :cancelledStatus THEN booking.totalPrice ELSE 0 END) as bookedTotalPrice',
+        'SUM(CASE WHEN booking.status != :cancelledStatus THEN booking.commissionFee ELSE 0 END) as bookedCommissionFee',
+        'SUM(CASE WHEN booking.status != :cancelledStatus THEN booking.totalPrice - booking.commissionFee ELSE 0 END) as bookedActualRevenue',
       ])
-      .setParameter('refundedStatus', BookingStatusEnum.REFUNDED)
+      .setParameter('cancelledStatus', BookingStatusEnum.CANCELLED)
       .groupBy("DATE_TRUNC('day', statusTracking.createdAt)")
       .orderBy('date', 'DESC')
       .getRawMany();
@@ -110,11 +110,11 @@ class TransactionService extends BaseService<Transaction> {
       );
       return {
         date,
-        refunded: {
-          count: parseInt(result?.refundedcount || '0'),
-          totalPrice: parseFloat(result?.refundedtotalprice || '0'),
-          commissionFee: parseFloat(result?.refundedcommissionfee || '0'),
-          actualRevenue: parseFloat(result?.refundedactualrevenue || '0'),
+        cancelled: {
+          count: parseInt(result?.cancelledcount || '0'),
+          totalPrice: parseFloat(result?.cancelledtotalprice || '0'),
+          commissionFee: parseFloat(result?.cancelledcommissionfee || '0'),
+          actualRevenue: parseFloat(result?.cancelledactualrevenue || '0'),
         },
         booked: {
           count: parseInt(result?.bookedcount || '0'),
@@ -127,13 +127,13 @@ class TransactionService extends BaseService<Transaction> {
 
     const total = results.reduce(
       (acc, curr) => {
-        acc.refunded.count += parseInt(curr.refundedcount || '0');
-        acc.refunded.totalPrice += parseFloat(curr.refundedtotalprice || '0');
-        acc.refunded.commissionFee += parseFloat(
-          curr.refundedcommissionfee || '0'
+        acc.cancelled.count += parseInt(curr.cancelledcount || '0');
+        acc.cancelled.totalPrice += parseFloat(curr.cancelledtotalprice || '0');
+        acc.cancelled.commissionFee += parseFloat(
+          curr.cancelledcommissionfee || '0'
         );
-        acc.refunded.actualRevenue += parseFloat(
-          curr.refundedactualrevenue || '0'
+        acc.cancelled.actualRevenue += parseFloat(
+          curr.cancelledactualrevenue || '0'
         );
         acc.booked.count += parseInt(curr.bookedcount || '0');
         acc.booked.totalPrice += parseFloat(curr.bookedtotalprice || '0');
@@ -142,7 +142,7 @@ class TransactionService extends BaseService<Transaction> {
         return acc;
       },
       {
-        refunded: {
+        cancelled: {
           count: 0,
           totalPrice: 0,
           commissionFee: 0,
@@ -384,7 +384,7 @@ class TransactionService extends BaseService<Transaction> {
       totalAmountFromDeposit,
       totalAmountFromWithDrawal,
       balance,
-      availableBalance
+      availableBalance,
     };
   }
   async pay(payRequest: PayRequest) {
@@ -557,7 +557,7 @@ class TransactionService extends BaseService<Transaction> {
       return data;
     } catch (error) {
       throw new BadRequestError(`Invalid transaction code`);
-    }
+    } 
   }
 
   async filterForConsultant(
@@ -690,7 +690,7 @@ class TransactionService extends BaseService<Transaction> {
       },
       relations: {
         role: true,
-        brands: true
+        brands: true,
       },
     });
     const limit = paging.limit;
@@ -705,41 +705,25 @@ class TransactionService extends BaseService<Transaction> {
       .leftJoinAndSelect('transaction.consultant', 'consultant')
       .orderBy('transaction.createdAt', 'DESC');
     orderService.queryBuilderForOrder(query);
-    if (account.role.role == RoleEnum.CUSTOMER) {
-      query.where('buyer.id = :loginUser', { loginUser });
-      query.andWhere('transaction.type != :type', {
-          type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+    this.queryTransactionForEachRole(account, query);
+    if (account.role.role == RoleEnum.ADMIN) {
+      if (accountId) {
+        const filterAccount = await accountRepository.findOne({
+          where: {
+            id: accountId,
+          },
+          relations: {
+            role: true,
+            brands: true,
+          },
         });
-    } else if (
-      account.role.role == RoleEnum.MANAGER ||
-      account.role.role == RoleEnum.STAFF
-    ) {
-      const brand = account.brands[0];
-      query
-        .where(
-          '((brand.id = :brandId AND transaction.type = :type) OR (buyer.id = :loginUser AND transaction.type != :type))',
-          {
-            brandId: brand.id,
-            type: TransactionTypeEnum.TRANSFER_TO_WALLET,
-            loginUser
-          }
-        )
-        // .andWhere('transaction.type = :type', {
-        //   type: TransactionTypeEnum.TRANSFER_TO_WALLET,
-        // });
-    } else if (account.role.role == RoleEnum.CONSULTANT) {
-      query.where(
-        '(consultant.id = :loginUser AND transaction.type = :type) OR buyer.id = :loginUser',
-        {
-          loginUser,
-          type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+        if (!filterAccount) throw new BadRequestError('Account not found');
+        if (filterAccount.role.role == RoleEnum.ADMIN) {
+          throw new BadRequestError('Can not filter admin');
         }
-      );
-    } else if (account.role.role == RoleEnum.ADMIN) {
-    } else
-      throw new BadRequestError(
-        'You dont have permission to access this resource'
-      );
+        this.queryTransactionForEachRole(filterAccount, query);
+      }
+    }
     if (types && types.length > 0)
       query.andWhere('transaction.type IN (:...types)', { types });
     if (startDate && endDate)
@@ -759,6 +743,40 @@ class TransactionService extends BaseService<Transaction> {
       totalPages,
       items,
     };
+  }
+
+  queryTransactionForEachRole(
+    account: Account,
+    query: SelectQueryBuilder<Transaction>
+  ) {
+    if (account.role.role == RoleEnum.CUSTOMER) {
+      query.where('buyer.id = :id', { id: account.id });
+      query.andWhere('transaction.type != :type', {
+        type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+      });
+    } else if (
+      account.role.role == RoleEnum.MANAGER ||
+      account.role.role == RoleEnum.STAFF
+    ) {
+      const brand = account.brands[0];
+      query.where(
+        '((brand.id = :brandId AND transaction.type = :type) OR (buyer.id = :id AND transaction.type != :type))',
+        {
+          brandId: brand.id,
+          type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+          id: account.id,
+        }
+      );
+    } else if (account.role.role == RoleEnum.CONSULTANT) {
+      query.where(
+        '(consultant.id = :id AND transaction.type = :type) OR buyer.id = :id',
+        {
+          id: account.id,
+          type: TransactionTypeEnum.TRANSFER_TO_WALLET,
+        }
+      );
+    }
+    return query;
   }
 
   getTransactionsQueryForConsultant(
