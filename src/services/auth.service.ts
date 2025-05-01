@@ -6,6 +6,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { generateRefreshToken } from "../utils/jwt";
 import GoogleService from "./google.service";
+import { roleService } from "./role.service";
 
 const repository = AppDataSource.getRepository(Account);
 
@@ -47,6 +48,11 @@ export async function loginGoogle(code) {
   const account = await repository.findOneBy({ email: userData.email });
   let id = account?.id;
   if (!account) {
+    const role = await roleService.findBy("CUSTOMER", "role");
+    if (role.length !== 1) {
+      throw new BadRequestError("Invalid role");
+    }
+
     const newAccount = new Account();
     newAccount.email = userData.email;
     newAccount.username = userData.email.split("@")[0];
@@ -54,6 +60,8 @@ export async function loginGoogle(code) {
     newAccount.lastName = userData?.family_name;
     newAccount.avatar = userData?.picture;
     newAccount.isEmailVerify = true;
+    newAccount.role = role[0];
+
     const user = await repository.save(newAccount);
     id = user.id;
   }
