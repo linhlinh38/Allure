@@ -113,9 +113,9 @@ class OrderService extends BaseService<Order> {
           .andWhere('preOrderProduct.id = :eventId', {
             eventId,
           })
-          .select('SUM(orderDetail.quantity)', 'quantitySold')
+          .select('SUM(orderDetail.quantity)', 'quantity')
           .getRawOne();
-        return { total: result.quantitySold || 0 };
+        return { total: Number(result.quantity || 0) };
       }
       case OrderEnum.FLASH_SALE: {
         const flashSaleProduct = await productDiscountRepository.findOne({
@@ -129,9 +129,9 @@ class OrderService extends BaseService<Order> {
           .andWhere('productDiscount.id = :eventId', {
             eventId,
           })
-          .select('SUM(orderDetail.quantity)', 'quantitySold')
+          .select('SUM(orderDetail.quantity)', 'quantity')
           .getRawOne();
-        return { total: result.quantitySold || 0 };
+        return { total: Number(result.quantity || 0) };
       }
       case OrderEnum.LIVE_STREAM: {
         const livestream = await livestreamRepository.findOne({
@@ -149,15 +149,15 @@ class OrderService extends BaseService<Order> {
         );
         if (!livestream) throw new BadRequestError('Event not found');
         const result = await initQuery
-          .innerJoin('productClassification.livestream', 'livestream')
+          .innerJoin('orderDetail.livestream', 'livestream')
           .leftJoin('livestream.livestreamProducts', 'livestreamProduct')
           .innerJoin('livestreamProduct.product', 'product')
           .andWhere('livestream.id = :eventId', {
             eventId,
           })
           .select([
-            'SUM(orderDetail.quantity) AS quantitySold',
-            'productId AS productId',
+            'SUM(orderDetail.quantity) AS quantity',
+            'product.id AS productId',
           ])
           .groupBy('product.id')
           .getRawMany();
@@ -165,13 +165,13 @@ class OrderService extends BaseService<Order> {
         const mapResult = {};
         let total = 0;
         result.forEach((item) => {
-          total += item.quantitySold;
-          mapResult[item.productid] = item.quantitySold;
+          total += Number(item.quantity);
+          mapResult[item.productid] = item.quantity;
         });
         const items = productIds.map((productId) => {
           return {
             productId,
-            quantity: mapResult[productId] || 0,
+            quantity: Number(mapResult[productId] || 0),
           };
         });
         return {
@@ -201,8 +201,8 @@ class OrderService extends BaseService<Order> {
             eventId,
           })
           .select([
-            'SUM(orderDetail.quantity) AS quantitySold',
-            'productId AS productId',
+            'SUM(orderDetail.quantity) AS quantity',
+            'product.id AS productId',
           ])
           .groupBy('product.id')
           .getRawMany();
@@ -210,8 +210,8 @@ class OrderService extends BaseService<Order> {
         const mapResult = {};
         let total = 0;
         result.forEach((item) => {
-          total += item.quantitySold;
-          mapResult[item.productId] = item.quantitySold;
+          total += Number(item.quantity);
+          mapResult[item.productId] = Number(item.quantity);
         });
         const items = productIds.map((productId) => {
           return {
