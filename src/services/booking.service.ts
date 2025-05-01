@@ -1078,9 +1078,7 @@ class BookingService extends BaseService<Booking> {
         booking.status !== BookingStatusEnum.COMPLETED_CONSULTING_CALL &&
         booking.status !== BookingStatusEnum.SENDED_RESULT_SHEET
       ) {
-        throw new BadRequestError(
-          `Can not cancelled booking in status: ${booking.status}`
-        );
+        throw new BadRequestError("Can not cancelled booking in status: ");
       }
       // Update the booking status to CANCELLED
       await queryRunner.manager.update(

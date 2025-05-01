@@ -19,7 +19,7 @@ export async function addBookingToQueue(
 ) {
   const masterConfig = await retrieveMasterConfig();
   await cancelBookingQueue.add(
-    'checkBookingStatus',
+    "checkBookingStatus",
     { bookingId, currentStatus },
     { delay: Number(delay) } // Delay in milliseconds
   );
@@ -52,7 +52,7 @@ const cancelBookingQueueWorker = new Worker(
         await bookingService.cancelBooking(
           bookingId,
           undefined,
-          `Auto-cancelled due to booking timeout for status ${currentStatus}`
+          "Tự động hủy đơn do quá thời gian chờ cập nhật trạng thái"
         );
 
         //send notification to account
