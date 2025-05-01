@@ -45,6 +45,7 @@ export async function loginGoogle(code) {
   console.log("userData ", userData);
 
   const account = await repository.findOneBy({ email: userData.email });
+  let id = account?.id;
   if (!account) {
     const newAccount = new Account();
     newAccount.email = userData.email;
@@ -53,9 +54,10 @@ export async function loginGoogle(code) {
     newAccount.lastName = userData?.family_name;
     newAccount.avatar = userData?.picture;
     newAccount.isEmailVerify = true;
-    await repository.save(newAccount);
+    const user = await repository.save(newAccount);
+    id = user.id;
   }
-  const payload = { accountId: account.id.toString() };
+  const payload = { accountId: id.toString() };
 
   const token = jwt.sign(payload, config.SECRET_KEY_FOR_ACCESS_TOKEN, {
     expiresIn: "1d",
