@@ -21,7 +21,7 @@ rollback() {
 
     # Stop current containers
     log "Stopping current containers..."
-    docker-compose -f docker-compose.app.yml down || true
+    docker compose -f docker-compose.app.yml down || true
 
     # Restore backup files
     log "Restoring configuration files..."
@@ -30,7 +30,7 @@ rollback() {
 
     # Restart with backup configuration
     log "Restarting application with previous configuration..."
-    docker-compose -f docker-compose.app.yml up -d
+    docker compose -f docker-compose.app.yml up -d
 
     log "Rollback completed. Application should be running with previous version."
   else
@@ -77,7 +77,7 @@ log "Docker images updated to latest version"
 # # Run database migrations
 # log "Running database migrations..."
 # export MIGRATION_NAME=update_$(date +%Y%m%d%H%M%S)
-# GENERATE_MIGRATIONS=true MIGRATION_NAME=$MIGRATION_NAME docker-compose -f docker-compose.migrations.yml up --abort-on-container-exit --remove-orphans
+# GENERATE_MIGRATIONS=true MIGRATION_NAME=$MIGRATION_NAME docker compose -f docker compose.migrations.yml up --abort-on-container-exit --remove-orphans
 
 # # Check migration exit code
 # if [ $? -ne 0 ]; then
@@ -87,7 +87,7 @@ log "Docker images updated to latest version"
 
 # Update the application with minimal downtime
 log "Updating application..."
-docker-compose -f docker-compose.app.yml up -d
+docker compose -f docker-compose.app.yml up -d
 
 # Verify application is running
 log "Verifying application status..."
