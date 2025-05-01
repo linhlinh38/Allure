@@ -278,18 +278,21 @@ export class WithdrawalRequestService {
       account.role.role == RoleEnum.ADMIN ||
       account.role.role == RoleEnum.OPERATOR
     ) {
-      if (filter.accountId) {
-        queryBuilder.andWhere('account.id = :accountId', {
-          accountId: filter.accountId,
-        });
+      if (filter.relatedAccountId) {
+        queryBuilder.andWhere(
+          'account.id = :relatedAccountId OR processedBy.id = :relatedAccountId',
+          {
+            relatedAccountId: filter.relatedAccountId,
+          }
+        );
       }
     } else {
       throw new BadRequestError('You are not allowed to access this resource');
     }
 
-    if (filter.processedById) {
-      queryBuilder.andWhere('processedBy.id = :processedById', {
-        processedById: filter.processedById,
+    if (filter.relatedAccountId) {
+      queryBuilder.andWhere('processedBy.id = :relatedAccountId', {
+        relatedAccountId: filter.processedById,
       });
     }
 
