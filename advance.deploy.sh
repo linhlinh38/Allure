@@ -30,7 +30,7 @@ rollback() {
 
     # Restart with backup configuration
     log "Restarting application with previous configuration..."
-    docker-compose -f docker-compose.app.yml up -d
+    docker-compose -p allure-api -f docker-compose.app.yml up -d
 
     log "Rollback completed. Application should be running with previous version."
   else
