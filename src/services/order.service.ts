@@ -298,8 +298,15 @@ class OrderService extends BaseService<Order> {
         brands: true,
       },
     });
-    const { statuses, types, search, productIds, paymentMethods } =
-      orderFilterRequest;
+    const {
+      statuses,
+      types,
+      search,
+      productIds,
+      paymentMethods,
+      eventId,
+      type,
+    } = orderFilterRequest;
     const queryBuilder = repository
       .createQueryBuilder('order')
       .leftJoinAndSelect('order.account', 'account')
@@ -356,6 +363,23 @@ class OrderService extends BaseService<Order> {
           'order.recipientName LIKE :search OR product.name LIKE :search OR brand.name LIKE :search OR discountProduct.name LIKE :search OR preOrderProductItem.name LIKE :search',
           { search: `%${search}%` }
         );
+    }
+
+    if (type && eventId) {
+      switch (type) {
+        case OrderEnum.FLASH_SALE: {
+          queryBuilder.andWhere('productDiscount.id = :eventId', { eventId });
+        }
+        case OrderEnum.PRE_ORDER: {
+          queryBuilder.andWhere('preOrderProduct.id = :eventId', { eventId });
+        }
+        case OrderEnum.GROUP_BUYING: {
+          queryBuilder.andWhere('groupBuying.id = :eventId', { eventId });
+        }
+        case OrderEnum.LIVE_STREAM: {
+          queryBuilder.andWhere('orderDetail.livestream_id = :eventId', {eventId});
+        }
+      }
     }
 
     const [items, total] = await queryBuilder
