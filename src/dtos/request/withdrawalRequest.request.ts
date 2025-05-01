@@ -19,7 +19,7 @@ export const UpdateWithdrawalRequestSchema = z.object({
 
 export const FilterWithdrawalRequestSchema = z.object({
   body: z.object({
-    accountId: z.string().uuid().optional(),
+    relatedAccountId: z.string().uuid().optional(),
     processedById: z.string().uuid().optional(),
     statuses: z.array(z.nativeEnum(WithdrawalStatusEnum)).optional(),
   }),
@@ -57,7 +57,7 @@ export class UpdateWithdrawalRequest {
 
 export class FilterWithdrawalRequest {
   @Expose()
-  accountId?: string;
+  relatedAccountId?: string;
 
   @Expose()
   processedById?: string;
