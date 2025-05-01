@@ -21,7 +21,7 @@ rollback() {
 
     # Stop current containers
     log "Stopping current containers..."
-    docker-compose -f docker-compose.app.yml down  || true
+    docker-compose -f docker-compose.app.yml down --remove-orphans || true
 
     # Restore backup files
     log "Restoring configuration files..."
@@ -30,7 +30,7 @@ rollback() {
 
     # Restart with backup configuration
     log "Restarting application with previous configuration..."
-    docker-compose -f docker-compose.app.yml up -d 
+    docker-compose -f docker-compose.app.yml up -d --remove-orphans
 
     log "Rollback completed. Application should be running with previous version."
   else
@@ -71,7 +71,7 @@ docker network create allure_network || true
 # Pull latest images
 log "Pulling latest Docker images..."
 docker pull minhpham11311/allure-app:latest
-docker pull minhpham11311/allure-migrations:latest
+# docker pull minhpham11311/allure-migrations:latest
 log "Docker images updated to latest version"
 
 # # Run database migrations
@@ -87,7 +87,7 @@ log "Docker images updated to latest version"
 
 # Update the application with minimal downtime
 log "Updating application..."
-docker-compose -f docker-compose.app.yml up -d 
+docker-compose -f docker-compose.app.yml up -d --remove-orphans
 
 # Verify application is running
 log "Verifying application status..."
