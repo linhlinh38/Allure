@@ -11,6 +11,7 @@ import {
   StatisticsTimeEnum,
   TransactionTypeEnum,
   BookingTypeEnum,
+  ServiceTypeEnum,
 } from '../utils/enum';
 import { BaseService } from './base.service';
 import { Order } from '../entities/order.entity';
@@ -37,6 +38,8 @@ import { Wallet } from '../entities/wallet.entity';
 import { walletService } from './wallet.service';
 import { accountRepository } from '../repositories/account.repository';
 import { orderDetailRepository } from '../repositories/orderDetail.repository';
+import { addBookingToQueue } from '../utils/queue/cancelBookingQueue';
+import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
 
 const repository = AppDataSource.getRepository(Transaction);
 class TransactionService extends BaseService<Transaction> {
@@ -475,6 +478,9 @@ class TransactionService extends BaseService<Transaction> {
           where: { id: payRequest.id },
           relations: {
             account: true,
+            consultantService: {
+              systemService: true
+            }
           },
         });
         if (!booking) throw new BadRequestError(`Booking not found`);
@@ -509,6 +515,33 @@ class TransactionService extends BaseService<Transaction> {
 
         booking.status = BookingStatusEnum.WAIT_FOR_CONFIRMATION;
         await queryRunner.manager.save(Booking, booking);
+
+        const masterConfig = await retrieveMasterConfig();
+         let delay = masterConfig.expiredBookingWaitForConfirm;
+          if (
+            booking.consultantService.systemService.type ===
+            ServiceTypeEnum.PREMIUM
+          ) {
+            const bookingStartTime = new Date(booking.startTime);
+            const now = new Date();
+
+            // Subtract 30 minutes (30 * 60 * 1000 milliseconds) from now
+            const nowMinus30Minutes = new Date(now.getTime() + 30 * 60 * 1000);
+
+            // Calculate the difference in milliseconds
+            delay = bookingStartTime.getTime() - nowMinus30Minutes.getTime();
+
+            delay =
+              delay > masterConfig.expiredBookingWaitForConfirm
+                ? masterConfig.expiredBookingWaitForConfirm
+                : delay;
+          }
+            await addBookingToQueue(
+              booking.id,
+              delay,
+              BookingStatusEnum.WAIT_FOR_CONFIRMATION
+            );
+                
       }
       await queryRunner.commitTransaction();
     } catch (error) {
