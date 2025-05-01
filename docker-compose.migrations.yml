@@ -9,7 +9,7 @@ services:
       - TZ=${TZ:-"Asia/Ho_Chi_Minh"}
       # Database
       - DB_HOST=allure_db
-      - DB_PORT=${DB_PORT:-5433}
+      - DB_PORT=${DB_PORT:-5432}
       - DB_USER=${DB_USER:-postgres}
       - DB_PASS=${DB_PASS:-Admin@123}
       - DB_NAME=${DB_NAME:-allure}
