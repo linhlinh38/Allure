@@ -102,16 +102,18 @@ export const UpdatePaymentMethodSchema = z.object({
 
 export const GetQuantitySoldSchema = z.object({
   body: z.object({
-    eventId: z.enum([
-      PaymentMethodEnum.WALLET,
-      PaymentMethodEnum.BANK_TRANSFER,
-    ]),
-    type: z.enum([
-      OrderEnum.FLASH_SALE,
-      OrderEnum.PRE_ORDER,
-      OrderEnum.GROUP_BUYING,
-      OrderEnum.LIVE_STREAM,
-    ]),
+    eventId: z.string().uuid('Invalid event ID'),
+    type: z.enum(
+      [
+        OrderEnum.FLASH_SALE,
+        OrderEnum.PRE_ORDER,
+        OrderEnum.GROUP_BUYING,
+        OrderEnum.LIVE_STREAM,
+      ],
+      {
+        errorMap: () => ({ message: 'Invalid order type' }),
+      }
+    ),
   }),
 });
 
