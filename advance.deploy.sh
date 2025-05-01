@@ -87,7 +87,7 @@ log "Docker images updated to latest version"
 
 # Update the application with minimal downtime
 log "Updating application..."
-docker-compose -f docker-compose.app.yml up -d
+docker-compose -p allure-api -f docker-compose.app.yml up -d
 
 # Verify application is running
 log "Verifying application status..."
