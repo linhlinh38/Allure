@@ -342,7 +342,7 @@ async function setPassword(
   try {
     const checkAccount = await accountService.findById(req.params.id);
     if (!checkAccount) {
-      throw new NotFoundError("Account invalid!");
+      throw new NotFoundError("Account not found");
     }
     const updateData: Partial<Account> = {
       password: await encryptedPassword(req.body.password),
@@ -363,7 +363,7 @@ async function modifyPassword(
   try {
     const checkAccount = await accountService.findById(req.params.id);
     if (!checkAccount || checkAccount.status !== AccountStatusEnum.ACTIVE) {
-      throw new NotFoundError("Account invalid!");
+      throw new NotFoundError("Account not found");
     }
     if (checkAccount.password) {
       const isMatch = await bcrypt.compare(
@@ -371,7 +371,7 @@ async function modifyPassword(
         checkAccount.password
       );
       if (!isMatch) {
-        throw new BadRequestError("Invalid current password");
+        throw new BadRequestError("Invalid password");
       }
     }
     const updateData: Partial<Account> = {

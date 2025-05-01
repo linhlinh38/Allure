@@ -16,7 +16,7 @@ export default class AddressController {
   static async getById(req: Request, res: Response, next: NextFunction) {
     try {
       const address = await addressService.findById(req.params.id);
-      if (!address) throw new NotFoundError("address not found");
+      if (!address) throw new NotFoundError("Address not found");
       return createNormalResponse(res, "Get address success", address);
     } catch (err) {
       next(err);
@@ -30,7 +30,7 @@ export default class AddressController {
   ) {
     try {
       const address = await addressService.getMyAddress(req.loginUser);
-      if (!address) throw new NotFoundError("address not found");
+      if (!address) throw new NotFoundError("Address not found");
       return createNormalResponse(res, "Get address success", address);
     } catch (err) {
       next(err);

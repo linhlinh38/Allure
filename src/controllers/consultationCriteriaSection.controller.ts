@@ -9,7 +9,7 @@ export default class consultationCriteriaSectionController {
         await consultationCriteriaSectionService.findAll();
       return createNormalResponse(
         res,
-        "Get all Consultation Criteria Section Section success",
+        "Get all Consultation Criteria Section success",
         resultSheetSection
       );
     } catch (err) {
@@ -22,9 +22,7 @@ export default class consultationCriteriaSectionController {
       const resultSheetSection =
         await consultationCriteriaSectionService.findById(req.params.id);
       if (!resultSheetSection)
-        throw new NotFoundError(
-          "Consultation Criteria Section Section not found"
-        );
+        throw new NotFoundError("Consultation Criteria Section not found");
       return createNormalResponse(
         res,
         "Get Consultation Criteria Section Section success",
@@ -40,7 +38,7 @@ export default class consultationCriteriaSectionController {
       await consultationCriteriaSectionService.update(req.params.id, req.body);
       return createNormalResponse(
         res,
-        "Update Consultation Criteria Section Section success"
+        "Update Consultation Criteria Section success"
       );
     } catch (err) {
       next(err);
@@ -52,7 +50,7 @@ export default class consultationCriteriaSectionController {
       await consultationCriteriaSectionService.create(req.body);
       return createNormalResponse(
         res,
-        "Create Consultation Criteria Section Section success"
+        "Create Consultation Criteria Section success"
       );
     } catch (err) {
       next(err);
@@ -65,7 +63,7 @@ export default class consultationCriteriaSectionController {
         req.params.id as unknown as string
       );
       return res.status(204).send({
-        message: "Delete Consultation Criteria Section Section success",
+        message: "Delete Consultation Criteria Section success",
         data: account,
       });
     } catch (error) {

@@ -22,7 +22,8 @@ export default class ServiceBookingFormController {
       const serviceBookingForm = await serviceBookingFormService.getById(
         req.params.id
       );
-      if (!serviceBookingForm) throw new NotFoundError("form not found");
+      if (!serviceBookingForm)
+        throw new NotFoundError("Booking Form not found.");
       return createNormalResponse(res, "Get form success", serviceBookingForm);
     } catch (err) {
       next(err);
