@@ -50,7 +50,7 @@ export default class CartItemController {
   static async getById(req: Request, res: Response, next: NextFunction) {
     try {
       const cartItem = await cartItemService.findById(req.params.id);
-      if (!cartItem) throw new NotFoundError("cartItem not found");
+      if (!cartItem) throw new NotFoundError("Cart Item not found");
       return createNormalResponse(res, "Get cartItem success", cartItem);
     } catch (err) {
       next(err);

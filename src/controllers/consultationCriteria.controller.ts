@@ -23,7 +23,7 @@ export default class ConsultationCriteriaController {
         req.params.id
       );
       if (!consultationCriteria)
-        throw new NotFoundError("consultationCriteria not found");
+        throw new NotFoundError("Consultation Criteria not found");
       return createNormalResponse(
         res,
         "Get Consultation Criteria success",

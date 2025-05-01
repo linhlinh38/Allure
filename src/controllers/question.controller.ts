@@ -15,7 +15,7 @@ export default class ServiceBookingFormController {
   static async getById(req: Request, res: Response, next: NextFunction) {
     try {
       const question = await questionService.findById(req.params.id);
-      if (!question) throw new NotFoundError("question not found");
+      if (!question) throw new NotFoundError("Question not found");
       return createNormalResponse(res, "Get question success", question);
     } catch (err) {
       next(err);
