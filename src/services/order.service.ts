@@ -144,10 +144,10 @@ class OrderService extends BaseService<Order> {
             },
           },
         });
-        const productIds = livestream.livestreamProducts.map(
-          (product) => product.product.id
-        );
         if (!livestream) throw new BadRequestError('Event not found');
+        const products = livestream.livestreamProducts.map(
+          (product) => product.product
+        );
         const result = await initQuery
           .innerJoin('orderDetail.livestream', 'livestream')
           .leftJoin('livestream.livestreamProducts', 'livestreamProduct')
@@ -168,10 +168,10 @@ class OrderService extends BaseService<Order> {
           total += Number(item.quantity);
           mapResult[item.productid] = item.quantity;
         });
-        const items = productIds.map((productId) => {
+        const items = products.map((product) => {
           return {
-            productId,
-            quantity: Number(mapResult[productId] || 0),
+            product,
+            quantity: Number(mapResult[product.id] || 0),
           };
         });
         return {
@@ -191,9 +191,7 @@ class OrderService extends BaseService<Order> {
           },
         });
         if (!groupBuying) throw new BadRequestError('Event not found');
-        const productIds = groupBuying.groupProduct.products.map(
-          (product) => product.id
-        );
+        const products = groupBuying.groupProduct.products;
         const result = await initQuery
           .innerJoin('order.groupBuying', 'groupBuying')
           .leftJoin('productClassification.product', 'product')
@@ -213,10 +211,10 @@ class OrderService extends BaseService<Order> {
           total += Number(item.quantity);
           mapResult[item.productId] = Number(item.quantity);
         });
-        const items = productIds.map((productId) => {
+        const items = products.map((product) => {
           return {
-            productId,
-            quantity: mapResult[productId] || 0,
+            product,
+            quantity: mapResult[product.id] || 0,
           };
         });
         return {
