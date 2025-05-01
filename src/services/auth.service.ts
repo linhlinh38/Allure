@@ -70,7 +70,7 @@ export async function loginGoogle(code) {
   const token = jwt.sign(payload, config.SECRET_KEY_FOR_ACCESS_TOKEN, {
     expiresIn: "1d",
   });
-  const refreshToken = await generateRefreshToken(account.id.toString());
+  const refreshToken = await generateRefreshToken(id.toString());
 
   return { token, refreshToken };
 }
