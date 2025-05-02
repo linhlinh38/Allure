@@ -73,21 +73,22 @@ class PreOrderProductService extends BaseService<PreOrderProduct> {
 
   async getById(id: string) {
     const preOrderProduct = await this.repository
-      .createQueryBuilder("preOrderProduct")
-      .leftJoinAndSelect("preOrderProduct.product", "product")
+      .createQueryBuilder('preOrderProduct')
+      .leftJoinAndSelect('preOrderProduct.product', 'product')
+      .leftJoinAndSelect('product.brand', 'brand')
       .leftJoinAndSelect(
-        "preOrderProduct.productClassifications",
-        "productClassifications",
-        "productClassifications.status = :classificationStatus",
+        'preOrderProduct.productClassifications',
+        'productClassifications',
+        'productClassifications.status = :classificationStatus',
         { classificationStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "productClassifications.images",
-        "classificationImages",
-        "classificationImages.status = :imageStatus",
+        'productClassifications.images',
+        'classificationImages',
+        'classificationImages.status = :imageStatus',
         { imageStatus: StatusEnum.ACTIVE }
       )
-      .where("preOrderProduct.id = :id", { id })
+      .where('preOrderProduct.id = :id', { id })
       .getOne();
 
     return preOrderProduct;
