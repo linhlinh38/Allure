@@ -73,6 +73,12 @@ export const OrderStatisticsSchema = z.object({
   }),
 });
 
+export const GetFinancialSummarySchema = z.object({
+  body: z.object({
+    accountId: z.string().uuid('Invalid format').optional(),
+  }),
+});
+
 export const GetBrandRevenueStatisticsSchema = z.object({
   body: z.object({
     startDate: z
