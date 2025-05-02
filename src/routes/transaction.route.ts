@@ -92,4 +92,9 @@ transactionRouter.post(
   TransactionController.getFinancialSummary
 );
 
+transactionRouter.get(
+  '/get-financial-summary',
+  TransactionController.getFinancialSummary
+);
+
 export default transactionRouter;
