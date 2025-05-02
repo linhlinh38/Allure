@@ -231,12 +231,14 @@ class AccountService extends BaseService<Account> {
     }
     if (
       account &&
-      (account.role.role == RoleEnum.MANAGER ||
-        account.role.role == RoleEnum.STAFF)
+      (account.role.role == RoleEnum.MANAGER)
     ) {
       const brand = account.brands[0];
       queryBuilder.andWhere("brand.id = :brandId", {
         brandId: brand.id,
+      })
+      .andWhere('account.id != :accountId', {
+        accountId: loginUser,
       });
     } else if (brand) {
       queryBuilder.andWhere("brand.name = :brand", { brand });
