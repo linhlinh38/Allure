@@ -1,9 +1,9 @@
-import { In, QueryRunner } from "typeorm";
-import { Account } from "../entities/account.entity";
-import { BaseService } from "./base.service";
-import { AppDataSource } from "../dataSource";
-import { BadRequestError, EmailAlreadyExistError } from "../errors/error";
-import { encryptedPassword } from "../utils/jwt";
+import { In, QueryRunner } from 'typeorm';
+import { Account } from '../entities/account.entity';
+import { BaseService } from './base.service';
+import { AppDataSource } from '../dataSource';
+import { BadRequestError, EmailAlreadyExistError } from '../errors/error';
+import { encryptedPassword } from '../utils/jwt';
 import {
   AccountStatusEnum,
   BookingStatusEnum,
@@ -11,25 +11,25 @@ import {
   ReportStatusEnum,
   RoleEnum,
   StatusEnum,
-} from "../utils/enum";
+} from '../utils/enum';
 import {
   sendBannedAccountEmail,
   sendRegisterAccountEmail,
-} from "./mail.service";
-import { Address } from "../entities/address.entity";
-import { File } from "../entities/file.entity";
-import { roleService } from "./role.service";
-import { Brand } from "../entities/brand.entity";
-import { StatusTracking } from "../entities/statusTracking.entity";
-import { AccountUpdateStatusType } from "../dtos/request/account.request";
-import { consultationResultRepository } from "../repositories/consultationResult.repository";
-import { productClassificationRepository } from "../repositories/productClassification.repository";
-import { bookingRepository } from "../repositories/booking.repository";
-import { reportRepository } from "../repositories/report.repository";
-import { accountRepository } from "../repositories/account.repository";
-import { brandRepository } from "../repositories/brand.repository";
-import { log } from "console";
-import { ProductClassification } from "../entities/productClassification.entity";
+} from './mail.service';
+import { Address } from '../entities/address.entity';
+import { File } from '../entities/file.entity';
+import { roleService } from './role.service';
+import { Brand } from '../entities/brand.entity';
+import { StatusTracking } from '../entities/statusTracking.entity';
+import { AccountUpdateStatusType } from '../dtos/request/account.request';
+import { consultationResultRepository } from '../repositories/consultationResult.repository';
+import { productClassificationRepository } from '../repositories/productClassification.repository';
+import { bookingRepository } from '../repositories/booking.repository';
+import { reportRepository } from '../repositories/report.repository';
+import { accountRepository } from '../repositories/account.repository';
+import { brandRepository } from '../repositories/brand.repository';
+import { log } from 'console';
+import { ProductClassification } from '../entities/productClassification.entity';
 const repository = AppDataSource.getRepository(Account);
 
 interface FilterOptions {
@@ -51,7 +51,7 @@ class AccountService extends BaseService<Account> {
 
   async getAll() {
     const accounts = await repository.find({
-      relations: ["role", "brands"],
+      relations: ['role', 'brands'],
     });
 
     return (await accounts).map((account) => ({
@@ -62,21 +62,21 @@ class AccountService extends BaseService<Account> {
 
   async getById(accountId: string) {
     const account = await repository
-      .createQueryBuilder("account")
-      .leftJoinAndSelect("account.role", "role")
-      .leftJoinAndSelect("account.brands", "brands")
-      .leftJoinAndSelect("brands.reviewer", "reviewer")
-      .leftJoinAndSelect("account.cartItems", "cartItems")
-      .leftJoinAndSelect("account.addresses", "addresses")
-      .leftJoinAndSelect("account.bankAccounts", "bankAccounts")
-      .leftJoinAndSelect("account.files", "files", "files.status = :status", {
+      .createQueryBuilder('account')
+      .leftJoinAndSelect('account.role', 'role')
+      .leftJoinAndSelect('account.brands', 'brands')
+      .leftJoinAndSelect('brands.reviewer', 'reviewer')
+      .leftJoinAndSelect('account.cartItems', 'cartItems')
+      .leftJoinAndSelect('account.addresses', 'addresses')
+      .leftJoinAndSelect('account.bankAccounts', 'bankAccounts')
+      .leftJoinAndSelect('account.files', 'files', 'files.status = :status', {
         status: StatusEnum.ACTIVE,
       })
-      .where("account.id = :accountId", { accountId })
+      .where('account.id = :accountId', { accountId })
       .getOne();
 
     if (!account) {
-      throw new Error("Account not found");
+      throw new Error('Account not found');
     }
 
     const certificates = account.files
@@ -129,15 +129,18 @@ class AccountService extends BaseService<Account> {
         [option]: value,
       },
       relations: [
-        "role",
-        "brands",
-        "cartItems",
-        "addresses",
-        "bankAccounts",
-        "files",
+        'role',
+        'brands',
+        'cartItems',
+        'addresses',
+        'bankAccounts',
+        'files',
       ],
     });
-    if(accounts.length === 1 && accounts[0].role.role === RoleEnum.CONSULTANT) {
+    if (
+      accounts.length === 1 &&
+      accounts[0].role.role === RoleEnum.CONSULTANT
+    ) {
       const account = accounts[0];
       const certificates = account.files
         ?.filter((file) => file.type === FileEnum.CERTIFICATE)
@@ -173,16 +176,18 @@ class AccountService extends BaseService<Account> {
           status,
         }));
 
-      return [{
-        ...account,
-        role: account.role.role,
-        certificates: certificates?.length > 0 ? certificates : undefined,
-        thumbnailImageList:
-          thumbnailImageList?.length > 0 ? thumbnailImageList : undefined,
-        files: otherFiles?.length > 0 ? otherFiles : undefined,
-      }];
+      return [
+        {
+          ...account,
+          role: account.role.role,
+          certificates: certificates?.length > 0 ? certificates : undefined,
+          thumbnailImageList:
+            thumbnailImageList?.length > 0 ? thumbnailImageList : undefined,
+          files: otherFiles?.length > 0 ? otherFiles : undefined,
+        },
+      ];
     }
-    return  accounts.map((account) => ({
+    return accounts.map((account) => ({
       ...account,
       role: account.role ? account.role.role : null,
     }));
@@ -204,56 +209,64 @@ class AccountService extends BaseService<Account> {
     }
 
     const queryBuilder = this.repository
-      .createQueryBuilder("account")
-      .leftJoinAndSelect("account.brands", "brand")
-      .leftJoinAndSelect("account.role", "role")
-      .leftJoinAndSelect("account.addresses", "addresses")
-      .leftJoinAndSelect("account.files", "files")
-      .leftJoinAndSelect("account.consultantServices", "consultantServices")
-      .leftJoinAndSelect("consultantServices.systemService", "systemService");
+      .createQueryBuilder('account')
+      .leftJoinAndSelect('account.brands', 'brand')
+      .leftJoinAndSelect('account.role', 'role')
+      .leftJoinAndSelect('account.addresses', 'addresses')
+      .leftJoinAndSelect('account.files', 'files')
+      .leftJoinAndSelect('account.consultantServices', 'consultantServices')
+      .leftJoinAndSelect('consultantServices.systemService', 'systemService');
 
     if (username) {
-      queryBuilder.andWhere("account.username LIKE :username", {
+      queryBuilder.andWhere('account.username LIKE :username', {
         username: `%${username}%`,
       });
     }
 
     if (email) {
-      queryBuilder.andWhere("account.email LIKE :email", {
+      queryBuilder.andWhere('account.email LIKE :email', {
         email: `%${email}%`,
       });
     }
 
     if (role && Array.isArray(role)) {
-      queryBuilder.andWhere("role.role IN (:...roles)", { roles: role });
+      queryBuilder.andWhere('role.role IN (:...roles)', { roles: role });
     } else if (role) {
-      queryBuilder.andWhere("role.role = :role", { role });
+      queryBuilder.andWhere('role.role = :role', { role });
     }
-    if (
-      account &&
-      (account.role.role == RoleEnum.MANAGER)
-    ) {
-      const brand = account.brands[0];
-      queryBuilder.andWhere("brand.id = :brandId", {
-        brandId: brand.id,
-      })
-      .andWhere('account.id != :accountId', {
-        accountId: loginUser,
-      });
+    if (account) {
+      if (account.role.role == RoleEnum.OPERATOR) {
+        queryBuilder.andWhere('role.role NOT IN (:...roles)', {
+          roles: [RoleEnum.OPERATOR, RoleEnum.ADMIN],
+        });
+      } else if (account.role.role == RoleEnum.ADMIN) {
+        queryBuilder.andWhere('role.role NOT IN (:...roles)', {
+          roles: [RoleEnum.ADMIN],
+        });
+      } else if (account.role.role == RoleEnum.MANAGER) {
+        const brand = account.brands[0];
+        queryBuilder
+          .andWhere('brand.id = :brandId', {
+            brandId: brand.id,
+          })
+          .andWhere('account.id != :accountId', {
+            accountId: loginUser,
+          });
+      }
     } else if (brand) {
-      queryBuilder.andWhere("brand.name = :brand", { brand });
+      queryBuilder.andWhere('brand.name = :brand', { brand });
     }
 
     if (status && Array.isArray(status)) {
-      queryBuilder.andWhere("account.status IN (:...statuses)", {
+      queryBuilder.andWhere('account.status IN (:...statuses)', {
         statuses: status,
       });
     } else if (status) {
-      queryBuilder.andWhere("account.status = :status", { status });
+      queryBuilder.andWhere('account.status = :status', { status });
     }
 
     queryBuilder
-      .orderBy(`account.${sortBy}`, order.toUpperCase() as "ASC" | "DESC")
+      .orderBy(`account.${sortBy}`, order.toUpperCase() as 'ASC' | 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
 
@@ -269,17 +282,17 @@ class AccountService extends BaseService<Account> {
 
   async getStaffByBrandAndStatus(brandId: string, status?: AccountStatusEnum) {
     const queryBuilder = this.repository
-      .createQueryBuilder("account")
-      .innerJoinAndSelect("account.brands", "brand", "brand.id = :brandId", {
+      .createQueryBuilder('account')
+      .innerJoinAndSelect('account.brands', 'brand', 'brand.id = :brandId', {
         brandId,
       })
-      .innerJoinAndSelect("account.role", "role", "role.role = :role", {
+      .innerJoinAndSelect('account.role', 'role', 'role.role = :role', {
         role: RoleEnum.STAFF,
       })
-      .leftJoinAndSelect("account.addresses", "addresses");
+      .leftJoinAndSelect('account.addresses', 'addresses');
 
     if (status) {
-      queryBuilder.andWhere("account.status = :status", { status });
+      queryBuilder.andWhere('account.status = :status', { status });
     }
 
     const accounts = await queryBuilder.getMany();
@@ -299,18 +312,18 @@ class AccountService extends BaseService<Account> {
     try {
       const checkEmail = await accountService.findBy(
         accountData.email,
-        "email"
+        'email'
       );
       if (checkEmail.length !== 0) {
-        throw new EmailAlreadyExistError("Email already exists!");
+        throw new EmailAlreadyExistError('Email already exists!');
       }
 
       const checkUsername = await accountService.findBy(
         accountData.username,
-        "username"
+        'username'
       );
       if (checkUsername.length !== 0) {
-        throw new BadRequestError("Username already exists!");
+        throw new BadRequestError('Username already exists!');
       }
 
       if (accountData.password) {
@@ -382,7 +395,7 @@ class AccountService extends BaseService<Account> {
       data.certificate
     ) {
       throw new BadRequestError(
-        "Certificate is only available for role CONSULTANT and KOL"
+        'Certificate is only available for role CONSULTANT and KOL'
       );
     }
 
@@ -411,7 +424,7 @@ class AccountService extends BaseService<Account> {
         await sendRegisterAccountEmail(account, data.url);
         break;
       case RoleEnum.STAFF:
-        console.log("create staff");
+        console.log('create staff');
         //await sendResetPasswordEmail(account);
         break;
       case RoleEnum.CONSULTANT:
@@ -452,16 +465,16 @@ class AccountService extends BaseService<Account> {
             await queryRunner.manager.save(File, certKOL);
           }
         }
-        console.log("create kol");
+        console.log('create kol');
         //await sendResetPasswordEmail(account);
         break;
       case RoleEnum.OPERATOR:
         //await sendResetPasswordEmail(account);
-        console.log("create operator");
+        console.log('create operator');
 
         break;
       default:
-        throw new Error("Invalid role provided");
+        throw new Error('Invalid role provided');
     }
   }
 
@@ -475,11 +488,11 @@ class AccountService extends BaseService<Account> {
       // Find the account to update
       const account = await queryRunner.manager.findOne(Account, {
         where: { id: accountId },
-        relations: ["files"],
+        relations: ['files'],
       });
 
       if (!account) {
-        throw new Error("Account not found");
+        throw new Error('Account not found');
       }
 
       // Update basic account information
@@ -492,7 +505,7 @@ class AccountService extends BaseService<Account> {
           where: { username: accountData.username },
         });
         if (checkExist && checkExist.id !== account.id) {
-          throw new BadRequestError("Username already exists");
+          throw new BadRequestError('Username already exists');
         }
       }
 
@@ -574,12 +587,12 @@ class AccountService extends BaseService<Account> {
       });
 
       if (!account) {
-        throw new Error("Account not found");
+        throw new Error('Account not found');
       }
 
       const updatedByAccount = await repository.findOneBy({ id: updatedBy });
       if (!updatedByAccount) {
-        throw new Error("Updated by account not found");
+        throw new Error('Updated by account not found');
       }
 
       await queryRunner.manager.update(Account, updateData.accountId, {
@@ -605,11 +618,11 @@ class AccountService extends BaseService<Account> {
   async calculateBrandRecommendationPercentage(consultantId: string) {
     const consultant = await repository.findOne({
       where: { id: consultantId },
-      relations: ["role", "brands", "addresses", "files"],
+      relations: ['role', 'brands', 'addresses', 'files'],
     });
 
     if (!consultant) {
-      throw new Error("Consultant not found");
+      throw new Error('Consultant not found');
     }
     // const monthlyData = await bookingRepository
     //   .createQueryBuilder("booking")
@@ -651,7 +664,7 @@ class AccountService extends BaseService<Account> {
       where: {
         booking: { consultantService: { account: { id: consultantId } } },
       },
-      select: ["suggestedProductClassifications"],
+      select: ['suggestedProductClassifications'],
     });
 
     const productClassificationIds = consultationResults
@@ -660,7 +673,7 @@ class AccountService extends BaseService<Account> {
 
     const productClassifications = await productClassificationRepository.find({
       where: { id: In(productClassificationIds) },
-      relations: ["product", "product.brand"],
+      relations: ['product', 'product.brand'],
     });
 
     const brandCounts: Record<string, number> = {};
@@ -677,7 +690,7 @@ class AccountService extends BaseService<Account> {
 
         return {
           brandId,
-          brandName: brand?.name || "Unknown",
+          brandName: brand?.name || 'Unknown',
           brandLogo: brand?.logo || null,
           percentage: (count / totalSuggestions) * 100,
         };
@@ -721,7 +734,7 @@ class AccountService extends BaseService<Account> {
       where: {
         booking: { consultantService: { account: { id: consultantId } } },
       },
-      select: ["suggestedProductClassifications"],
+      select: ['suggestedProductClassifications'],
     });
 
     // Extract product classification IDs from consultation results
@@ -730,13 +743,13 @@ class AccountService extends BaseService<Account> {
       .map((item) => item.productClassificationId);
 
     const queryBuilder = productClassificationRepository
-      .createQueryBuilder("productClassification")
-      .leftJoinAndSelect("productClassification.product", "product")
-      .leftJoinAndSelect("product.brand", "brand")
-      .where("productClassification.id IN (:...ids)", {
+      .createQueryBuilder('productClassification')
+      .leftJoinAndSelect('productClassification.product', 'product')
+      .leftJoinAndSelect('product.brand', 'brand')
+      .where('productClassification.id IN (:...ids)', {
         ids: productClassificationIds,
       })
-      .andWhere("brand.id = :brandId", { brandId });
+      .andWhere('brand.id = :brandId', { brandId });
 
     // Pagination
     queryBuilder.skip((page - 1) * limit).take(limit);
@@ -756,16 +769,16 @@ class AccountService extends BaseService<Account> {
     // Get all accounts with the role CUSTOMER
     const customerAccounts = await this.repository.find({
       where: { role: { role: RoleEnum.CUSTOMER } },
-      relations: ["role"],
+      relations: ['role'],
     });
 
     for (const account of customerAccounts) {
       // Count the number of approved reports for the account
       const approvedReportsCount = await reportRepository
-        .createQueryBuilder("report")
-        .leftJoinAndSelect("report.account", "account")
-        .where("account.id = :accountId", { accountId: account.id })
-        .andWhere("report.status = :status", {
+        .createQueryBuilder('report')
+        .leftJoinAndSelect('report.account', 'account')
+        .where('account.id = :accountId', { accountId: account.id })
+        .andWhere('report.status = :status', {
           status: ReportStatusEnum.APPROVED,
         })
         .getCount();
