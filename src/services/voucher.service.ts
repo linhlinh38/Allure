@@ -45,6 +45,23 @@ import { Paging } from '../dtos/other/paging.dto';
 import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
 
 class VoucherService extends BaseService<Voucher> {
+  async getMyVouchers(loginUser: string) {
+    const voucherWallets = await voucherWalletRepository.find({
+      where: {
+        owner: {
+          id: loginUser,
+        },
+        status: VoucherWalletStatus.NOT_USED,
+      },
+      relations: {
+        voucher: {
+          brand: true,
+          applyProducts: true,
+        },
+      },
+    });
+    return voucherWallets.map((voucherWallet) => voucherWallet.voucher);
+  }
   async canApplyVoucher(
     canApplyVoucherRequest: CanApplyVoucherRequest,
     loginUser: string

@@ -22,7 +22,7 @@ export const BookingCreateSchema = z.object({
         "End time must be a valid date string"
       )
       .optional(),
-    totalPrice: z.number().nonnegative().optional(),
+    totalPrice: z.number().nonnegative('Total price must be non-negative').optional(),
     paymentMethod: z.nativeEnum(PaymentMethodEnum).optional(),
     voucher: z.string().optional(),
     meetUrl: z.string().optional(),

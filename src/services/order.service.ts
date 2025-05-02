@@ -377,7 +377,9 @@ class OrderService extends BaseService<Order> {
           queryBuilder.andWhere('groupBuying.id = :eventId', { eventId });
         }
         case OrderEnum.LIVE_STREAM: {
-          queryBuilder.andWhere('orderDetail.livestream_id = :eventId', {eventId});
+          queryBuilder.andWhere('orderDetail.livestream_id = :eventId', {
+            eventId,
+          });
         }
       }
     }
@@ -1765,6 +1767,18 @@ class OrderService extends BaseService<Order> {
 
   async refundVoucher(order: Order, queryRunner: QueryRunner) {
     if (order.voucher) {
+      const voucher = order.voucher;
+      if (order.parent) {
+        const anotherOrderWithSameVoucher = order.parent.children.find(
+          (item) => item.id != order.id && item.voucher?.id == voucher.id
+        );
+        if (
+          anotherOrderWithSameVoucher &&
+          anotherOrderWithSameVoucher.status != ShippingStatusEnum.CANCELLED
+        ) {
+          return;
+        }
+      }
       const voucherWallet = await voucherWalletRepository.findOne({
         where: {
           voucher: { id: order.voucher.id },
