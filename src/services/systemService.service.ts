@@ -17,18 +17,25 @@ class SystemServiceService extends BaseService<SystemService> {
 
   async getAll() {
     const services = await this.repository
-      .createQueryBuilder("systemService")
+      .createQueryBuilder('systemService')
       .leftJoinAndSelect(
-        "systemService.consultationCriteria",
-        "consultationCriteria"
+        'systemService.consultationCriteria',
+        'consultationCriteria'
       )
-      .leftJoinAndSelect("systemService.images", "images")
-      .leftJoinAndSelect("systemService.category", "category")
-      .leftJoinAndSelect("category.parentCategory", "parentCategory")
       .leftJoinAndSelect(
-        "consultationCriteria.consultationCriteriaSections",
-        "consultationCriteriaSections"
+        'consultationCriteria.consultationCriteriaSections',
+        'sections',
+        'sections.status = :activeStatus',
+        { activeStatus: StatusEnum.ACTIVE }
       )
+      .leftJoinAndSelect(
+        'systemService.images',
+        'images',
+        'images.status = :imageStatus',
+        { imageStatus: StatusEnum.ACTIVE }
+      )
+      .leftJoinAndSelect('systemService.category', 'category')
+      .leftJoinAndSelect('category.parentCategory', 'parentCategory')
       .getMany();
 
     return services;
@@ -36,19 +43,26 @@ class SystemServiceService extends BaseService<SystemService> {
 
   async getById(id: string) {
     const services = await this.repository
-      .createQueryBuilder("systemService")
+      .createQueryBuilder('systemService')
       .leftJoinAndSelect(
-        "systemService.consultationCriteria",
-        "consultationCriteria"
+        'systemService.consultationCriteria',
+        'consultationCriteria'
       )
-      .leftJoinAndSelect("systemService.images", "images")
-      .leftJoinAndSelect("systemService.category", "category")
-      .leftJoinAndSelect("category.parentCategory", "parentCategory")
       .leftJoinAndSelect(
-        "consultationCriteria.consultationCriteriaSections",
-        "consultationCriteriaSections"
+        'consultationCriteria.consultationCriteriaSections',
+        'sections',
+        'sections.status = :activeStatus',
+        { activeStatus: StatusEnum.ACTIVE }
       )
-      .where("systemService.id = :id", { id })
+      .leftJoinAndSelect(
+        'systemService.images',
+        'images',
+        'images.status = :imageStatus',
+        { imageStatus: StatusEnum.ACTIVE }
+      )
+      .leftJoinAndSelect('systemService.category', 'category')
+      .leftJoinAndSelect('category.parentCategory', 'parentCategory')
+      .where('systemService.id = :id', { id })
       .getOne();
 
     return services;
