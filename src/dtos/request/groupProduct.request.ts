@@ -11,7 +11,6 @@ export const GroupProductCreateSchema = z.object({
       .max(255, 'Name cannot exceed 255 characters'),
     description: z
       .string()
-      .max(255, 'Description cannot exceed 255 characters')
       .optional(),
     maxBuyAmountEachPerson: z
       .number()
