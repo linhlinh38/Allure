@@ -355,7 +355,8 @@ class TransactionService extends BaseService<Transaction> {
       endDate
     );
   }
-  async getFinancialSummary(loginUser: string) {
+  async getFinancialSummary(loginUser: string, accountId: string) {
+    let id = accountId ? accountId : loginUser;
     const totalAmountFromWithDrawal =
       (
         await transactionRepository
@@ -364,7 +365,7 @@ class TransactionService extends BaseService<Transaction> {
           .where('transaction.type = :type', {
             type: TransactionTypeEnum.WITHDRAW,
           })
-          .andWhere('transaction.buyer = :loginUser', { loginUser })
+          .andWhere('transaction.buyer = :id', { id })
           .getRawOne()
       )?.totalAmountFromWithDrawal || 0;
     const totalAmountFromDeposit =
@@ -372,14 +373,14 @@ class TransactionService extends BaseService<Transaction> {
         await transactionRepository
           .createQueryBuilder('transaction')
           .select('SUM(transaction.amount)', 'totalAmountFromDeposit')
-          .where('transaction.buyer = :loginUser', { loginUser })
+          .where('transaction.buyer = :id', { id })
           .andWhere('transaction.type = :type', {
             type: TransactionTypeEnum.DEPOSIT,
           })
           .getRawOne()
       )?.totalAmountFromDeposit || 0;
     const wallet = await walletRepository.findOne({
-      where: { owner: { id: loginUser } },
+      where: { owner: { id: id } },
     });
     const balance = wallet?.balance || 0;
     const availableBalance = wallet?.availableBalance || 0;

@@ -120,7 +120,7 @@ export default class TransactionController {
       return createNormalResponse(
         res,
         'Get financial summary successfully',
-        await transactionService.getFinancialSummary(req.loginUser)
+        await transactionService.getFinancialSummary(req.loginUser, req.body.accountId)
       );
     } catch (err) {
       next(err);

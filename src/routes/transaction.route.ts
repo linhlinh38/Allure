@@ -8,6 +8,7 @@ import {
   GetConsultantRevenueStatisticsSchema,
   GetDailyBookingStatisticsSchema,
   GetDailyOrderStatisticsSchema,
+  GetFinancialSummarySchema,
   OrderStatisticsSchema,
   PaySchema,
 } from '../dtos/request/transaction.request';
@@ -85,8 +86,9 @@ transactionRouter.post(
 //   TransactionController.getBrandRevenueStatistics
 // );
 
-transactionRouter.get(
+transactionRouter.post(
   '/get-financial-summary',
+  validate(GetFinancialSummarySchema),
   TransactionController.getFinancialSummary
 );
 
