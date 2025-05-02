@@ -6,7 +6,6 @@ import { BadRequestError, EmailAlreadyExistError } from '../errors/error';
 import { encryptedPassword } from '../utils/jwt';
 import {
   AccountStatusEnum,
-  BookingStatusEnum,
   FileEnum,
   ReportStatusEnum,
   RoleEnum,
@@ -24,11 +23,9 @@ import { StatusTracking } from '../entities/statusTracking.entity';
 import { AccountUpdateStatusType } from '../dtos/request/account.request';
 import { consultationResultRepository } from '../repositories/consultationResult.repository';
 import { productClassificationRepository } from '../repositories/productClassification.repository';
-import { bookingRepository } from '../repositories/booking.repository';
 import { reportRepository } from '../repositories/report.repository';
 import { accountRepository } from '../repositories/account.repository';
 import { brandRepository } from '../repositories/brand.repository';
-import { log } from 'console';
 import { ProductClassification } from '../entities/productClassification.entity';
 const repository = AppDataSource.getRepository(Account);
 

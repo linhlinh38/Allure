@@ -15,6 +15,21 @@ import {
 import { Voucher } from '../entities/voucher.entity';
 
 export default class VoucherController {
+  static async getMyVouchers(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Get my vouchers success',
+        await voucherService.getMyVouchers(req.loginUser)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async canApplyVoucher(
     req: AuthRequest,
     res: Response,

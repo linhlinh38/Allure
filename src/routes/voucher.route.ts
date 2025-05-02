@@ -37,6 +37,7 @@ voucherRouter.put(
   VoucherController.updateStatus
 );
 voucherRouter.use(authentication);
+voucherRouter.get('/get-my-vouchers', VoucherController.getMyVouchers);
 voucherRouter.post('/collect-voucher/:code', VoucherController.collectVoucher);
 voucherRouter.post(
   '/categorize-shop-vouchers-when-checkout/',
