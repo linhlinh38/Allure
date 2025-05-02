@@ -89,21 +89,22 @@ class ProductDiscountService extends BaseService<ProductDiscount> {
 
   async getById(id: string) {
     const productDiscount = await this.repository
-      .createQueryBuilder("productDiscount")
-      .leftJoinAndSelect("productDiscount.product", "product")
+      .createQueryBuilder('productDiscount')
+      .leftJoinAndSelect('productDiscount.product', 'product')
+      .leftJoinAndSelect('product.brand', 'brand')
       .leftJoinAndSelect(
-        "productDiscount.productClassifications",
-        "productClassifications",
-        "productClassifications.status = :classificationStatus",
+        'productDiscount.productClassifications',
+        'productClassifications',
+        'productClassifications.status = :classificationStatus',
         { classificationStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "productClassifications.images",
-        "classificationImages",
-        "classificationImages.status = :imageStatus",
+        'productClassifications.images',
+        'classificationImages',
+        'classificationImages.status = :imageStatus',
         { imageStatus: StatusEnum.ACTIVE }
       )
-      .where("productDiscount.id = :id", { id })
+      .where('productDiscount.id = :id', { id })
       .getOne();
 
     return productDiscount;
