@@ -1046,7 +1046,12 @@ class BookingService extends BaseService<Booking> {
     }
   }
 
-  async cancelBooking(bookingId: string, loginUser?: string, reason?: string) {
+  async cancelBooking(
+    bookingId: string,
+    loginUser?: string,
+    reason?: string,
+    notRefund?: boolean
+  ) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -1102,7 +1107,9 @@ class BookingService extends BaseService<Booking> {
 
       if (
         booking.status !== BookingStatusEnum.TO_PAY &&
-        booking.status !== BookingStatusEnum.BOOKING_CONFIRMED
+        booking.status !== BookingStatusEnum.BOOKING_CONFIRMED &&
+        booking.status === BookingStatusEnum.SERVICE_BOOKING_FORM_SUBMITED &&
+        !notRefund
       ) {
         const wallet = await walletRepository.findOne({
           where: {

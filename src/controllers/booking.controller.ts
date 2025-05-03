@@ -77,7 +77,11 @@ export default class BookingController {
     }
   }
 
-  static async filterBookings(req: AuthRequest, res: Response, next: NextFunction) {
+  static async filterBookings(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const {
         consultantServiceId,
@@ -260,7 +264,8 @@ export default class BookingController {
       await bookingService.cancelBooking(
         req.params.id,
         req.loginUser,
-        req.body.reason
+        req.body.reason,
+        req.body?.notRefund ?? false
       );
       return createNormalResponse(res, "Cancelled booking done");
     } catch (err) {

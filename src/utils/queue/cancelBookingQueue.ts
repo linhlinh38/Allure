@@ -52,7 +52,8 @@ const cancelBookingQueueWorker = new Worker(
         await bookingService.cancelBooking(
           bookingId,
           undefined,
-          "Tự động hủy đơn do quá thời gian chờ cập nhật trạng thái"
+          "Tự động hủy đơn do quá thời gian chờ cập nhật trạng thái",
+          false
         );
 
         //send notification to account

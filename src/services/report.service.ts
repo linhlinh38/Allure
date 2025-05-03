@@ -85,7 +85,8 @@ class ReportService extends BaseService<Report> {
       await bookingService.cancelBooking(
         report.booking.id,
         null,
-        "Tự động hủy do khiếu nại đã được duyệt"
+        "Tự động hủy do khiếu nại đã được duyệt",
+        false
       );
     }
 
