@@ -62,7 +62,7 @@ export default class BlogController {
           : undefined,
         page: page ? parseInt(page as string, 10) : 1,
         limit: limit ? parseInt(limit as string, 10) : 10,
-        sortBy: sortBy as keyof Blog,
+        sortBy: (sortBy?.toString() as keyof Blog) ?? "id",
         order: order ? (order as "ASC" | "DESC") : "ASC",
       });
 
