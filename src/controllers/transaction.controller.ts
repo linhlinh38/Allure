@@ -1,7 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { createNormalResponse } from '../utils/response';
 import { AuthRequest } from '../middleware/authentication';
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Response } from 'express';
 import {
   FilterTransactionRequest,
   GetDailyBookingStatisticsRequest,
@@ -14,6 +14,21 @@ import { transactionService } from '../services/transaction.service';
 import { Paging } from '../dtos/other/paging.dto';
 
 export default class TransactionController {
+  static async autoDeposit(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Deposit successfully',
+        await transactionService.autoDeposit(req.loginUser)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async getDailySystemStatistics(
     req: AuthRequest,
     res: Response,

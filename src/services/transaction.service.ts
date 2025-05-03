@@ -584,6 +584,34 @@ class TransactionService extends BaseService<Transaction> {
     }
   }
 
+  async autoDeposit(loginUser: string) {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const wallet = await walletRepository.findOne({
+        where: {
+          owner: { id: loginUser },
+        },
+      });
+      if (!wallet) throw new BadRequestError(`Wallet not found`);
+      walletService.increaseBalance(wallet, 10000000);
+      await queryRunner.manager.save(wallet);
+      const transaction = transactionService.createTransactionFromDeposit(
+        wallet.balance,
+        10000000,
+        loginUser
+      );
+      await queryRunner.manager.save(transaction);
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
   async deposit(orderId: string, loginUser: string) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();

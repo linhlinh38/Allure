@@ -19,6 +19,7 @@ transactionRouter.use(authentication);
 
 transactionRouter.get('/', TransactionController.getAll);
 transactionRouter.post('/deposit', TransactionController.deposit);
+transactionRouter.post('/auto-deposit', TransactionController.autoDeposit);
 transactionRouter.post('/pay', validate(PaySchema), TransactionController.pay);
 
 transactionRouter.post(
