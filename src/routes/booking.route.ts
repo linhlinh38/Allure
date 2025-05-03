@@ -26,7 +26,7 @@ bookingRoute.get(
 bookingRoute.get("/get-my-bookings", BookingController.getMyBookings);
 bookingRoute.post(
   "/",
-  Author(["CUSTOMER"]),
+  Author(["CUSTOMER", "MANAGER"]),
   validate(BookingCreateSchema),
   BookingController.create
 );
