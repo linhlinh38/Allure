@@ -37,6 +37,7 @@ class ConsultantServiceService extends BaseService<ConsultantService> {
   async getAll() {
     const services = await this.repository
       .createQueryBuilder("consultantService")
+      .leftJoinAndSelect("consultantService.account", "account")
       .leftJoinAndSelect("consultantService.systemService", "systemService")
       .leftJoinAndSelect("systemService.category", "category")
       .leftJoinAndSelect("systemService.images", "systemServiceImages")
