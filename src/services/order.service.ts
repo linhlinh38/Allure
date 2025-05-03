@@ -85,6 +85,9 @@ import { groupBuyingRepository } from '../repositories/groupBuying.repository';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
+  getByVoucher(voucherId: string, paging: Paging): any {
+    throw new Error('Method not implemented.');
+  }
   async getQuantitySold(getQuantitySoldRequest: GetQuantitySoldRequest) {
     const { eventId, type } = getQuantitySoldRequest;
     const initQuery = orderDetailRepository
@@ -283,6 +286,51 @@ class OrderService extends BaseService<Order> {
     });
     await orderRepository.save(order);
   }
+
+  async filterAndVoucher(
+    orderFilterRequest: OrderFilterRequest,
+    paging: Paging,
+    loginUser: string
+  ) {
+    const account = await accountRepository.findOne({
+      where: {
+        id: loginUser,
+      },
+      relations: {
+        role: true,
+        brands: true,
+      },
+    });
+    const { voucherId } = orderFilterRequest;
+    if (!voucherId) throw new BadRequestError('Voucher ID is required');
+    const voucher = await voucherRepository.findOne({
+      where: {
+        id: voucherId,
+      },
+      relations: {
+        brand: true,
+      },
+    });
+    if (!voucher) throw new BadRequestError('Voucher not found');
+    if (voucher.brand) {
+      const response = await this.filter(
+        orderFilterRequest,
+        paging,
+        loginUser,
+        false
+      );
+      response['isParent'] = false;
+      return response;
+    }
+    const response = await this.filter(
+      orderFilterRequest,
+      paging,
+      loginUser,
+      true
+    );
+    response['isParent'] = true;
+    return response;
+  }
   async filter(
     orderFilterRequest: OrderFilterRequest,
     paging: Paging,
@@ -306,9 +354,11 @@ class OrderService extends BaseService<Order> {
       paymentMethods,
       eventId,
       type,
+      voucherId,
     } = orderFilterRequest;
     const queryBuilder = repository
       .createQueryBuilder('order')
+      .leftJoinAndSelect('order.voucher', 'voucher')
       .leftJoinAndSelect('order.account', 'account')
       .leftJoinAndSelect('order.brand', 'brand')
       .leftJoinAndSelect('order.groupBuying', 'groupBuying')
@@ -333,7 +383,7 @@ class OrderService extends BaseService<Order> {
     } else if (account.role.role == RoleEnum.ADMIN) {
     } else {
       throw new BadRequestError(
-        'You do not have permission to access this resource'
+        'You dont have permission to access this resource'
       );
     }
     if (statuses && statuses.length > 0) {
@@ -382,6 +432,10 @@ class OrderService extends BaseService<Order> {
           });
         }
       }
+    }
+
+    if (voucherId) {
+      queryBuilder.andWhere('voucher.id = :voucherId', { voucherId });
     }
 
     const [items, total] = await queryBuilder
@@ -440,7 +494,7 @@ class OrderService extends BaseService<Order> {
     } else if (account.role.role == RoleEnum.ADMIN) {
     } else {
       throw new BadRequestError(
-        'You do not have permission to access this resource'
+        'You dont have permission to access this resource'
       );
     }
     if (statuses && statuses.length > 0) {
@@ -523,7 +577,7 @@ class OrderService extends BaseService<Order> {
       if (!order) throw new BadRequestError('Order not found');
       if (order.status != ShippingStatusEnum.RETURNING)
         throw new BadRequestError(
-          `Can not take action on this order due to current status ${order.status}`
+          `Can not take action on this order due to current status`
         );
       if (action == ActionReceivedEnum.RECEIVED) {
         await Promise.all([
@@ -624,7 +678,7 @@ class OrderService extends BaseService<Order> {
       const order = complaintRequest.order;
       if (status === RequestStatusEnum.REJECTED) {
         if (!reasonRejected)
-          throw new BadRequestError('Reason Rejected required when rejected');
+          throw new BadRequestError('Reason Rejected is required');
         complaintRequest.status = status;
         complaintRequest.updatedBy = { id: loginUser } as Account;
         complaintRequest.reasonRejected =
@@ -726,7 +780,7 @@ class OrderService extends BaseService<Order> {
       ].includes(order.status)
     )
       throw new BadRequestError(
-        `Can not request complaint due to current status ${order.status}`
+        `Can not request complaint due to current status`
       );
     const masterConfig = await retrieveMasterConfig();
     const brandReceivedStatusTracking = await statusTrackingRepository.findOne({
@@ -792,7 +846,7 @@ class OrderService extends BaseService<Order> {
       if (!rejectRefundRequest) throw new BadRequestError('Request not found');
       if (status === RequestStatusEnum.REJECTED) {
         if (!reasonRejected)
-          throw new BadRequestError('Reason Rejected required when rejected');
+          throw new BadRequestError('Reason Rejected is required');
         rejectRefundRequest.updatedBy = { id: loginUser } as Account;
         rejectRefundRequest.status = status;
         rejectRefundRequest.reasonRejected =
@@ -882,7 +936,7 @@ class OrderService extends BaseService<Order> {
       if (!refundRequest) throw new BadRequestError('Request not found');
       if (status === RequestStatusEnum.REJECTED) {
         if (!reasonRejected)
-          throw new BadRequestError('Reason Rejected required when rejected');
+          throw new BadRequestError('Reason Rejected is required');
         refundRequest.status = status;
         refundRequest.updatedBy = { id: loginUser } as Account;
         await queryRunner.manager.save(OrderRequest, refundRequest);
@@ -965,9 +1019,7 @@ class OrderService extends BaseService<Order> {
         order.status
       )
     )
-      throw new BadRequestError(
-        `Can not request refund due to current status ${order.status}`
-      );
+      throw new BadRequestError(`Can not request refund due to current status`);
     const masterConfig = await retrieveMasterConfig();
     const deliveredStatusTracking = await statusTrackingRepository.findOne({
       where: {
@@ -1185,7 +1237,7 @@ class OrderService extends BaseService<Order> {
       if (!cancelOrderRequest) throw new BadRequestError('Request not found');
       if (status === RequestStatusEnum.REJECTED) {
         if (!reasonRejected)
-          throw new BadRequestError('Reason Rejected required when rejected');
+          throw new BadRequestError('Reason Rejected is required');
         cancelOrderRequest.updatedBy = { id: loginUser } as Account;
         cancelOrderRequest.status = status;
         cancelOrderRequest.reasonRejected = reasonRejected;
@@ -1371,9 +1423,7 @@ class OrderService extends BaseService<Order> {
           ShippingStatusEnum.PREPARING_ORDER,
         ].includes(order.status)
       )
-        throw new BadRequestError(
-          `Can not cancel order due to current status ${order.status}`
-        );
+        throw new BadRequestError(`Can not cancel order due to current status`);
       if (
         status == ShippingStatusEnum.BRAND_RECEIVED &&
         order.status != ShippingStatusEnum.RETURNING
@@ -1536,9 +1586,7 @@ class OrderService extends BaseService<Order> {
         await queryRunner.commitTransaction();
         return;
       }
-      throw new BadRequestError(
-        `Can not cancel due to current status ${order.status}`
-      );
+      throw new BadRequestError(`Can not cancel order due to current status`);
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -1697,7 +1745,7 @@ class OrderService extends BaseService<Order> {
         cancelStatus = 0;
       } else
         throw new BadRequestError(
-          `Can not request cancel due to current status ${order.status}`
+          `Can not request cancel due to current status`
         );
       await queryRunner.commitTransaction();
       return cancelStatus;

@@ -6,7 +6,6 @@ export const CreatePaymentUrlSchema = z.object({
     amount: z.number().positive('Amount must be positive').optional(),
     description: z
       .string()
-      .max(255, 'Description cannot exceed 255 characters')
       .optional(),
     returnUrl: z.string().optional(),
     cancelUrl: z.string().optional(),

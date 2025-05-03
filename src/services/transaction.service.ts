@@ -20,6 +20,7 @@ import {
   FilterTransactionRequest,
   GetDailyBookingStatisticsRequest,
   GetDailyOrderStatisticsRequest,
+  GetDailySystemStatisticsRequest,
   GetStatisticsRequest,
   PayRequest,
 } from '../dtos/request/transaction.request';
@@ -43,6 +44,34 @@ import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
 
 const repository = AppDataSource.getRepository(Transaction);
 class TransactionService extends BaseService<Transaction> {
+  async getDailySystemStatistics(getDailySystemStatisticsRequest: GetDailySystemStatisticsRequest)
+  {
+    const { startDate, endDate } = getDailySystemStatisticsRequest;
+    if (!startDate || !endDate) {
+      const today = new Date();
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(today.getMonth() - 1);
+      getDailySystemStatisticsRequest.startDate = oneMonthAgo;
+      getDailySystemStatisticsRequest.endDate = today;
+    } else {
+      getDailySystemStatisticsRequest.startDate = new Date(startDate);
+      getDailySystemStatisticsRequest.endDate = new Date(endDate);
+    }
+    const queryBuilder = transactionRepository
+      .createQueryBuilder('transaction')
+      .where('transaction.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      })
+      .andWhere('transaction.type IN (:...types)', {
+        types: [
+          TransactionTypeEnum.ORDER_PURCHASE,
+          TransactionTypeEnum.BOOKING_PURCHASE,
+          TransactionTypeEnum.TRANSFER_TO_WALLET,
+        ],
+      });
+    return await queryBuilder.getMany();
+  }
   async getDailyBookingStatistics(
     getDailyBookingStatisticsRequest: GetDailyBookingStatisticsRequest,
     loginUser: string
@@ -960,7 +989,7 @@ class TransactionService extends BaseService<Transaction> {
     const brand = await brandRepository.findOne({
       where: { id: brandId },
     });
-    if (!brand) throw new BadRequestError(`Brand not find`);
+    if (!brand) throw new BadRequestError(`Brand not found`);
     let startDate = new Date(getBrandRevenueStatisticsRequest.startDate);
     let endDate = new Date(getBrandRevenueStatisticsRequest.endDate);
     startDate.setHours(-7, 0, 0, 0);

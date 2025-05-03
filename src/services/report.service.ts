@@ -165,7 +165,7 @@ class ReportService extends BaseService<Report> {
 
       if (!allowedStatuses.includes(booking.status)) {
         throw new BadRequestError(
-          `Cannot create a report for booking with status: ${booking.status}`
+          `Cannot create a report for booking due to current status`
         );
       }
 
@@ -188,7 +188,7 @@ class ReportService extends BaseService<Report> {
         },
       });
       if (existedBookingReport)
-        throw new BadRequestError("You only report once for this booking");
+        throw new BadRequestError("Only report once for this booking");
       report.booking = booking;
     } else if (report.type == ReportTypeEnum.ORDER) {
       if (!createReportRequest.orderId)
@@ -208,7 +208,7 @@ class ReportService extends BaseService<Report> {
         },
       });
       if (existedOrderReport)
-        throw new BadRequestError("You only report once for this order");
+        throw new BadRequestError("Only report once for this order");
       report.order = order;
     }
     return await report.save();

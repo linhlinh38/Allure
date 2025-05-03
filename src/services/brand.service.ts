@@ -93,7 +93,7 @@ class BrandService extends BaseService<Brand> {
       });
       if (!brand) throw new BadRequestError('Brand not found');
       if (brand.status == brandUpdateStatusRequest.status)
-        throw new BadRequestError(`Status is already ${brand.status}`);
+        throw new BadRequestError(`Status is already set to the current value`);
       if (
         [
           BrandStatusEnum.DENIED,
@@ -108,12 +108,12 @@ class BrandService extends BaseService<Brand> {
         BrandStatusEnum.NEED_ADDITIONAL_DOCUMENTS
       ) {
         const masterConfig = await retrieveMasterConfig();
-        if (
+        if (  
           brand.currentUpdateProfileTime ==
           masterConfig.maximumUpdateBrandProfileTime
         ) {
           throw new BadRequestError(
-            `You can only update profile ${brand.currentUpdateProfileTime} times`
+            `You can only update profile 3 times`
           );
         }
         brand.currentUpdateProfileTime++;
@@ -130,7 +130,7 @@ class BrandService extends BaseService<Brand> {
         });
         const booking = bookings.length > 0 && bookings[0];
         if (!booking) {
-          throw new BadRequestError('No booking found');
+          throw new BadRequestError('Booking not found');
         }
         booking.status = BookingStatusEnum.COMPLETED;
         await queryRunner.manager.save(booking);

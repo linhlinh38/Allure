@@ -93,10 +93,10 @@ class FeedbackService extends BaseService<Feedback> {
         break;
       case FeedbackFilterEnum.RATING:
         if (!feedbackFilterRequest.value)
-          throw new BadRequestError('Rating must be provided');
+          throw new BadRequestError('Rating is required');
         const rating = parseInt(feedbackFilterRequest.value);
-        if (rating < 0 || rating > 5)
-          throw new BadRequestError('Rating must be between 0 and 5');
+        if (rating < 1 || rating > 5)
+          throw new BadRequestError('Rating must be between 1 and 5');
         query.andWhere('feedback.rating = :rating', { rating });
         break;
       case FeedbackFilterEnum.CLASSIFICATION:
@@ -378,7 +378,7 @@ class FeedbackService extends BaseService<Feedback> {
 
     if (orderDetail.order.account.id !== loginUser)
       throw new BadRequestError(
-        'You are not allowed to create feedback for this order'
+        'You are not allowed to create feedback for this order detail'
       );
     if (orderDetail.order.status != ShippingStatusEnum.COMPLETED)
       throw new BadRequestError('This order is not completed yet');
@@ -440,8 +440,8 @@ class FeedbackService extends BaseService<Feedback> {
         break;
       case FeedbackFilterEnum.RATING:
         const rating = filterRequest.value ? parseInt(filterRequest.value) : 5; // Default to 5 stars if not specified
-        if (isNaN(rating) || rating < 0 || rating > 5) {
-          throw new BadRequestError('Rating must be a number between 0 and 5');
+        if (isNaN(rating) || rating < 1 || rating > 5) {
+          throw new BadRequestError('Rating must be a number between 1 and 5');
         }
         queryBuilder.andWhere('feedback.rating = :rating', { rating });
         break;

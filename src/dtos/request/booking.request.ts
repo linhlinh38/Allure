@@ -29,8 +29,8 @@ export const BookingCreateSchema = z.object({
     consultantService: z.string().optional(),
     notes: z.string().optional(),
     type: z.nativeEnum(BookingTypeEnum),
-    slot: z.string().optional(),
-    brandId: z.string().uuid().optional(),
+    slot: z.string().uuid('Invalid slot ID').optional(),
+    brandId: z.string().uuid('Invalid brand ID').optional(),
   }),
 });
 

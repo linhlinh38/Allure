@@ -63,19 +63,19 @@ export const FilterTransactionSchema = z.object({
         'End date must be a valid date string'
       )
       .optional(),
-    accountId: z.string().uuid().optional(),
+    accountId: z.string().uuid('Invalid account ID').optional(),
   }),
 });
 
 export const OrderStatisticsSchema = z.object({
   body: z.object({
-    brandId: z.string().uuid().optional(),
+    brandId: z.string().uuid('Invalid brand ID').optional(),
   }),
 });
 
 export const GetFinancialSummarySchema = z.object({
   body: z.object({
-    accountId: z.string().uuid('Invalid format').optional(),
+    accountId: z.string().uuid('Invalid account ID').optional(),
   }),
 });
 

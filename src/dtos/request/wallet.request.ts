@@ -3,14 +3,14 @@ import { z } from 'zod';
 
 export const WalletCreateSchema = z.object({
   body: z.object({
-    balance: z.number().min(0).optional(),
-    ownerId: z.string().uuid(),
+    balance: z.number().min(0, 'Balance must be non-negative').optional(),
+    ownerId: z.string().uuid('Invalid owner ID')
   }),
 });
 
 export const WalletUpdateSchema = z.object({
   body: z.object({
-    balance: z.number().min(0),
+    balance: z.number().min(0, 'Balance must be non-negative'),
   }),
 });
 

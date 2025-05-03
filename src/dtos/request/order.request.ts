@@ -165,7 +165,7 @@ export const OrderFilterRequestSchema = z.object({
     statuses: z.array(z.nativeEnum(ShippingStatusEnum)).optional(),
     paymentMethods: z.array(z.nativeEnum(PaymentMethodEnum)).optional(),
     productIds: z.array(z.string()).optional(),
-    eventId: z.string().optional(),
+    eventId: z.string().uuid('Invalid event ID').optional(),
     type: z.enum(
       [
         OrderEnum.FLASH_SALE,
@@ -177,6 +177,7 @@ export const OrderFilterRequestSchema = z.object({
         errorMap: () => ({ message: 'Invalid order type' }),
       }
     ).optional(),
+    voucherId: z.string().optional(),
   }),
 });
 
@@ -209,6 +210,9 @@ export class OrderFilterRequest {
 
   @Expose()
   type: OrderEnum;
+
+  @Expose()
+  voucherId: string;
 }
 
 export class GetMyRequestsRequest {

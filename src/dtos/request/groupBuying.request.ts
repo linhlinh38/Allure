@@ -9,7 +9,7 @@ export const GroupBuyingCreateSchema = z.object({
       .refine((date) => !date || date > new Date(), {
         message: 'End Time must be greater than the current time.',
       }),
-    groupProductId: z.string().uuid('Group Product ID must be a valid string'),
+    groupProductId: z.string().uuid('Invalid group product ID'),
   }),
 });
 

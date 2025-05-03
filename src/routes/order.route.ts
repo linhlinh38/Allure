@@ -136,6 +136,11 @@ orderRouter.post(
   validate(OrderFilterRequestSchema),
   OrderController.filterParent
 );
+orderRouter.post(
+  '/filter-and-voucher',
+  validate(OrderFilterRequestSchema),
+  OrderController.filterAndVoucher
+);
 orderRouter.post('/create-pre-order', OrderController.createPreOrder);
 orderRouter.post('/create-group-order', OrderController.createGroupOrder);
 orderRouter.post(
