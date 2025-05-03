@@ -268,7 +268,6 @@ class AccountService extends BaseService<Account> {
       .orderBy(`account.${sortBy}`, order.toUpperCase() as 'ASC' | 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
-    console.log((queryBuilder.getQueryAndParameters()));
     
     const [accounts, total] = await queryBuilder.getManyAndCount();
 
