@@ -205,15 +205,6 @@ class GroupProductService extends BaseService<GroupProduct> {
 
   async updateVoucherInGroup(voucherRequest: VoucherRequest, voucher: Voucher) {
     // validate voucher
-    const existVoucherByName = await voucherRepository.findOne({
-      where: {
-        id: Not(voucher.id),
-        name: voucherRequest.name,
-      },
-    });
-    if (existVoucherByName) {
-      throw new BadRequestError('Voucher name already exists');
-    }
     const existVoucherByCode = await voucherRepository.findOne({
       where: {
         id: Not(voucher.id),
