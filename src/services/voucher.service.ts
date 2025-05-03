@@ -1262,7 +1262,7 @@ class VoucherService extends BaseService<Voucher> {
     if (new Date(voucherRequest.startTime) > new Date(voucherRequest.endTime)) {
       throw new BadRequestError('The start time cannot be after the end time');
     }
-    if (new Date() < new Date(voucher.startTime)) {
+    if (new Date() > new Date(voucher.startTime)) {
       throw new BadRequestError(
         'Cannot update a voucher that is already started'
       );
