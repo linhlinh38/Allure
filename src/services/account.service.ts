@@ -787,7 +787,7 @@ class AccountService extends BaseService<Account> {
       ) {
         product.productClassifications = [];
       }
-      productMap.get(product.id).classifications.push(item);
+      productMap.get(product.id).productClassifications.push(item);
     }
 
     const products = Array.from(productMap.values());
