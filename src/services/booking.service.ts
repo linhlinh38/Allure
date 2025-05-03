@@ -1104,12 +1104,11 @@ class BookingService extends BaseService<Booking> {
         reason
       );
       await queryRunner.manager.save(StatusTracking, statusTracking);
-
       if (
         booking.status !== BookingStatusEnum.TO_PAY &&
         booking.status !== BookingStatusEnum.BOOKING_CONFIRMED &&
-        booking.status === BookingStatusEnum.SERVICE_BOOKING_FORM_SUBMITED &&
-        !notRefund
+        (booking.status !== BookingStatusEnum.SERVICE_BOOKING_FORM_SUBMITED ||
+          !notRefund)
       ) {
         const wallet = await walletRepository.findOne({
           where: {
