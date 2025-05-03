@@ -235,12 +235,12 @@ class AccountService extends BaseService<Account> {
     }
     if (account) {
       if (account.role.role == RoleEnum.OPERATOR) {
-        queryBuilder.andWhere('role.role NOT IN (:...roles)', {
-          roles: [RoleEnum.OPERATOR, RoleEnum.ADMIN],
+        queryBuilder.andWhere('role.role NOT IN (:...roless)', {
+          roless: [RoleEnum.OPERATOR, RoleEnum.ADMIN],
         });
       } else if (account.role.role == RoleEnum.ADMIN) {
-        queryBuilder.andWhere('role.role NOT IN (:...roles)', {
-          roles: [RoleEnum.ADMIN],
+        queryBuilder.andWhere('role.role NOT IN (:...roless)', {
+          roless: [RoleEnum.ADMIN],
         });
       } else if (account.role.role == RoleEnum.MANAGER) {
         const brand = account.brands[0];
@@ -268,7 +268,7 @@ class AccountService extends BaseService<Account> {
       .orderBy(`account.${sortBy}`, order.toUpperCase() as 'ASC' | 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
-
+    
     const [accounts, total] = await queryBuilder.getManyAndCount();
 
     return {
