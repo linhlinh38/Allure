@@ -7,8 +7,8 @@ export const QuestionCreateSchema = z.object({
     question: z.string(),
     orderIndex: z
       .number()
-      .int()
-      .nonnegative("Order index must be a non-negative integer"),
+      .int('Order index must be an integer')
+      .nonnegative("Order index must be non-negative"),
     images: z.array(ServiceImageCreateSchema.shape.body).optional(),
     mandatory: z.boolean().optional(),
     answers: z.record(z.any()).optional(),

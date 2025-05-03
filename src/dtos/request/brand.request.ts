@@ -6,29 +6,50 @@ export const BrandCreateSchema = z.object({
   body: z.object({
     name: z
       .string()
-      .min(1, "Name is required")
-      .max(255, "Name cannot exceed 255 characters"),
-    logo: z.string().max(255, "Logo cannot exceed 255 characters").optional(),
+      .min(1, 'Name is required')
+      .max(255, 'Name cannot exceed 255 characters'),
+    logo: z.string().max(255, 'Logo cannot exceed 255 characters').optional(),
     documents: z.array(
       z
         .string()
-        .min(1, "Document is required")
-        .max(255, "Document cannot exceed 255 characters")
+        .min(1, 'Document is required')
+        .max(255, 'Document cannot exceed 255 characters')
     ),
     description: z.string().optional(),
-    email: z.string().email("Invalid email address"),
+    email: z.string().email('Invalid email'),
     phone: z.string().optional(),
     address: z
       .string()
-      .max(255, "Address cannot exceed 255 characters")
+      .max(255, 'Address cannot exceed 255 characters')
       .optional(),
-    businessTaxCode: z.string().max(100),
-    businessRegistrationCode: z.string().max(100),
-    establishmentDate: z.string().max(255).optional(),
-    province: z.string().max(255),
-    district: z.string().max(255),
-    ward: z.string().max(255),
-    businessRegistrationAddress: z.string().max(255).optional(),
+    businessTaxCode: z
+      .string()
+      .min(1, 'Business tax code is required')
+      .max(100, 'Business tax code cannot exceed 100 characters'),
+    businessRegistrationCode: z
+      .string()
+      .min(1, 'Business registration code is required')
+      .max(100, 'Business registration code cannot exceed 100 characters'),
+    establishmentDate: z
+      .string()
+      .max(255, 'Establishment date can not exceed 255 characters')
+      .optional(),
+    province: z
+      .string()
+      .min(1, 'Province is required')
+      .max(255, 'Province must contain at most 255 character(s)'),
+    district: z
+      .string()
+      .min(1, 'District is required')
+      .max(255, 'District must contain at most 100 character(s)'),
+    ward: z
+      .string()
+      .min(1, 'Ward is required')
+      .max(100, 'Ward must contain at most 100 character(s)'),
+    businessRegistrationAddress: z
+      .string()
+      .max(255, 'Business registration address can not exceed 255 characters')
+      .optional(),
   }),
 });
 

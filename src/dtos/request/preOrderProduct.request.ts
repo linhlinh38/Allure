@@ -21,7 +21,7 @@ export const PreOrderProductCreateSchema = z.object({
     ),
     product: z
       .string({ message: "Product ID is required" })
-      .uuid("Product ID must be a valid UUID"),
+      .uuid("Invalid product ID"),
     productData: ProductCreateSchema.shape.body.optional(),
   }),
 });
