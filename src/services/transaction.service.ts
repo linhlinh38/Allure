@@ -41,11 +41,14 @@ import { accountRepository } from '../repositories/account.repository';
 import { orderDetailRepository } from '../repositories/orderDetail.repository';
 import { addBookingToQueue } from '../utils/queue/cancelBookingQueue';
 import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
+import { voucherRepository } from '../repositories/voucher.repository';
+import { Voucher } from '../entities/voucher.entity';
 
 const repository = AppDataSource.getRepository(Transaction);
 class TransactionService extends BaseService<Transaction> {
-  async getDailySystemStatistics(getDailySystemStatisticsRequest: GetDailySystemStatisticsRequest)
-  {
+  async getDailySystemStatistics(
+    getDailySystemStatisticsRequest: GetDailySystemStatisticsRequest
+  ) {
     const { startDate, endDate } = getDailySystemStatisticsRequest;
     if (!startDate || !endDate) {
       const today = new Date();
@@ -509,8 +512,8 @@ class TransactionService extends BaseService<Transaction> {
           relations: {
             account: true,
             consultantService: {
-              systemService: true
-            }
+              systemService: true,
+            },
           },
         });
         if (!booking) throw new BadRequestError(`Booking not found`);
@@ -547,31 +550,30 @@ class TransactionService extends BaseService<Transaction> {
         await queryRunner.manager.save(Booking, booking);
 
         const masterConfig = await retrieveMasterConfig();
-         let delay = masterConfig.expiredBookingWaitForConfirm;
-          if (
-            booking.consultantService.systemService.type ===
-            ServiceTypeEnum.PREMIUM
-          ) {
-            const bookingStartTime = new Date(booking.startTime);
-            const now = new Date();
+        let delay = masterConfig.expiredBookingWaitForConfirm;
+        if (
+          booking.consultantService.systemService.type ===
+          ServiceTypeEnum.PREMIUM
+        ) {
+          const bookingStartTime = new Date(booking.startTime);
+          const now = new Date();
 
-            // Subtract 30 minutes (30 * 60 * 1000 milliseconds) from now
-            const nowMinus30Minutes = new Date(now.getTime() + 30 * 60 * 1000);
+          // Subtract 30 minutes (30 * 60 * 1000 milliseconds) from now
+          const nowMinus30Minutes = new Date(now.getTime() + 30 * 60 * 1000);
 
-            // Calculate the difference in milliseconds
-            delay = bookingStartTime.getTime() - nowMinus30Minutes.getTime();
+          // Calculate the difference in milliseconds
+          delay = bookingStartTime.getTime() - nowMinus30Minutes.getTime();
 
-            delay =
-              delay > masterConfig.expiredBookingWaitForConfirm
-                ? masterConfig.expiredBookingWaitForConfirm
-                : delay;
-          }
-            await addBookingToQueue(
-              booking.id,
-              delay,
-              BookingStatusEnum.WAIT_FOR_CONFIRMATION
-            );
-                
+          delay =
+            delay > masterConfig.expiredBookingWaitForConfirm
+              ? masterConfig.expiredBookingWaitForConfirm
+              : delay;
+        }
+        await addBookingToQueue(
+          booking.id,
+          delay,
+          BookingStatusEnum.WAIT_FOR_CONFIRMATION
+        );
       }
       await queryRunner.commitTransaction();
     } catch (error) {
@@ -620,7 +622,7 @@ class TransactionService extends BaseService<Transaction> {
       return data;
     } catch (error) {
       throw new BadRequestError(`Invalid transaction code`);
-    } 
+    }
   }
 
   async filterForConsultant(
@@ -1363,8 +1365,14 @@ class TransactionService extends BaseService<Transaction> {
   async getDailyOrderStatistics(
     getDailyOrderStatisticsRequest: GetDailyOrderStatisticsRequest
   ) {
-    const { productIds, orderType, brandId, eventIds, groupProductIds } =
-      getDailyOrderStatisticsRequest;
+    const {
+      productIds,
+      orderType,
+      brandId,
+      eventIds,
+      groupProductIds,
+      voucherId,
+    } = getDailyOrderStatisticsRequest;
     if (
       !getDailyOrderStatisticsRequest.startDate ||
       !getDailyOrderStatisticsRequest.endDate
@@ -1380,6 +1388,9 @@ class TransactionService extends BaseService<Transaction> {
     const queryBuilder = orderDetailRepository
       .createQueryBuilder('orderDetail')
       .leftJoinAndSelect('orderDetail.order', 'order')
+      .leftJoinAndSelect('order.voucher', 'shopVoucher')
+      .leftJoin('order.parent', 'parentOrder')
+      .leftJoin('parentOrder.voucher', 'platformVoucher')
       .innerJoin(
         'order.statusTrackings',
         'statusTracking',
@@ -1489,6 +1500,18 @@ class TransactionService extends BaseService<Transaction> {
         });
       }
     }
+    let voucher: Voucher;
+    if (voucherId) {
+      voucher = await voucherRepository.findOne({
+        where: { id: voucherId },
+        relations: { brand: true },
+      });
+      if (!voucher) throw new BadRequestError(`Voucher not found`);
+      if (voucher.brand)
+        queryBuilder.andWhere('shopVoucher.id = :voucherId', { voucherId });
+      else
+        queryBuilder.andWhere('platformVoucher.id = :voucherId', { voucherId });
+    }
     const results = await queryBuilder.getRawMany();
     const dateRange = this.generateDateRange(startDate, endDate);
 
@@ -1535,6 +1558,7 @@ class TransactionService extends BaseService<Transaction> {
     );
 
     return {
+      isParent: !voucher ? null : voucher.brand ? false : true,
       total,
       items: statistics,
     };

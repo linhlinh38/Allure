@@ -8,6 +8,7 @@ import {
   GetConsultantRevenueStatisticsSchema,
   GetDailyBookingStatisticsSchema,
   GetDailyOrderStatisticsSchema,
+  GetDailySystemStatisticsSchema,
   GetFinancialSummarySchema,
   OrderStatisticsSchema,
   PaySchema,
@@ -57,6 +58,12 @@ transactionRouter.post(
 );
 
 transactionRouter.post(
+  '/get-daily-system-statistics',
+  validate(GetDailySystemStatisticsSchema),
+  TransactionController.getDailySystemStatistics
+);
+
+transactionRouter.post(
   '/brand-revenue',
   validate(GetBrandRevenueStatisticsSchema),
   TransactionController.brandRevenue
@@ -96,5 +103,6 @@ transactionRouter.get(
   '/get-financial-summary',
   TransactionController.getFinancialSummary
 );
+
 
 export default transactionRouter;
