@@ -49,31 +49,139 @@ class TransactionService extends BaseService<Transaction> {
   async getDailySystemStatistics(
     getDailySystemStatisticsRequest: GetDailySystemStatisticsRequest
   ) {
-    const { startDate, endDate } = getDailySystemStatisticsRequest;
-    if (!startDate || !endDate) {
+    if (
+      !getDailySystemStatisticsRequest.startDate ||
+      !getDailySystemStatisticsRequest.endDate
+    ) {
       const today = new Date();
       const oneMonthAgo = new Date();
       oneMonthAgo.setMonth(today.getMonth() - 1);
       getDailySystemStatisticsRequest.startDate = oneMonthAgo;
       getDailySystemStatisticsRequest.endDate = today;
     } else {
-      getDailySystemStatisticsRequest.startDate = new Date(startDate);
-      getDailySystemStatisticsRequest.endDate = new Date(endDate);
+      getDailySystemStatisticsRequest.startDate = new Date(
+        getDailySystemStatisticsRequest.startDate
+      );
+      getDailySystemStatisticsRequest.endDate = new Date(
+        getDailySystemStatisticsRequest.endDate
+      );
     }
-    const queryBuilder = transactionRepository
-      .createQueryBuilder('transaction')
-      .where('transaction.createdAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
+    const { startDate, endDate } = getDailySystemStatisticsRequest;
+    
+    const bookingqueryBuilder = bookingRepository
+      .createQueryBuilder('booking')
+      .innerJoin(
+        'booking.statusTrackings',
+        'statusTracking',
+        'statusTracking.status = :status AND statusTracking.createdAt BETWEEN :startDate AND :endDate',
+        { status: BookingStatusEnum.WAIT_FOR_CONFIRMATION, startDate, endDate }
+      )
+      .innerJoin('booking.consultantService', 'consultantService')
+      .where('booking.type = :type', { type: BookingTypeEnum.SERVICE })
+      .select([
+        "DATE_TRUNC('day', statusTracking.createdAt) as date",
+        'SUM(CASE WHEN booking.status != :cancelledStatus THEN booking.totalPrice ELSE 0 END) as totalRevenue',
+        'SUM(CASE WHEN booking.status != :cancelledStatus THEN booking.commissionFee ELSE 0 END) as totalCommissionFee',
+        'SUM(CASE WHEN booking.status != :cancelledStatus THEN booking.totalPrice - booking.commissionFee ELSE 0 END) as actualRevenue',
+      ])
+      .setParameter('cancelledStatus', BookingStatusEnum.CANCELLED)
+      .groupBy("DATE_TRUNC('day', statusTracking.createdAt)")
+      .orderBy('date', 'DESC');
+
+    const orderQueryBuilder = orderDetailRepository
+      .createQueryBuilder('orderDetail')
+      .leftJoinAndSelect('orderDetail.order', 'order')
+      .innerJoin(
+        'order.statusTrackings',
+        'statusTracking',
+        'statusTracking.status = :status AND statusTracking.createdAt BETWEEN :startDate AND :endDate',
+        {
+          status: ShippingStatusEnum.WAIT_FOR_CONFIRMATION,
+          startDate,
+          endDate,
+        }
+      )
+      .leftJoinAndSelect('order.account', 'account')
+      .leftJoinAndSelect('order.groupBuying', 'groupBuying')
+      .leftJoinAndSelect('groupBuying.groupProduct', 'groupProduct')
+      .leftJoinAndSelect(
+        'orderDetail.productClassification',
+        'productClassification'
+      )
+      .leftJoinAndSelect('productClassification.product', 'product')
+      .leftJoinAndSelect(
+        'productClassification.productDiscount',
+        'productDiscount'
+      )
+      .leftJoinAndSelect('productDiscount.product', 'discountProduct')
+      .leftJoinAndSelect(
+        'productClassification.preOrderProduct',
+        'preOrderProduct'
+      )
+      .leftJoinAndSelect('preOrderProduct.product', 'preOrderProductItem')
+      .select([
+        "DATE_TRUNC('day', statusTracking.createdAt) as date",
+        'SUM(orderDetail.totalPrice) as totalRevenue',
+        'SUM(orderDetail.commissionFee) as totalCommissionFee',
+        'SUM(orderDetail.totalPrice + orderDetail.platformVoucherDiscount - orderDetail.commissionFee) as actualRevenue',
+        'SUM(orderDetail.platformVoucherDiscount) as totalPlatformVoucherDiscount',
+      ])
+      .where('order.parent_id IS NOT NULL')
+      .andWhere('order.status NOT IN (:...statuses)', {
+        statuses: [ShippingStatusEnum.CANCELLED, ShippingStatusEnum.REFUNDED],
       })
-      .andWhere('transaction.type IN (:...types)', {
-        types: [
-          TransactionTypeEnum.ORDER_PURCHASE,
-          TransactionTypeEnum.BOOKING_PURCHASE,
-          TransactionTypeEnum.TRANSFER_TO_WALLET,
-        ],
-      });
-    return await queryBuilder.getMany();
+      .groupBy("DATE_TRUNC('day', statusTracking.createdAt)")
+      .orderBy('date', 'DESC');
+
+    const bookingResults = await bookingqueryBuilder.getRawMany();
+    const orderResults = await orderQueryBuilder.getRawMany();
+
+    const dateRange = this.generateDateRange(startDate, endDate);
+
+    const dailyStatistics = dateRange.map((date) => {
+      const bookingResult = bookingResults.find(
+        (r) => r.date.toISOString().split('T')[0] === date
+      );
+      const orderResult = orderResults.find(
+        (r) => r.date.toISOString().split('T')[0] === date
+      );
+      return {
+        date,
+        totalRevenue:
+          parseFloat(bookingResult?.totalrevenue || '0') +
+          parseFloat(orderResult?.totalrevenue || '0'),
+        totalCommissionFee:
+          parseFloat(bookingResult?.totalcommissionfee || '0') +
+          parseFloat(orderResult?.totalcommissionfee || '0'),
+        actualRevenue:
+          parseFloat(bookingResult?.actualrevenue || '0') +
+          parseFloat(orderResult?.actualrevenue || '0'),
+        totalPlatformVoucherDiscount: parseFloat(
+          orderResult?.totalplatformvoucherdiscount || '0'
+        ),
+      };
+    });
+    const total = dailyStatistics.reduce(
+      (acc, curr) => {
+        acc.totalRevenue += curr.totalRevenue;
+        acc.totalCommissionFee += curr.totalCommissionFee;
+        acc.actualRevenue += curr.actualRevenue;
+        acc.totalPlatformVoucherDiscount += curr.totalPlatformVoucherDiscount;
+        return acc;
+      },
+      {
+        totalRevenue: 0,
+        totalCommissionFee: 0,
+        actualRevenue: 0,
+        totalPlatformVoucherDiscount: 0,
+      }
+    );
+    return {
+      total,
+      items: dailyStatistics,
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
+    };
   }
   async getDailyBookingStatistics(
     getDailyBookingStatisticsRequest: GetDailyBookingStatisticsRequest,
@@ -121,12 +229,9 @@ class TransactionService extends BaseService<Transaction> {
     }
 
     if (consultantServiceId) {
-      queryBuilder.andWhere(
-        'consultantService.id = :consultantServiceId',
-        {
-          consultantServiceId,
-        }
-      );
+      queryBuilder.andWhere('consultantService.id = :consultantServiceId', {
+        consultantServiceId,
+      });
     }
 
     const results = await queryBuilder
