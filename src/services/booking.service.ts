@@ -79,6 +79,11 @@ class BookingService extends BaseService<Booking> {
         statusTrackings: { mediaFiles: true },
         report: true,
       },
+      order: {
+        statusTrackings: {
+          createdAt: "ASC",
+        },
+      },
     });
     if (!booking) throw new BadRequestError("Booking not found");
     return booking;
