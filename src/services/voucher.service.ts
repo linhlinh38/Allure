@@ -1291,7 +1291,7 @@ class VoucherService extends BaseService<Voucher> {
       });
       voucher.applyProducts = applyProducts;
     }
-    await this.update(id, voucher);
+    await voucher.save();
   }
 
   async getAll() {
