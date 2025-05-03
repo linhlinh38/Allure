@@ -80,7 +80,11 @@ class BookingService extends BaseService<Booking> {
         report: true,
         feedback: {
           mediaFiles: true,
-          replies: true,
+          replies: {
+            account: {
+              role: true,
+            },
+          },
         },
       },
       order: {
