@@ -97,7 +97,7 @@ class TransactionService extends BaseService<Transaction> {
       getDailyBookingStatisticsRequest.startDate = new Date(startDate);
       getDailyBookingStatisticsRequest.endDate = new Date(endDate);
     }
-    const { startDate, endDate, consultantId } =
+    const { startDate, endDate, consultantId, consultantServiceId } =
       getDailyBookingStatisticsRequest;
 
     const queryBuilder = bookingRepository
@@ -118,6 +118,15 @@ class TransactionService extends BaseService<Transaction> {
       queryBuilder.andWhere('consultantService.account_id = :consultantId', {
         consultantId,
       });
+    }
+
+    if (consultantServiceId) {
+      queryBuilder.andWhere(
+        'consultantService.id = :consultantServiceId',
+        {
+          consultantServiceId,
+        }
+      );
     }
 
     const results = await queryBuilder

@@ -136,6 +136,7 @@ export const GetDailyBookingStatisticsSchema = z.object({
       )
       .optional(),
     consultantId: z.string().uuid().optional(),
+    consultantServiceId: z.string().uuid().optional(),
   }),
 });
 
@@ -201,6 +202,9 @@ export class GetDailyBookingStatisticsRequest {
 
   @Expose()
   consultantId: string;
+
+  @Expose()
+  consultantServiceId: string;
 }
 
 export class GetDailyOrderStatisticsRequest {
