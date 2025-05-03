@@ -27,6 +27,8 @@ import { reportRepository } from '../repositories/report.repository';
 import { accountRepository } from '../repositories/account.repository';
 import { brandRepository } from '../repositories/brand.repository';
 import { ProductClassification } from '../entities/productClassification.entity';
+import { walletRepository } from '../repositories/wallet.reposirory';
+import { Wallet } from '../entities/wallet.entity';
 const repository = AppDataSource.getRepository(Account);
 
 interface FilterOptions {
@@ -359,6 +361,12 @@ class AccountService extends BaseService<Account> {
         createdAccount,
         accountData
       );
+
+      const wallet = new Wallet();
+      wallet.owner = createdAccount;
+      wallet.balance = 0;
+      wallet.availableBalance = 0;
+      await queryRunner.manager.save(Wallet, wallet);
 
       await queryRunner.commitTransaction();
 
