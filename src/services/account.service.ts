@@ -778,6 +778,7 @@ class AccountService extends BaseService<Account> {
     const productMap = new Map();
     for (const item of items) {
       const { product } = item;
+      delete item.product;
       if (!productMap.has(product.id)) {
         productMap.set(product.id, product);
       }
