@@ -177,6 +177,7 @@ export const OrderFilterRequestSchema = z.object({
         errorMap: () => ({ message: 'Invalid order type' }),
       }
     ).optional(),
+    voucherId: z.string().optional(),
   }),
 });
 
@@ -209,6 +210,9 @@ export class OrderFilterRequest {
 
   @Expose()
   type: OrderEnum;
+
+  @Expose()
+  voucherId: string;
 }
 
 export class GetMyRequestsRequest {

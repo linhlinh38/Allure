@@ -26,7 +26,33 @@ import {
 import { Paging } from '../dtos/other/paging.dto';
 
 export default class OrderController {
-  static async getQuantitySold(req: AuthRequest, res: Response, next: NextFunction) {
+  static async filterAndVoucher(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const paging = {
+        page: Number(req.query.page) ? Number(req.query.page) : 1,
+        limit: Number(req.query.limit) ? Number(req.query.limit) : 10,
+      } as Paging;
+      const orderFilterRequest = plainToInstance(OrderFilterRequest, req.body, {
+        excludeExtraneousValues: true,
+      });
+      return createNormalResponse(
+        res,
+        'Filter orders success',
+        await orderService.filterAndVoucher(
+          orderFilterRequest,
+          paging,
+          req.loginUser,
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async getQuantitySold(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const getQuantitySoldRequest = plainToInstance(
         GetQuantitySoldRequest,
@@ -57,6 +83,25 @@ export default class OrderController {
           req.params.orderId,
           req.body.paymentMethod
         )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async getByVoucher(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const paging = {
+        page: Number(req.query.page) ? Number(req.query.page) : 1,
+        limit: Number(req.query.limit) ? Number(req.query.limit) : 10,
+      } as Paging;
+      return createNormalResponse(
+        res,
+        'Get orders by voucher success',
+        await orderService.getByVoucher(req.params.voucherId, paging)
       );
     } catch (err) {
       next(err);
