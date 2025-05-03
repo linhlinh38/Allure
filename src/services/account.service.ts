@@ -26,8 +26,6 @@ import { productClassificationRepository } from '../repositories/productClassifi
 import { reportRepository } from '../repositories/report.repository';
 import { accountRepository } from '../repositories/account.repository';
 import { brandRepository } from '../repositories/brand.repository';
-import { ProductClassification } from '../entities/productClassification.entity';
-import { walletRepository } from '../repositories/wallet.reposirory';
 import { Wallet } from '../entities/wallet.entity';
 const repository = AppDataSource.getRepository(Account);
 
@@ -268,7 +266,7 @@ class AccountService extends BaseService<Account> {
       .orderBy(`account.${sortBy}`, order.toUpperCase() as 'ASC' | 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
-    
+
     const [accounts, total] = await queryBuilder.getManyAndCount();
 
     return {
@@ -728,12 +726,7 @@ class AccountService extends BaseService<Account> {
     brandId: string,
     page: number,
     limit: number
-  ): Promise<{
-    items: ProductClassification[];
-    total: number;
-    page: number;
-    limit: number;
-  }> {
+  ) {
     // Fetch consultation results for the consultant
     const consultationResults = await consultationResultRepository.find({
       where: {
@@ -750,20 +743,56 @@ class AccountService extends BaseService<Account> {
     const queryBuilder = productClassificationRepository
       .createQueryBuilder('productClassification')
       .leftJoinAndSelect('productClassification.product', 'product')
+      .leftJoin('product.category', 'category')
+      .addSelect([
+        'category.id',
+        'category.name',
+        'category.level',
+        'category.status',
+      ])
+      .leftJoin('category.parentCategory', 'parentCategory')
+      .addSelect([
+        'parentCategory.id',
+        'parentCategory.name',
+        'parentCategory.level',
+        'parentCategory.status',
+      ])
       .leftJoinAndSelect('product.brand', 'brand')
-      .where('productClassification.id IN (:...ids)', {
-        ids: productClassificationIds,
+      .leftJoinAndSelect('productClassification.images', 'classificationImages')
+      .leftJoinAndSelect('product.images', 'images')
+      .andWhere('images.status = :imageStatus', {
+        imageStatus: StatusEnum.ACTIVE,
       })
       .andWhere('brand.id = :brandId', { brandId });
-
+    if (productClassificationIds.length > 0) {
+      queryBuilder.andWhere('productClassification.id IN (:...ids)', {
+        ids: productClassificationIds,
+      });
+    }
     // Pagination
     queryBuilder.skip((page - 1) * limit).take(limit);
 
     // Execute query and get total count
     const [items, total] = await queryBuilder.getManyAndCount();
 
+    const productMap = new Map();
+    for (const item of items) {
+      const { product } = item;
+      if (!productMap.has(product.id)) {
+        productMap.set(product.id, product);
+      }
+      if (
+        !product.productClassifications ||
+        product.productClassifications.length == 0
+      ) {
+        product.productClassifications = [];
+      }
+      productMap.get(product.id).classifications.push(item);
+    }
+
+    const products = Array.from(productMap.values());
     return {
-      items,
+      items: products,
       total,
       page,
       limit,
