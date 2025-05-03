@@ -6,6 +6,7 @@ import {
   ConsultantServiceCreateSchema,
   ConsultantServiceUpdateSchema,
 } from "../dtos/request/consultantService.request";
+import { Author } from "../middleware/authorization";
 const consultantServiceRouter = express.Router();
 
 consultantServiceRouter.get("/", consultantServiceController.getAll);
@@ -28,16 +29,19 @@ consultantServiceRouter.use(authentication);
 
 consultantServiceRouter.post(
   "/",
+  Author(["CONSULTANT"]),
   validate(ConsultantServiceCreateSchema),
   consultantServiceController.create
 );
 consultantServiceRouter.put(
   "/:id",
+  Author(["CONSULTANT"]),
   validate(ConsultantServiceUpdateSchema),
   consultantServiceController.update
 );
 consultantServiceRouter.put(
   "/update-status/:id",
+  Author(["CONSULTANT", "ADMIN", "OPERATOR"]),
   consultantServiceController.updateStatus
 );
 export default consultantServiceRouter;

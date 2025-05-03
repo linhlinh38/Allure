@@ -8,6 +8,7 @@ import {
   GetSomeoneSlotsSchema,
   NoteResultSchema,
 } from "../dtos/request/booking.request";
+import { Author } from "../middleware/authorization";
 const bookingRoute = express.Router();
 
 bookingRoute.use(authentication);
@@ -23,7 +24,12 @@ bookingRoute.get(
   BookingController.getBookingOfBrand
 );
 bookingRoute.get("/get-my-bookings", BookingController.getMyBookings);
-bookingRoute.post("/", validate(BookingCreateSchema), BookingController.create);
+bookingRoute.post(
+  "/",
+  Author(["CUSTOMER"]),
+  validate(BookingCreateSchema),
+  BookingController.create
+);
 bookingRoute.put("/:id", BookingController.update);
 bookingRoute.put(
   "/:id",

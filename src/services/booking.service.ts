@@ -78,6 +78,10 @@ class BookingService extends BaseService<Booking> {
         consultationResult: true,
         statusTrackings: { mediaFiles: true },
         report: true,
+        feedback: {
+          mediaFiles: true,
+          replies: true,
+        },
       },
       order: {
         statusTrackings: {

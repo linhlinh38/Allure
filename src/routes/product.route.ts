@@ -8,6 +8,7 @@ import {
   RecommendProductsSchema,
 } from "../dtos/request/product.request";
 import ProductController from "../controllers/product.controller";
+import { Author } from "../middleware/authorization";
 
 const productRouter = express.Router();
 
@@ -29,16 +30,19 @@ productRouter.get("/", ProductController.getAll);
 productRouter.use(authentication);
 productRouter.post(
   "/",
+  Author(["MANAGER", "STAFF"]),
   validate(ProductCreateSchema),
   ProductController.create
 );
 productRouter.put(
   "/:id",
+  Author(["MANAGER", "STAFF"]),
   validate(ProductUpdateSchema),
   ProductController.update
 );
 productRouter.put(
   "/update-status/:id",
+  Author(["MANAGER", "STAFF", "ADMIN", "OPERATOR"]),
   validate(ProductUpdateStatusSchema),
   ProductController.updateProductStatus
 );
