@@ -6,6 +6,7 @@ import {
   SystemServiceCreateSchema,
   SystemServiceUpdateSchema,
 } from "../dtos/request/systemService.request";
+import { Author } from "../middleware/authorization";
 const systemServiceRouter = express.Router();
 
 systemServiceRouter.get("/", systemServiceController.getAll);
@@ -18,16 +19,19 @@ systemServiceRouter.use(authentication);
 
 systemServiceRouter.post(
   "/",
+  Author(["ADMIN", "OPERATOR"]),
   validate(SystemServiceCreateSchema),
   systemServiceController.create
 );
 systemServiceRouter.put(
   "/:id",
+  Author(["ADMIN", "OPERATOR"]),
   validate(SystemServiceUpdateSchema),
   systemServiceController.update
 );
 systemServiceRouter.put(
   "/update-status/:id/:status",
+  Author(["ADMIN", "OPERATOR"]),
   systemServiceController.updateStatus
 );
 export default systemServiceRouter;
