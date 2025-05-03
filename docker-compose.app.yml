@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   app:
     image: minhpham11311/allure-app:latest
