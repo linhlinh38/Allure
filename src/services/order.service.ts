@@ -82,6 +82,7 @@ import { orderDetailRepository } from '../repositories/orderDetail.repository';
 import { productDiscountRepository } from '../repositories/productDiscount.repository';
 import { livestreamRepository } from '../repositories/livestream.repository';
 import { groupBuyingRepository } from '../repositories/groupBuying.repository';
+import { productRepository } from '../repositories/product.repository';
 
 const repository = AppDataSource.getRepository(Order);
 class OrderService extends BaseService<Order> {
@@ -104,6 +105,33 @@ class OrderService extends BaseService<Order> {
       )
       .andWhere('order.parent_id IS NOT NULL');
     switch (type) {
+      case OrderEnum.NORMAL: {
+        const product = await productRepository.findOne({
+          where: {
+            id: eventId,
+          },
+        });
+        if (!product) throw new BadRequestError('Event not found');
+        const result = await initQuery
+          .leftJoinAndSelect('productClassification.product', 'product')
+          .leftJoinAndSelect(
+            'productClassification.productDiscount',
+            'productDiscount'
+          )
+          .leftJoinAndSelect('productDiscount.product', 'discountProduct')
+          .leftJoinAndSelect(
+            'productClassification.preOrderProduct',
+            'preOrderProduct'
+          )
+          .leftJoinAndSelect('preOrderProduct.product', 'preOrderProductItem')
+          .andWhere(
+            '(product.id = :eventId OR discountProduct.id = :eventId OR preOrderProductItem.id = :eventId)',
+            { eventId }
+          )
+          .select('SUM(orderDetail.quantity)', 'quantity')
+          .getRawOne();
+        return { total: Number(result.quantity || 0) };
+      }
       case OrderEnum.PRE_ORDER: {
         const preOrderProduct = await preOrderProductRepository.findOne({
           where: {

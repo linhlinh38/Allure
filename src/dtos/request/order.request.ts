@@ -109,6 +109,7 @@ export const GetQuantitySoldSchema = z.object({
         OrderEnum.PRE_ORDER,
         OrderEnum.GROUP_BUYING,
         OrderEnum.LIVE_STREAM,
+        OrderEnum.NORMAL,
       ],
       {
         errorMap: () => ({ message: 'Invalid order type' }),
