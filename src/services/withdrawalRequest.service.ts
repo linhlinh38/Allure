@@ -107,8 +107,7 @@ export class WithdrawalRequestService {
           )
         ) {
           throw new BadRequestError(
-            'When current status is Pending, only allowed status: ' +
-              nextWithDrawStatusMap[withdrawalRequest.status].join(', ')
+            'Can not update this status when current is PENDING'
           );
         }
         if (request.status === WithdrawalStatusEnum.REJECTED) {
@@ -129,8 +128,7 @@ export class WithdrawalRequestService {
           )
         ) {
           throw new BadRequestError(
-            'When current status is Approved, only allowed status: ' +
-              nextWithDrawStatusMap[withdrawalRequest.status].join(', ')
+            'Can not update this status when current is APPROVED' 
           );
         }
         if (request.status === WithdrawalStatusEnum.COMPLETED) {
@@ -168,7 +166,7 @@ export class WithdrawalRequestService {
         ].includes(request.status)
       ) {
         throw new BadRequestError(
-          `Can not update anymore due to current status ${withdrawalRequest.status}`
+          `Can not update anymore due to current status`
         );
       }
       withdrawalRequest.status = request.status;
@@ -278,18 +276,21 @@ export class WithdrawalRequestService {
       account.role.role == RoleEnum.ADMIN ||
       account.role.role == RoleEnum.OPERATOR
     ) {
-      if (filter.accountId) {
-        queryBuilder.andWhere('account.id = :accountId', {
-          accountId: filter.accountId,
-        });
+      if (filter.relatedAccountId) {
+        queryBuilder.andWhere(
+          'account.id = :relatedAccountId OR processedBy.id = :relatedAccountId',
+          {
+            relatedAccountId: filter.relatedAccountId,
+          }
+        );
       }
     } else {
       throw new BadRequestError('You are not allowed to access this resource');
     }
 
-    if (filter.processedById) {
-      queryBuilder.andWhere('processedBy.id = :processedById', {
-        processedById: filter.processedById,
+    if (filter.relatedAccountId) {
+      queryBuilder.andWhere('processedBy.id = :relatedAccountId', {
+        relatedAccountId: filter.processedById,
       });
     }
 

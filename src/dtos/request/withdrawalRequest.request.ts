@@ -4,8 +4,8 @@ import { Expose } from 'class-transformer';
 
 export const CreateWithdrawalRequestSchema = z.object({
   body: z.object({
-    amount: z.number().min(1, 'Amount must be greater than 0'),
-    bankAccountId: z.string().uuid(),
+    amount: z.number().min(1, 'Amount must be positive'),
+    bankAccountId: z.string().uuid('Invalid bank account ID'),
   }),
 });
 
@@ -19,7 +19,7 @@ export const UpdateWithdrawalRequestSchema = z.object({
 
 export const FilterWithdrawalRequestSchema = z.object({
   body: z.object({
-    accountId: z.string().uuid().optional(),
+    relatedAccountId: z.string().uuid('Invalid related account ID').optional(),
     processedById: z.string().uuid().optional(),
     statuses: z.array(z.nativeEnum(WithdrawalStatusEnum)).optional(),
   }),
@@ -57,7 +57,7 @@ export class UpdateWithdrawalRequest {
 
 export class FilterWithdrawalRequest {
   @Expose()
-  accountId?: string;
+  relatedAccountId?: string;
 
   @Expose()
   processedById?: string;

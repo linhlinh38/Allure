@@ -6,6 +6,7 @@ import {
   FilterTransactionRequest,
   GetDailyBookingStatisticsRequest,
   GetDailyOrderStatisticsRequest,
+  GetDailySystemStatisticsRequest,
   GetStatisticsRequest,
   PayRequest,
 } from '../dtos/request/transaction.request';
@@ -13,6 +14,45 @@ import { transactionService } from '../services/transaction.service';
 import { Paging } from '../dtos/other/paging.dto';
 
 export default class TransactionController {
+  static async autoDeposit(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      return createNormalResponse(
+        res,
+        'Deposit successfully',
+        await transactionService.autoDeposit(req.loginUser)
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+  static async getDailySystemStatistics(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const getDailySystemStatisticsRequest = plainToInstance(
+        GetDailySystemStatisticsRequest,
+        req.body,
+        {
+          excludeExtraneousValues: true,
+        }
+      );
+      return createNormalResponse(
+        res,
+        'Get daily system statistics successfully',
+        await transactionService.getDailySystemStatistics(
+          getDailySystemStatisticsRequest
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
   static async getDailyBookingStatistics(
     req: AuthRequest,
     res: Response,
@@ -120,7 +160,10 @@ export default class TransactionController {
       return createNormalResponse(
         res,
         'Get financial summary successfully',
-        await transactionService.getFinancialSummary(req.loginUser)
+        await transactionService.getFinancialSummary(
+          req.loginUser,
+          req.body.accountId
+        )
       );
     } catch (err) {
       next(err);

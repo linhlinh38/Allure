@@ -389,12 +389,33 @@ class BookingService extends BaseService<Booking> {
       },
     });
 
-    return filteredSlots.map((slot) => {
-      const isAvailable = !bookings.find(
-        (booking) => booking.slot.id == slot.id
-      );
-      return { ...slot, isAvailable };
-    });
+    const currentTime = new Date();
+    const currentHour = currentTime.getHours();
+    const currentMinute = currentTime.getMinutes();
+
+    return filteredSlots
+      .filter((slot) => {
+        // Nếu slot là ngày hôm nay, kiểm tra giờ
+        if (slot.weekDay === currentTime.getDay() + 1) {
+          const slotHour = parseInt(slot.startTime.split(":")[0]);
+          const slotMinute = parseInt(slot.startTime.split(":")[1]);
+
+          // Nếu slot đã qua giờ hiện tại thì bỏ qua
+          if (
+            slotHour < currentHour ||
+            (slotHour === currentHour && slotMinute <= currentMinute)
+          ) {
+            return false;
+          }
+        }
+        return true;
+      })
+      .map((slot) => {
+        const isAvailable = !bookings.find(
+          (booking) => booking.slot.id == slot.id
+        );
+        return { ...slot, isAvailable };
+      });
   }
 
   async filterBookings(

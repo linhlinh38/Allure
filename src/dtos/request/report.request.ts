@@ -7,7 +7,7 @@ export const FilterReportsSchema = z.object({
     types: z.array(z.nativeEnum(ReportTypeEnum)).optional(),
     reason: z.string().optional(),
     statuses: z.array(z.nativeEnum(ReportStatusEnum)).optional(),
-    assigneeId: z.string().uuid().optional(),
+    assigneeId: z.string().uuid('Invalid assingee ID').optional(),
   }),
 });
 

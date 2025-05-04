@@ -37,7 +37,7 @@ export const VoucherCreateSchema = z.object({
       .optional(),
     amount: z
       .number()
-      .int('Amount must be integer')
+      .int('Amount must be an integer')
       .positive('Amount must be positive')
       .optional(),
     startTime: z

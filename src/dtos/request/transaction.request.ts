@@ -63,13 +63,19 @@ export const FilterTransactionSchema = z.object({
         'End date must be a valid date string'
       )
       .optional(),
-    accountId: z.string().uuid().optional(),
+    accountId: z.string().uuid('Invalid account ID').optional(),
   }),
 });
 
 export const OrderStatisticsSchema = z.object({
   body: z.object({
-    brandId: z.string().uuid().optional(),
+    brandId: z.string().uuid('Invalid brand ID').optional(),
+  }),
+});
+
+export const GetFinancialSummarySchema = z.object({
+  body: z.object({
+    accountId: z.string().uuid('Invalid account ID').optional(),
   }),
 });
 
@@ -130,6 +136,26 @@ export const GetDailyBookingStatisticsSchema = z.object({
       )
       .optional(),
     consultantId: z.string().uuid().optional(),
+    consultantServiceId: z.string().uuid().optional(),
+  }),
+});
+
+export const GetDailySystemStatisticsSchema = z.object({
+  body: z.object({
+    startDate: z
+      .string()
+      .refine(
+        (value) => !isNaN(Date.parse(value)),
+        'Start date must be a valid date string'
+      )
+      .optional(),
+    endDate: z
+      .string()
+      .refine(
+        (value) => !isNaN(Date.parse(value)),
+        'End date must be a valid date string'
+      )
+      .optional(),
   }),
 });
 
@@ -154,8 +180,17 @@ export const GetDailyOrderStatisticsSchema = z.object({
     eventIds: z.array(z.string().uuid()).optional(),
     groupProductIds: z.array(z.string().uuid()).optional(),
     brandId: z.string().uuid().optional(),
+    voucherId: z.string().uuid().optional(),
   }),
-});
+}); 
+
+export class GetDailySystemStatisticsRequest {
+  @Expose()
+  startDate: Date;
+
+  @Expose()
+  endDate: Date;
+}
 
 
 export class GetDailyBookingStatisticsRequest {
@@ -167,6 +202,9 @@ export class GetDailyBookingStatisticsRequest {
 
   @Expose()
   consultantId: string;
+
+  @Expose()
+  consultantServiceId: string;
 }
 
 export class GetDailyOrderStatisticsRequest {
@@ -190,6 +228,9 @@ export class GetDailyOrderStatisticsRequest {
 
   @Expose()
   brandId: string;
+
+  @Expose()
+  voucherId: string;
 }
 
 export class FilterTransactionRequest {

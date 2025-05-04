@@ -11,7 +11,6 @@ export const GroupProductCreateSchema = z.object({
       .max(255, 'Name cannot exceed 255 characters'),
     description: z
       .string()
-      .max(255, 'Description cannot exceed 255 characters')
       .optional(),
     maxBuyAmountEachPerson: z
       .number()
@@ -19,7 +18,7 @@ export const GroupProductCreateSchema = z.object({
       .positive('Max buy amount each person must be a positive integer')
       .optional(),
     productIds: z
-      .array(z.string().uuid('Product ID must be a valid string'))
+      .array(z.string().uuid('Invalid product ID'))
       .nonempty('Product IDs cannot be empty'),
     criterias: z
       .array(
@@ -32,7 +31,7 @@ export const GroupProductCreateSchema = z.object({
         })
       )
       .nonempty('Criterias cannot be empty'),
-    brandId: z.string().uuid('Brand ID must be a valid string'),
+    brandId: z.string().uuid('Invalid brand ID'),
   }),
 });
 

@@ -4,9 +4,16 @@ import { FeedbackFilterEnum } from '../../utils/enum';
 
 export const FeedbackCreateSchema = z.object({
   body: z.object({
-    rating: z.number().int().min(1).max(5), // Assuming rating is between 1 and 5
-    content: z.string().min(25).max(500), // Adjust max length as needed
-    orderDetailId: z.string().uuid(), // Assuming orderDetail has an ID
+    rating: z
+      .number()
+      .int('Rating must be an integer')
+      .min(1, 'Rating is between 1 and 5')
+      .max(5, 'Rating is between 1 and 5'), // Assuming rating is between 1 and 5
+    content: z
+      .string()
+      .min(25, 'Content must be between 25 and 500 chars')
+      .max(500, 'Content must be between 25 and 500 chars'), // Adjust max length as needed
+    orderDetailId: z.string().uuid('Invalid order detail ID'), // Assuming orderDetail has an ID
     mediaFiles: z.array(z.string()).optional(), // Assuming mediaFiles contain an ID and URL
   }),
 });

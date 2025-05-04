@@ -2,7 +2,7 @@ name: Deploy to Production
 
 on:
   push:
-    branches: [deploy]
+    branches: [develop]
   workflow_dispatch:
 
 jobs:
@@ -28,13 +28,13 @@ jobs:
           push: true
           tags: minhpham11311/allure-app:latest
 
-      - name: Build and push migrations Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: Dockerfile.migrations
-          push: true
-          tags: minhpham11311/allure-migrations:latest
+      # - name: Build and push migrations Docker image
+      #   uses: docker/build-push-action@v4
+      #   with:
+      #     context: .
+      #     file: Dockerfile.migrations
+      #     push: true
+      #     tags: minhpham11311/allure-migrations:latest
 
   deploy:
     needs: build

@@ -8,6 +8,8 @@ import {
   GetConsultantRevenueStatisticsSchema,
   GetDailyBookingStatisticsSchema,
   GetDailyOrderStatisticsSchema,
+  GetDailySystemStatisticsSchema,
+  GetFinancialSummarySchema,
   OrderStatisticsSchema,
   PaySchema,
 } from '../dtos/request/transaction.request';
@@ -17,6 +19,7 @@ transactionRouter.use(authentication);
 
 transactionRouter.get('/', TransactionController.getAll);
 transactionRouter.post('/deposit', TransactionController.deposit);
+transactionRouter.post('/auto-deposit', TransactionController.autoDeposit);
 transactionRouter.post('/pay', validate(PaySchema), TransactionController.pay);
 
 transactionRouter.post(
@@ -56,6 +59,12 @@ transactionRouter.post(
 );
 
 transactionRouter.post(
+  '/get-daily-system-statistics',
+  validate(GetDailySystemStatisticsSchema),
+  TransactionController.getDailySystemStatistics
+);
+
+transactionRouter.post(
   '/brand-revenue',
   validate(GetBrandRevenueStatisticsSchema),
   TransactionController.brandRevenue
@@ -85,9 +94,16 @@ transactionRouter.post(
 //   TransactionController.getBrandRevenueStatistics
 // );
 
+transactionRouter.post(
+  '/get-financial-summary',
+  validate(GetFinancialSummarySchema),
+  TransactionController.getFinancialSummary
+);
+
 transactionRouter.get(
   '/get-financial-summary',
   TransactionController.getFinancialSummary
 );
+
 
 export default transactionRouter;

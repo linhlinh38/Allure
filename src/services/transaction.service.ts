@@ -20,6 +20,7 @@ import {
   FilterTransactionRequest,
   GetDailyBookingStatisticsRequest,
   GetDailyOrderStatisticsRequest,
+  GetDailySystemStatisticsRequest,
   GetStatisticsRequest,
   PayRequest,
 } from '../dtos/request/transaction.request';
@@ -40,9 +41,148 @@ import { accountRepository } from '../repositories/account.repository';
 import { orderDetailRepository } from '../repositories/orderDetail.repository';
 import { addBookingToQueue } from '../utils/queue/cancelBookingQueue';
 import { retrieveMasterConfig } from '../utils/retrieveMasterConfig';
+import { voucherRepository } from '../repositories/voucher.repository';
+import { Voucher } from '../entities/voucher.entity';
 
 const repository = AppDataSource.getRepository(Transaction);
 class TransactionService extends BaseService<Transaction> {
+  async getDailySystemStatistics(
+    getDailySystemStatisticsRequest: GetDailySystemStatisticsRequest
+  ) {
+    if (
+      !getDailySystemStatisticsRequest.startDate ||
+      !getDailySystemStatisticsRequest.endDate
+    ) {
+      const today = new Date();
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(today.getMonth() - 1);
+      getDailySystemStatisticsRequest.startDate = oneMonthAgo;
+      getDailySystemStatisticsRequest.endDate = today;
+    } else {
+      getDailySystemStatisticsRequest.startDate = new Date(
+        getDailySystemStatisticsRequest.startDate
+      );
+      getDailySystemStatisticsRequest.endDate = new Date(
+        getDailySystemStatisticsRequest.endDate
+      );
+    }
+    const { startDate, endDate } = getDailySystemStatisticsRequest;
+    
+    const bookingqueryBuilder = bookingRepository
+      .createQueryBuilder('booking')
+      .innerJoin(
+        'booking.statusTrackings',
+        'statusTracking',
+        'statusTracking.status = :status AND statusTracking.createdAt BETWEEN :startDate AND :endDate',
+        { status: BookingStatusEnum.WAIT_FOR_CONFIRMATION, startDate, endDate }
+      )
+      .innerJoin('booking.consultantService', 'consultantService')
+      .where('booking.type = :type', { type: BookingTypeEnum.SERVICE })
+      .select([
+        "DATE_TRUNC('day', statusTracking.createdAt) as date",
+        'SUM(CASE WHEN booking.status != :cancelledStatus THEN booking.totalPrice ELSE 0 END) as totalRevenue',
+        'SUM(CASE WHEN booking.status != :cancelledStatus THEN booking.commissionFee ELSE 0 END) as totalCommissionFee',
+        'SUM(CASE WHEN booking.status != :cancelledStatus THEN booking.totalPrice - booking.commissionFee ELSE 0 END) as actualRevenue',
+      ])
+      .setParameter('cancelledStatus', BookingStatusEnum.CANCELLED)
+      .groupBy("DATE_TRUNC('day', statusTracking.createdAt)")
+      .orderBy('date', 'DESC');
+
+    const orderQueryBuilder = orderDetailRepository
+      .createQueryBuilder('orderDetail')
+      .leftJoinAndSelect('orderDetail.order', 'order')
+      .innerJoin(
+        'order.statusTrackings',
+        'statusTracking',
+        'statusTracking.status = :status AND statusTracking.createdAt BETWEEN :startDate AND :endDate',
+        {
+          status: ShippingStatusEnum.WAIT_FOR_CONFIRMATION,
+          startDate,
+          endDate,
+        }
+      )
+      .leftJoinAndSelect('order.account', 'account')
+      .leftJoinAndSelect('order.groupBuying', 'groupBuying')
+      .leftJoinAndSelect('groupBuying.groupProduct', 'groupProduct')
+      .leftJoinAndSelect(
+        'orderDetail.productClassification',
+        'productClassification'
+      )
+      .leftJoinAndSelect('productClassification.product', 'product')
+      .leftJoinAndSelect(
+        'productClassification.productDiscount',
+        'productDiscount'
+      )
+      .leftJoinAndSelect('productDiscount.product', 'discountProduct')
+      .leftJoinAndSelect(
+        'productClassification.preOrderProduct',
+        'preOrderProduct'
+      )
+      .leftJoinAndSelect('preOrderProduct.product', 'preOrderProductItem')
+      .select([
+        "DATE_TRUNC('day', statusTracking.createdAt) as date",
+        'SUM(orderDetail.totalPrice) as totalRevenue',
+        'SUM(orderDetail.commissionFee) as totalCommissionFee',
+        'SUM(orderDetail.totalPrice + orderDetail.platformVoucherDiscount - orderDetail.commissionFee) as actualRevenue',
+        'SUM(orderDetail.platformVoucherDiscount) as totalPlatformVoucherDiscount',
+      ])
+      .where('order.parent_id IS NOT NULL')
+      .andWhere('order.status NOT IN (:...statuses)', {
+        statuses: [ShippingStatusEnum.CANCELLED, ShippingStatusEnum.REFUNDED],
+      })
+      .groupBy("DATE_TRUNC('day', statusTracking.createdAt)")
+      .orderBy('date', 'DESC');
+
+    const bookingResults = await bookingqueryBuilder.getRawMany();
+    const orderResults = await orderQueryBuilder.getRawMany();
+
+    const dateRange = this.generateDateRange(startDate, endDate);
+
+    const dailyStatistics = dateRange.map((date) => {
+      const bookingResult = bookingResults.find(
+        (r) => r.date.toISOString().split('T')[0] === date
+      );
+      const orderResult = orderResults.find(
+        (r) => r.date.toISOString().split('T')[0] === date
+      );
+      return {
+        date,
+        totalRevenue:
+          parseFloat(bookingResult?.totalrevenue || '0') +
+          parseFloat(orderResult?.totalrevenue || '0'),
+        totalCommissionFee:
+          parseFloat(bookingResult?.totalcommissionfee || '0') +
+          parseFloat(orderResult?.totalcommissionfee || '0'),
+        actualRevenue:
+          parseFloat(bookingResult?.actualrevenue || '0') +
+          parseFloat(orderResult?.actualrevenue || '0'),
+        totalPlatformVoucherDiscount: parseFloat(
+          orderResult?.totalplatformvoucherdiscount || '0'
+        ),
+      };
+    });
+    const total = dailyStatistics.reduce(
+      (acc, curr) => {
+        acc.totalRevenue += curr.totalRevenue;
+        acc.totalCommissionFee += curr.totalCommissionFee;
+        acc.actualRevenue += curr.actualRevenue;
+        acc.totalPlatformVoucherDiscount += curr.totalPlatformVoucherDiscount;
+        return acc;
+      },
+      {
+        totalRevenue: 0,
+        totalCommissionFee: 0,
+        actualRevenue: 0,
+        totalPlatformVoucherDiscount: 0,
+      }
+    );
+    return {
+      total,
+      items: dailyStatistics,
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
+    };
+  }
   async getDailyBookingStatistics(
     getDailyBookingStatisticsRequest: GetDailyBookingStatisticsRequest,
     loginUser: string
@@ -65,7 +205,7 @@ class TransactionService extends BaseService<Transaction> {
       getDailyBookingStatisticsRequest.startDate = new Date(startDate);
       getDailyBookingStatisticsRequest.endDate = new Date(endDate);
     }
-    const { startDate, endDate, consultantId } =
+    const { startDate, endDate, consultantId, consultantServiceId } =
       getDailyBookingStatisticsRequest;
 
     const queryBuilder = bookingRepository
@@ -85,6 +225,12 @@ class TransactionService extends BaseService<Transaction> {
     } else if (consultantId) {
       queryBuilder.andWhere('consultantService.account_id = :consultantId', {
         consultantId,
+      });
+    }
+
+    if (consultantServiceId) {
+      queryBuilder.andWhere('consultantService.id = :consultantServiceId', {
+        consultantServiceId,
       });
     }
 
@@ -355,7 +501,8 @@ class TransactionService extends BaseService<Transaction> {
       endDate
     );
   }
-  async getFinancialSummary(loginUser: string) {
+  async getFinancialSummary(loginUser: string, accountId: string) {
+    let id = accountId ? accountId : loginUser;
     const totalAmountFromWithDrawal =
       (
         await transactionRepository
@@ -364,7 +511,7 @@ class TransactionService extends BaseService<Transaction> {
           .where('transaction.type = :type', {
             type: TransactionTypeEnum.WITHDRAW,
           })
-          .andWhere('transaction.buyer = :loginUser', { loginUser })
+          .andWhere('transaction.buyer = :id', { id })
           .getRawOne()
       )?.totalAmountFromWithDrawal || 0;
     const totalAmountFromDeposit =
@@ -372,14 +519,14 @@ class TransactionService extends BaseService<Transaction> {
         await transactionRepository
           .createQueryBuilder('transaction')
           .select('SUM(transaction.amount)', 'totalAmountFromDeposit')
-          .where('transaction.buyer = :loginUser', { loginUser })
+          .where('transaction.buyer = :id', { id })
           .andWhere('transaction.type = :type', {
             type: TransactionTypeEnum.DEPOSIT,
           })
           .getRawOne()
       )?.totalAmountFromDeposit || 0;
     const wallet = await walletRepository.findOne({
-      where: { owner: { id: loginUser } },
+      where: { owner: { id: id } },
     });
     const balance = wallet?.balance || 0;
     const availableBalance = wallet?.availableBalance || 0;
@@ -479,8 +626,8 @@ class TransactionService extends BaseService<Transaction> {
           relations: {
             account: true,
             consultantService: {
-              systemService: true
-            }
+              systemService: true,
+            },
           },
         });
         if (!booking) throw new BadRequestError(`Booking not found`);
@@ -517,32 +664,59 @@ class TransactionService extends BaseService<Transaction> {
         await queryRunner.manager.save(Booking, booking);
 
         const masterConfig = await retrieveMasterConfig();
-         let delay = masterConfig.expiredBookingWaitForConfirm;
-          if (
-            booking.consultantService.systemService.type ===
-            ServiceTypeEnum.PREMIUM
-          ) {
-            const bookingStartTime = new Date(booking.startTime);
-            const now = new Date();
+        let delay = masterConfig.expiredBookingWaitForConfirm;
+        if (
+          booking.consultantService.systemService.type ===
+          ServiceTypeEnum.PREMIUM
+        ) {
+          const bookingStartTime = new Date(booking.startTime);
+          const now = new Date();
 
-            // Subtract 30 minutes (30 * 60 * 1000 milliseconds) from now
-            const nowMinus30Minutes = new Date(now.getTime() + 30 * 60 * 1000);
+          // Subtract 30 minutes (30 * 60 * 1000 milliseconds) from now
+          const nowMinus30Minutes = new Date(now.getTime() + 30 * 60 * 1000);
 
-            // Calculate the difference in milliseconds
-            delay = bookingStartTime.getTime() - nowMinus30Minutes.getTime();
+          // Calculate the difference in milliseconds
+          delay = bookingStartTime.getTime() - nowMinus30Minutes.getTime();
 
-            delay =
-              delay > masterConfig.expiredBookingWaitForConfirm
-                ? masterConfig.expiredBookingWaitForConfirm
-                : delay;
-          }
-            await addBookingToQueue(
-              booking.id,
-              delay,
-              BookingStatusEnum.WAIT_FOR_CONFIRMATION
-            );
-                
+          delay =
+            delay > masterConfig.expiredBookingWaitForConfirm
+              ? masterConfig.expiredBookingWaitForConfirm
+              : delay;
+        }
+        await addBookingToQueue(
+          booking.id,
+          delay,
+          BookingStatusEnum.WAIT_FOR_CONFIRMATION
+        );
       }
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async autoDeposit(loginUser: string) {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const wallet = await walletRepository.findOne({
+        where: {
+          owner: { id: loginUser },
+        },
+      });
+      if (!wallet) throw new BadRequestError(`Wallet not found`);
+      walletService.increaseBalance(wallet, 10000000);
+      await queryRunner.manager.save(wallet);
+      const transaction = transactionService.createTransactionFromDeposit(
+        wallet.balance,
+        10000000,
+        loginUser
+      );
+      await queryRunner.manager.save(transaction);
       await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -590,7 +764,7 @@ class TransactionService extends BaseService<Transaction> {
       return data;
     } catch (error) {
       throw new BadRequestError(`Invalid transaction code`);
-    } 
+    }
   }
 
   async filterForConsultant(
@@ -959,7 +1133,7 @@ class TransactionService extends BaseService<Transaction> {
     const brand = await brandRepository.findOne({
       where: { id: brandId },
     });
-    if (!brand) throw new BadRequestError(`Brand not find`);
+    if (!brand) throw new BadRequestError(`Brand not found`);
     let startDate = new Date(getBrandRevenueStatisticsRequest.startDate);
     let endDate = new Date(getBrandRevenueStatisticsRequest.endDate);
     startDate.setHours(-7, 0, 0, 0);
@@ -1333,8 +1507,14 @@ class TransactionService extends BaseService<Transaction> {
   async getDailyOrderStatistics(
     getDailyOrderStatisticsRequest: GetDailyOrderStatisticsRequest
   ) {
-    const { productIds, orderType, brandId, eventIds, groupProductIds } =
-      getDailyOrderStatisticsRequest;
+    const {
+      productIds,
+      orderType,
+      brandId,
+      eventIds,
+      groupProductIds,
+      voucherId,
+    } = getDailyOrderStatisticsRequest;
     if (
       !getDailyOrderStatisticsRequest.startDate ||
       !getDailyOrderStatisticsRequest.endDate
@@ -1350,6 +1530,9 @@ class TransactionService extends BaseService<Transaction> {
     const queryBuilder = orderDetailRepository
       .createQueryBuilder('orderDetail')
       .leftJoinAndSelect('orderDetail.order', 'order')
+      .leftJoinAndSelect('order.voucher', 'shopVoucher')
+      .leftJoin('order.parent', 'parentOrder')
+      .leftJoin('parentOrder.voucher', 'platformVoucher')
       .innerJoin(
         'order.statusTrackings',
         'statusTracking',
@@ -1459,6 +1642,18 @@ class TransactionService extends BaseService<Transaction> {
         });
       }
     }
+    let voucher: Voucher;
+    if (voucherId) {
+      voucher = await voucherRepository.findOne({
+        where: { id: voucherId },
+        relations: { brand: true },
+      });
+      if (!voucher) throw new BadRequestError(`Voucher not found`);
+      if (voucher.brand)
+        queryBuilder.andWhere('shopVoucher.id = :voucherId', { voucherId });
+      else
+        queryBuilder.andWhere('platformVoucher.id = :voucherId', { voucherId });
+    }
     const results = await queryBuilder.getRawMany();
     const dateRange = this.generateDateRange(startDate, endDate);
 
@@ -1505,6 +1700,7 @@ class TransactionService extends BaseService<Transaction> {
     );
 
     return {
+      isParent: !voucher ? null : voucher.brand ? false : true,
       total,
       items: statistics,
     };

@@ -129,7 +129,7 @@ export class FCMService {
     });
 
     if (!fcmTokens || fcmTokens.length === 0) {
-      throw new BadRequestError("FCM token not found for this account");
+      throw new BadRequestError("FCM Token not found");
     }
 
     // Create notification data

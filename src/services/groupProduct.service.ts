@@ -82,10 +82,11 @@ class GroupProductService extends BaseService<GroupProduct> {
       relations: {
         criterias: { voucher: true },
         products: { images: true, productClassifications: { images: true } },
-        brand: true
+        brand: true,
       },
     });
     if (!groupProduct) throw new BadRequestError('Group product not found');
+    groupProduct.criterias = groupProduct.criterias.sort((a, b) => a.threshold - b.threshold);
     return groupProduct;
   }
 
@@ -196,10 +197,7 @@ class GroupProductService extends BaseService<GroupProduct> {
             );
         }
       } else {
-        await this.addNewCriteria(
-          criteria,
-          groupProduct
-        );
+        await this.addNewCriteria(criteria, groupProduct);
       }
     }
     await repository.save(groupProduct);
@@ -207,15 +205,6 @@ class GroupProductService extends BaseService<GroupProduct> {
 
   async updateVoucherInGroup(voucherRequest: VoucherRequest, voucher: Voucher) {
     // validate voucher
-    const existVoucherByName = await voucherRepository.findOne({
-      where: {
-        id: Not(voucher.id),
-        name: voucherRequest.name,
-      },
-    });
-    if (existVoucherByName) {
-      throw new BadRequestError('Voucher name already exists');
-    }
     const existVoucherByCode = await voucherRepository.findOne({
       where: {
         id: Not(voucher.id),
@@ -247,20 +236,25 @@ class GroupProductService extends BaseService<GroupProduct> {
         relations: {
           criterias: { voucher: true },
           products: true,
-          brand: true
+          brand: true,
         },
         where: {
           brand: { id: brand.id },
         },
       });
     }
-    return await repository.find({
+    const results = await repository.find({
       relations: {
         criterias: { voucher: true },
         products: true,
-        brand: true
+        brand: true,
       },
     });
+
+    for (const item of results) {
+      item.criterias = item.criterias.sort((a, b) => a.threshold - b.threshold);
+    }
+    return results;
   }
 
   async createGroupProduct(groupProductBody: GroupProductCreateRequest) {
@@ -363,11 +357,13 @@ class GroupProductService extends BaseService<GroupProduct> {
         statuses,
       });
     }
-    if(account.role.role == RoleEnum.MANAGER || account.role.role == RoleEnum.STAFF) {
+    if (
+      account.role.role == RoleEnum.MANAGER ||
+      account.role.role == RoleEnum.STAFF
+    ) {
       const brand = account.brands[0];
       queryBuilder.andWhere('brand.id = :brandId', { brandId: brand.id });
-    }
-    else if (brandId) {
+    } else if (brandId) {
       queryBuilder.andWhere('brand.id = :brandId', { brandId });
     }
 
@@ -380,6 +376,10 @@ class GroupProductService extends BaseService<GroupProduct> {
       .skip(offset)
       .take(limit)
       .getMany();
+
+    groupProducts.forEach(item => {
+      item.criterias = item.criterias.sort((a, b) => a.threshold - b.threshold);
+    })
 
     return {
       total: totalGroupProducts,
