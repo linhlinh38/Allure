@@ -87,6 +87,8 @@ export default class BlogController {
       const blog = new Blog();
       blog.title = title;
       blog.content = content;
+      blog.tag = req.body.tag;
+      blog.type = req.body.type || BlogTypeEnum.BLOG;
       blog.status = status || BlogEnum.UN_PUBLISHED;
       blog.author = new Account();
       blog.author.id = req.loginUser;
