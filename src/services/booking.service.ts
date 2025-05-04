@@ -34,6 +34,7 @@ import { walletService } from "./wallet.service";
 import { transactionService } from "./transaction.service";
 import { MediaFile } from "../entities/mediaFile.entity";
 import { retrieveMasterConfig } from "../utils/retrieveMasterConfig";
+import { addCompleteBookingToQueue } from "../utils/queue/completeBookingQueue";
 
 const repository = AppDataSource.getRepository(Booking);
 
@@ -701,6 +702,7 @@ class BookingService extends BaseService<Booking> {
           "Consultation result sent"
         );
         await queryRunner.manager.save(StatusTracking, statusTracking);
+        await addCompleteBookingToQueue(booking.id, 2592000000);
       } else if (data.status === BookingStatusEnum.COMPLETED_CONSULTING_CALL) {
         if (data.note) {
           booking.resultNote = data.note;
