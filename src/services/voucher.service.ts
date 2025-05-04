@@ -1150,6 +1150,7 @@ class VoucherService extends BaseService<Voucher> {
     const masterConfig = await retrieveMasterConfig();
     totalOrder.subTotal = 0;
     totalOrder.totalPrice = 0;
+    totalOrder.commissionFee = 0;
     totalOrder.children.forEach((childOrder) => {
       childOrder.commissionFee = 0;
       childOrder.subTotal = 0;
@@ -1171,6 +1172,7 @@ class VoucherService extends BaseService<Voucher> {
       totalOrder.totalPrice += childOrder.totalPrice;
       totalOrder.platformVoucherDiscount += childOrder.platformVoucherDiscount;
       totalOrder.shopVoucherDiscount += childOrder.shopVoucherDiscount;
+      totalOrder.commissionFee += childOrder.commissionFee;
     });
   }
 
