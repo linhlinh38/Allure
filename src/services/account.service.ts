@@ -768,6 +768,17 @@ class AccountService extends BaseService<Account> {
       .flatMap((result) => result.suggestedProductClassifications)
       .map((item) => item.productClassificationId);
 
+    // Đếm số lần mỗi classificationId xuất hiện
+    const classificationCountMap = productClassificationIds.reduce(
+      (map, id) => {
+        map[id] = (map[id] || 0) + 1;
+        return map;
+      },
+      {} as Record<string, number>
+    );
+
+    const productClassificationIdsUnique = Object.keys(classificationCountMap);
+
     const queryBuilder = productClassificationRepository
       .createQueryBuilder("productClassification")
       .leftJoinAndSelect("productClassification.product", "product")
@@ -791,10 +802,10 @@ class AccountService extends BaseService<Account> {
       .andWhere("images.status = :imageStatus", {
         imageStatus: StatusEnum.ACTIVE,
       })
-      .andWhere("brand.id = :brandId", { brandId });
-    if (productClassificationIds.length > 0) {
-      queryBuilder.andWhere("productClassification.id IN (:...ids)", {
-        ids: productClassificationIds,
+      .andWhere('brand.id = :brandId', { brandId });
+    if (productClassificationIdsUnique.length > 0) {
+      queryBuilder.andWhere('productClassification.id IN (:...ids)', {
+        ids: productClassificationIdsUnique,
       });
     }
     // Pagination
@@ -803,23 +814,18 @@ class AccountService extends BaseService<Account> {
     // Execute query and get total count
     const [items, total] = await queryBuilder.getManyAndCount();
 
-    const productMap = new Map();
-    for (const item of items) {
-      const { product } = item;
-      delete item.product;
-      if (!productMap.has(product.id)) {
-        productMap.set(product.id, product);
-      }
-      if (
-        !product.productClassifications ||
-        product.productClassifications.length == 0
-      ) {
-        product.productClassifications = [];
-      }
-      productMap.get(product.id).productClassifications.push(item);
-    }
+    const products = items.map((item) => {
+      const clonedProduct = { ...item.product };
 
-    const products = Array.from(productMap.values());
+      // Gán count vào classification
+      const classificationWithCount = {
+        ...item,
+        count: classificationCountMap[item.id] || 1,
+      };
+
+      clonedProduct['productClassification'] = classificationWithCount;
+      return clonedProduct;
+    });
     return {
       items: products,
       total,
