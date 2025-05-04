@@ -90,7 +90,7 @@ class BookingService extends BaseService<Booking> {
       },
       order: {
         statusTrackings: {
-          createdAt: "ASC",
+          createdAt: 'ASC',
         },
       },
     });
@@ -963,6 +963,10 @@ class BookingService extends BaseService<Booking> {
         createdBooking.account.id = loginUser;
         createdBooking.consultantService = consultantService;
 
+        const masterConfig = await retrieveMasterConfig();
+        createdBooking.commissionFee =
+          createdBooking.totalPrice * Number(masterConfig.commissionFee);
+
         createdBooking = await queryRunner.manager.save(
           Booking,
           createdBooking
@@ -980,9 +984,6 @@ class BookingService extends BaseService<Booking> {
             "slot",
           ],
         });
-        const masterConfig = await retrieveMasterConfig();
-        createdBooking.commissionFee =
-          createdBooking.totalPrice * Number(masterConfig.commissionFee);
 
         let statusTrackings;
         let transaction;
