@@ -69,6 +69,7 @@ class BookingService extends BaseService<Booking> {
         consultantService: {
           account: true,
           systemService: {
+            images: true,
             consultationCriteria: { consultationCriteriaSections: true },
           },
           serviceBookingForm: { questions: { images: true } },
@@ -238,11 +239,12 @@ class BookingService extends BaseService<Booking> {
           "account.lastName",
           "account.avatar",
         ])
-        .leftJoinAndSelect("consultantService.systemService", "systemService")
-        .leftJoinAndSelect("consultantService.images", "images")
-        .leftJoinAndSelect("booking.slot", "slot")
-        .leftJoinAndSelect("booking.statusTrackings", "statusTrackings")
-        .where("account.id = :loginUser", { loginUser });
+        .leftJoinAndSelect('consultantService.systemService', 'systemService')
+        .leftJoinAndSelect('systemService.images', 'systemServiceImages')
+        .leftJoinAndSelect('consultantService.images', 'images')
+        .leftJoinAndSelect('booking.slot', 'slot')
+        .leftJoinAndSelect('booking.statusTrackings', 'statusTrackings')
+        .where('account.id = :loginUser', { loginUser });
 
       // Apply statuses filter
       if (statuses && statuses.length > 0) {
