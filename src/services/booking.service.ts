@@ -982,7 +982,7 @@ class BookingService extends BaseService<Booking> {
         });
         const masterConfig = await retrieveMasterConfig();
         createdBooking.commissionFee =
-          createdBooking.totalPrice * masterConfig.commissionFee;
+          createdBooking.totalPrice * Number(masterConfig.commissionFee);
 
         let statusTrackings;
         let transaction;
