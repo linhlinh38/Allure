@@ -1157,7 +1157,7 @@ class VoucherService extends BaseService<Voucher> {
         orderDetail.commissionFee = Math.round(
           (orderDetail.totalPrice +
             (orderDetail.platformVoucherDiscount || 0)) *
-            masterConfig.commissionFee
+            Number(masterConfig.commissionFee)
         );
         childOrder.subTotal += orderDetail.subTotal;
         childOrder.totalPrice += orderDetail.totalPrice;
