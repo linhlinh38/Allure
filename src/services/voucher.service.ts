@@ -1151,6 +1151,7 @@ class VoucherService extends BaseService<Voucher> {
     totalOrder.subTotal = 0;
     totalOrder.totalPrice = 0;
     totalOrder.children.forEach((childOrder) => {
+      childOrder.commissionFee = 0;
       childOrder.subTotal = 0;
       childOrder.totalPrice = 0;
       childOrder.orderDetails.forEach((orderDetail) => {
