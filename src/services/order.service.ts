@@ -1375,7 +1375,9 @@ class OrderService extends BaseService<Order> {
       relations: {
         voucher: true,
         account: true,
+        groupBuying: true,
         children: {
+          groupBuying: true,
           voucher: true,
           orderDetails: {
             livestream: true,
@@ -1403,8 +1405,14 @@ class OrderService extends BaseService<Order> {
     const order = await orderRepository.findOne({
       where: { id: orderId },
       relations: {
+        parent: {
+          groupBuying: true,
+          voucher: true
+        },
         account: true,
+        groupBuying: true,
         orderDetails: {
+          livestream: true,
           feedback: {
             mediaFiles: true,
             replies: {
