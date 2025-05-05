@@ -712,8 +712,6 @@ class AccountService extends BaseService<Account> {
       })
     );
 
-    console.log("productClassification", brandCounts);
-
     const brandPercentages = await Promise.all(
       Object.entries(brandCounts).map(async ([brandId, count]) => {
         const brand = await brandRepository.findOneBy({ id: brandId });
@@ -726,7 +724,6 @@ class AccountService extends BaseService<Account> {
         };
       })
     );
-    console.log("brandPercentages", brandPercentages);
 
     return {
       consultant: {
