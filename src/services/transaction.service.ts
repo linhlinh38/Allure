@@ -159,6 +159,10 @@ class TransactionService extends BaseService<Transaction> {
         totalPlatformVoucherDiscount: parseFloat(
           orderResult?.totalplatformvoucherdiscount || '0'
         ),
+        totalPlatformRevenue:
+          parseFloat(bookingResult?.totalcommissionfee || '0') +
+          parseFloat(orderResult?.totalcommissionfee || '0') -
+          parseFloat(orderResult?.totalplatformvoucherdiscount || '0'),
       };
     });
     const total = dailyStatistics.reduce(
@@ -167,6 +171,7 @@ class TransactionService extends BaseService<Transaction> {
         acc.totalCommissionFee += curr.totalCommissionFee;
         acc.actualRevenue += curr.actualRevenue;
         acc.totalPlatformVoucherDiscount += curr.totalPlatformVoucherDiscount;
+        acc.totalPlatformRevenue += curr.totalPlatformRevenue;
         return acc;
       },
       {
@@ -174,6 +179,7 @@ class TransactionService extends BaseService<Transaction> {
         totalCommissionFee: 0,
         actualRevenue: 0,
         totalPlatformVoucherDiscount: 0,
+        totalPlatformRevenue: 0
       }
     );
     return {
