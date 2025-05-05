@@ -815,15 +815,13 @@ class AccountService extends BaseService<Account> {
     const [items, total] = await queryBuilder.getManyAndCount();
 
     const products = items.map((item) => {
-      const clonedProduct = { ...item.product };
-
+      const { productClassifications, ...clonedProduct } = item.product;
       // Gán count vào classification
       const classificationWithCount = {
         ...item,
         count: classificationCountMap[item.id] || 1,
       };
-
-      clonedProduct['productClassification'] = classificationWithCount;
+      clonedProduct['productClassifications'] = [classificationWithCount];
       return clonedProduct;
     });
     return {
