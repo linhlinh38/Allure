@@ -806,6 +806,9 @@ class VoucherService extends BaseService<Voucher> {
         voucher: {
           code,
         },
+        owner: {
+          id: loginUser,
+        }
       },
     });
     if (voucherWallet)
