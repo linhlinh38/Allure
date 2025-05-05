@@ -3,6 +3,7 @@ import authentication from '../middleware/authentication';
 import validate from '../utils/validate';
 import GroupBuyingController from '../controllers/groupBuying.controller';
 import { GroupBuyingJoinEventSchema } from '../dtos/request/groupBuying.request';
+import { GroupBuyingFilterSchema } from '../dtos/request/groupBuyingFilter.request';
 
 const groupBuyingRouter = express.Router();
 groupBuyingRouter.get('/', GroupBuyingController.getAll);
@@ -41,5 +42,10 @@ groupBuyingRouter.post(
 groupBuyingRouter.post(
   '/get-my-group-buyings',
   GroupBuyingController.getMyGroupBuyings
+);
+groupBuyingRouter.post(
+  '/filter',
+  validate(GroupBuyingFilterSchema),
+  GroupBuyingController.filter
 );
 export default groupBuyingRouter;

@@ -37,6 +37,8 @@ import { FCMService } from './FCM.service';
 import { fcmTokenRepository } from '../repositories/fcmToken.repository';
 import { NotificationData } from '../dtos/request/fcm.request';
 import { walletService } from './wallet.service';
+import { GroupBuyingFilterRequest } from '../dtos/request/groupBuyingFilter.request';
+import { Paging } from '../dtos/other/paging.dto';
 
 const repository = AppDataSource.getRepository(GroupBuying);
 class GroupBuyingService extends BaseService<GroupBuying> {
@@ -522,7 +524,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
       childOrder.shippingAddress = address.fullAddress;
       childOrder.phone = address.phone;
       childOrder.notes = address.notes;
-      
+
       childOrder.type = OrderEnum.GROUP_BUYING;
       childOrder.orderDetails = [];
       childOrder.account = account;
@@ -739,7 +741,11 @@ class GroupBuyingService extends BaseService<GroupBuying> {
                 );
               await queryRunner.manager.save(Transaction, transaction);
             } else {
-              await this.cancelOneOrderInGroupbuying(order, queryRunner, 'Not enough balance');
+              await this.cancelOneOrderInGroupbuying(
+                order,
+                queryRunner,
+                'Not enough balance'
+              );
             }
           }
           isEventEndSuccess = true;
@@ -797,7 +803,11 @@ class GroupBuyingService extends BaseService<GroupBuying> {
     queryRunner: QueryRunner
   ) {
     for (const order of orders) {
-      await this.cancelOneOrderInGroupbuying(order, queryRunner, 'Not meet criteria');
+      await this.cancelOneOrderInGroupbuying(
+        order,
+        queryRunner,
+        'Not meet criteria'
+      );
     }
   }
 
@@ -814,6 +824,38 @@ class GroupBuyingService extends BaseService<GroupBuying> {
     });
     if (!groupBuying) throw new BadRequestError('Group buying not found');
     return groupBuying;
+  }
+
+  async filter(filterRequest: GroupBuyingFilterRequest, paging: Paging) {
+    const { groupProductId } = filterRequest;
+    const { page, limit } = paging;
+    const offset = (page - 1) * limit;
+
+    const queryBuilder = repository
+      .createQueryBuilder('groupBuying')
+      .leftJoinAndSelect('groupBuying.groupProduct', 'groupProduct')
+      .leftJoinAndSelect('groupProduct.criterias', 'criteria')
+      .leftJoinAndSelect('criteria.voucher', 'voucher')
+      .leftJoinAndSelect('groupProduct.products', 'product')
+      .leftJoinAndSelect('product.images', 'productImages')
+    if (groupProductId) {
+      queryBuilder.where('groupProduct.id = :groupProductId', {
+        groupProductId,
+      });
+    }
+    // Get paginated results
+    const [items, total] = await queryBuilder
+      .orderBy('groupBuying.createdAt', 'DESC')
+      .skip(offset)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+    };
   }
 
   constructor() {
