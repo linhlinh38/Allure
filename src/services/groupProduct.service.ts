@@ -120,8 +120,14 @@ class GroupProductService extends BaseService<GroupProduct> {
       throw new BadRequestError('Group product is inactive');
     const newGroupBuying = new GroupBuying();
     newGroupBuying.endTime = new Date(groupBuyingBody.endTime);
-    if (newGroupBuying.endTime.getTime() < Date.now())
-      throw new BadRequestError('End time must after current time');
+    const now = Date.now();
+    const minEndTime = now + 5 * 60 * 1000;
+
+    if (newGroupBuying.endTime.getTime() < minEndTime) {
+      throw new BadRequestError(
+        'End time must be at least 5 minutes after current time'
+      );
+    }
     const creator = await accountRepository.findOne({
       where: { id: loginUser },
     });
