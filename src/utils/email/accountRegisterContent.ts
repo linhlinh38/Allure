@@ -1,4 +1,3 @@
-
 export function generateAccountRegisterContent(
   link: string,
   username?: string
@@ -7,30 +6,28 @@ export function generateAccountRegisterContent(
   text: string;
 } {
   const htmlContent = `
-<body
-  style="
-    font-family: Arial, sans-serif;
-    line-height: 1.6;
-    margin: 0;
-    padding: 12px 0;
-  "
->
-  <div>
-    <p>Dear ${username},</p>
-            <p>
-              Please Click the link below to verify your email address
-            </p>
-            <a
-              href=${link}
-              target="_blank"
-              style="color: #0066cc; text-decoration: none"
-              >Verify my email</a
-            >
-  </div>
-</body>
-`;
+    <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 10px;">
+      <h2 style="color: #4CAF50; text-align: center;">🎉 Chào mừng đến với Allure! 🎉</h2>
+      <p style="font-size: 16px; color: #333;">
+        Xin chào ${username},  
+        <br /><br />
+        Cảm ơn bạn đã đăng ký tài khoản trên nền tảng của chúng tôi!  
+        <br /><br />
+        Để bắt đầu, vui lòng xác minh địa chỉ email của bạn bằng cách nhấn vào nút bên dưới:
+      </p>
+      <div style="text-align: center; margin: 20px 0;">
+        <a href="${link}" 
+           style="background: #4CAF50; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-size: 16px;">
+          Xác minh email của tôi
+        </a>
+      </div>
+      <p style="font-size: 14px; color: #666; text-align: center;">
+        Nếu bạn không tạo tài khoản trên nền tảng của chúng tôi, vui lòng bỏ qua email này.
+      </p>
+    </div>
+  `;
 
-  const textContent = `
-    Thank you for choosing Allure.`;
+  const textContent = `Chào mừng đến với Allure! Cảm ơn bạn đã đăng ký tài khoản.`;
+
   return { html: htmlContent, text: textContent };
 }

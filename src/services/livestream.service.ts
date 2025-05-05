@@ -49,6 +49,7 @@ class LiveStreamService extends BaseService<LiveStream> {
         "livestreamProducts.product",
         "livestreamProducts.product.productClassifications",
         "livestreamProducts.product.productClassifications.images",
+        "livestreamProducts.product.brand",
       ],
     });
   }
