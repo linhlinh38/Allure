@@ -1,22 +1,26 @@
-import { In } from "typeorm";
-import { AppDataSource } from "../dataSource";
-import { LiveStream } from "../entities/livestream.entity";
-import { BadRequestError } from "../errors/error";
-import { productRepository } from "../repositories/product.repository";
-import { BaseService } from "./base.service";
+import { In } from 'typeorm';
+import { AppDataSource } from '../dataSource';
+import { LiveStream } from '../entities/livestream.entity';
+import { BadRequestError } from '../errors/error';
+import { productRepository } from '../repositories/product.repository';
+import { BaseService } from './base.service';
 import {
   AccountStatusEnum,
   LiveStreamEnum,
   NotificationTypeEnum,
   RoleEnum,
-} from "../utils/enum";
-import { RtcTokenBuilder } from "agora-access-token";
-import { config } from "../configs/envConfig";
-import { LivestreamTokenData } from "../dtos/request/livestreamToken.request";
-import { LivestreamProduct } from "../entities/livestreamProduct.entity";
-import { fcmTokenRepository } from "../repositories/fcmToken.repository";
-import { FCMService } from "./FCM.service";
-import { Account } from "../entities/account.entity";
+} from '../utils/enum';
+import { RtcTokenBuilder } from 'agora-access-token';
+import { config } from '../configs/envConfig';
+import { LivestreamTokenData } from '../dtos/request/livestreamToken.request';
+import { LivestreamProduct } from '../entities/livestreamProduct.entity';
+import { fcmTokenRepository } from '../repositories/fcmToken.repository';
+import { FCMService } from './FCM.service';
+import { Account } from '../entities/account.entity';
+import {
+  LivestreamFilterRequest,
+} from '../dtos/request/livestreamFilter.request';
+import { Paging } from '../dtos/other/paging.dto';
 
 const repository = AppDataSource.getRepository(LiveStream);
 class LiveStreamService extends BaseService<LiveStream> {
@@ -31,11 +35,11 @@ class LiveStreamService extends BaseService<LiveStream> {
         { status: LiveStreamEnum.LIVE },
       ],
       relations: [
-        "account",
-        "livestreamProducts",
-        "livestreamProducts.product",
-        "livestreamProducts.product.productClassifications",
-        "livestreamProducts.product.productClassifications.images",
+        'account',
+        'livestreamProducts',
+        'livestreamProducts.product',
+        'livestreamProducts.product.productClassifications',
+        'livestreamProducts.product.productClassifications.images',
       ],
     });
   }
@@ -44,12 +48,12 @@ class LiveStreamService extends BaseService<LiveStream> {
     return await this.repository.findOne({
       where: [{ id }],
       relations: [
-        "account",
-        "livestreamProducts",
-        "livestreamProducts.product",
-        "livestreamProducts.product.productClassifications",
-        "livestreamProducts.product.productClassifications.images",
-        "livestreamProducts.product.brand",
+        'account',
+        'livestreamProducts',
+        'livestreamProducts.product',
+        'livestreamProducts.product.images',
+        'livestreamProducts.product.productClassifications',
+        'livestreamProducts.product.productClassifications.images',
       ],
     });
   }
@@ -71,7 +75,7 @@ class LiveStreamService extends BaseService<LiveStream> {
             id: product.id,
           });
           if (!productEntity) {
-            throw new BadRequestError("Product not found");
+            throw new BadRequestError('Product not found');
           }
           const livestreamProduct = new LivestreamProduct();
           livestreamProduct.livestream = livestream;
@@ -103,7 +107,7 @@ class LiveStreamService extends BaseService<LiveStream> {
         where: { id },
       });
       if (!livestream) {
-        throw new BadRequestError("Livestream not found");
+        throw new BadRequestError('Livestream not found');
       }
 
       if (products && products.length > 0) {
@@ -116,7 +120,7 @@ class LiveStreamService extends BaseService<LiveStream> {
             id: product.id,
           });
           if (!productEntity) {
-            throw new BadRequestError("Product not found");
+            throw new BadRequestError('Product not found');
           }
           const livestreamProduct = new LivestreamProduct();
           livestreamProduct.livestream = livestream;
@@ -151,7 +155,7 @@ class LiveStreamService extends BaseService<LiveStream> {
           })
         ).map((token) => token.token);
         const notificationData = {
-          title: "Livestream start!",
+          title: 'Livestream start!',
           body: `Join Livestream ${livestream.title} now`,
           data: {
             type: NotificationTypeEnum.LIVESTREAM_START,
@@ -181,12 +185,12 @@ class LiveStreamService extends BaseService<LiveStream> {
 
     if (
       appId == undefined ||
-      appId == "" ||
+      appId == '' ||
       appCertificate == undefined ||
-      appCertificate == ""
+      appCertificate == ''
     ) {
       console.log(
-        "Need to set environment variable AGORA_APP_ID and AGORA_APP_CERTIFICATE"
+        'Need to set environment variable AGORA_APP_ID and AGORA_APP_CERTIFICATE'
       );
       process.exit(1);
     }
@@ -201,6 +205,42 @@ class LiveStreamService extends BaseService<LiveStream> {
       data.privilegeExpirationInSecond
     );
     return token;
+  }
+
+  async filter(filterRequest: LivestreamFilterRequest, paging: Paging) {
+    const { title, statuses } = filterRequest;
+    const { page, limit } = paging;
+    const offset = (page - 1) * limit;
+
+    const queryBuilder = repository
+      .createQueryBuilder('livestream')
+      .leftJoinAndSelect('livestream.account', 'account')
+
+    // Apply filters
+    if (title) {
+      queryBuilder.andWhere('LOWER(livestream.title) LIKE :title', {
+        title: `%${title.toLowerCase()}%`,
+      });
+    }
+
+    if (statuses && statuses.length > 0) {
+      queryBuilder.andWhere('livestream.status IN (:...statuses)', {
+        statuses,
+      });
+    }
+    // Get paginated results
+    const [items, total] = await queryBuilder
+      .orderBy('livestream.createdAt', 'DESC')
+      .skip(offset)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+    };
   }
 }
 export const livestreamService = new LiveStreamService();
