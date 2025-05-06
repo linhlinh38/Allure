@@ -1642,13 +1642,28 @@ class TransactionService extends BaseService<Transaction> {
           productIds,
         });
       }
-      if (groupProductIds && groupProductIds.length > 0) {
-        queryBuilder.andWhere('groupProduct.id IN (:...groupProductIds)', {
-          groupProductIds,
+      if (eventIds && eventIds.length > 0) {
+        queryBuilder.andWhere('groupBuying.id IN (:...eventIds)', {
+          eventIds,
+        });
+      }
+    } else if (orderType == OrderEnum.GROUP_PRODUCT) {
+      if (productIds && productIds.length > 0) {
+        queryBuilder.andWhere('product.id IN (:...productIds)', {
+          productIds,
         });
       }
       if (eventIds && eventIds.length > 0) {
         queryBuilder.andWhere('groupBuying.id IN (:...eventIds)', {
+          eventIds,
+        });
+      }
+    } else if (orderType == OrderEnum.LIVE_STREAM) {
+      queryBuilder.andWhere('orderDetail.type = :type', {
+        type: OrderEnum.LIVE_STREAM,
+      });
+      if (eventIds && eventIds.length > 0) {
+        queryBuilder.andWhere('orderDetail.livestream_id IN (:...eventIds)', {
           eventIds,
         });
       }
