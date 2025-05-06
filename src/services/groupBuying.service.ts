@@ -700,9 +700,13 @@ class GroupBuyingService extends BaseService<GroupBuying> {
           criteriasDescThreshold = criteriasDescThreshold.sort(
             (a, b) => b.threshold - a.threshold
           );
+          console.log(criteriasDescThreshold);
+          
           const mostMatchingCriteria = criteriasDescThreshold.find(
             (criteria) => criteria.threshold <= countAffordableOrder
           );
+          console.log(mostMatchingCriteria);
+          
           const voucherCopy = await this.createCopyOfVoucher(
             mostMatchingCriteria.voucher,
             groupBuying.groupProduct.products,
