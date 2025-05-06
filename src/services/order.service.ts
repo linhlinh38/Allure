@@ -419,7 +419,8 @@ class OrderService extends BaseService<Order> {
       queryBuilder.andWhere('order.status IN (:...statuses)', { statuses });
     }
     if (types && types.length > 0) {
-      queryBuilder.andWhere('order.type IN (:...types)', { types });
+      queryBuilder
+        .andWhere('orderDetail.type IN (:...types)', { types });
     }
     if (paymentMethods && paymentMethods.length > 0) {
       queryBuilder.andWhere('order.paymentMethod IN (:...paymentMethods)', {
@@ -1411,7 +1412,7 @@ class OrderService extends BaseService<Order> {
       relations: {
         parent: {
           groupBuying: true,
-          voucher: true
+          voucher: true,
         },
         account: true,
         groupBuying: true,

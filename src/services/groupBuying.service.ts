@@ -777,8 +777,8 @@ class GroupBuyingService extends BaseService<GroupBuying> {
     copy.applyType = VoucherApplyTypeEnum.SPECIFIC;
     copy.visibility = VoucherVisibilityEnum.GROUP;
     copy.applyProducts = products;
-    copy.startTime = new Date();
-    copy.endTime = new Date();
+    copy.createdAt = new Date();
+    copy.updatedAt = new Date();
     return await queryRunner.manager.save(Voucher, copy);
   }
 
