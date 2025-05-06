@@ -1647,6 +1647,11 @@ class TransactionService extends BaseService<Transaction> {
           groupProductIds,
         });
       }
+      if (eventIds && eventIds.length > 0) {
+        queryBuilder.andWhere('groupBuying.id IN (:...eventIds)', {
+          eventIds,
+        });
+      }
     }
     let voucher: Voucher;
     if (voucherId) {
