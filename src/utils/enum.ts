@@ -111,11 +111,12 @@ export enum DiscountTypeEnum {
 }
 
 export enum OrderEnum {
-  PRE_ORDER = "PRE_ORDER",
-  NORMAL = "NORMAL",
-  GROUP_BUYING = "GROUP_BUYING",
-  FLASH_SALE = "FLASH_SALE",
-  LIVE_STREAM = "LIVE_STREAM",
+  PRE_ORDER = 'PRE_ORDER',
+  NORMAL = 'NORMAL',
+  GROUP_BUYING = 'GROUP_BUYING',
+  FLASH_SALE = 'FLASH_SALE',
+  LIVE_STREAM = 'LIVE_STREAM',
+  GROUP_PRODUCT = 'GROUP_PRODUCT',
 }
 
 export enum ServiceTypeEnum {
