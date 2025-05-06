@@ -1158,6 +1158,8 @@ class VoucherService extends BaseService<Voucher> {
       childOrder.commissionFee = 0;
       childOrder.subTotal = 0;
       childOrder.totalPrice = 0;
+      childOrder.platformVoucherDiscount = 0;
+      childOrder.shopVoucherDiscount = 0;
       childOrder.orderDetails.forEach((orderDetail) => {
         orderDetail.commissionFee = Math.round(
           (orderDetail.totalPrice +
