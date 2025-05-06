@@ -216,7 +216,8 @@ class LiveStreamService extends BaseService<LiveStream> {
       .createQueryBuilder('livestream')
       .leftJoinAndSelect('livestream.account', 'account')
       .leftJoinAndSelect('livestream.livestreamProducts', 'livestreamProducts')
-      .leftJoinAndSelect('livestreamProducts.product', 'product');
+      .leftJoinAndSelect('livestreamProducts.product', 'product')
+      .leftJoinAndSelect('product.images', 'images');
 
     // Apply filters
     if (title) {
@@ -236,6 +237,13 @@ class LiveStreamService extends BaseService<LiveStream> {
       .skip(offset)
       .take(limit)
       .getManyAndCount();
+
+      items.forEach(item => {
+        item['products'] = item.livestreamProducts.map(livestreamProduct => {
+          return livestreamProduct.product;
+        })
+        delete item.livestreamProducts;
+      })
 
     return {
       items,
