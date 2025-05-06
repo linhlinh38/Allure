@@ -173,6 +173,7 @@ export const OrderFilterRequestSchema = z.object({
         OrderEnum.PRE_ORDER,
         OrderEnum.GROUP_BUYING,
         OrderEnum.LIVE_STREAM,
+        OrderEnum.GROUP_PRODUCT
       ],
       {
         errorMap: () => ({ message: 'Invalid order type' }),

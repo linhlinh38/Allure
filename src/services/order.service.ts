@@ -390,6 +390,7 @@ class OrderService extends BaseService<Order> {
       .leftJoinAndSelect('order.account', 'account')
       .leftJoinAndSelect('order.brand', 'brand')
       .leftJoinAndSelect('order.groupBuying', 'groupBuying')
+      .leftJoinAndSelect('groupBuying.groupProduct', 'groupProduct')
       .orderBy('order.createdAt', 'DESC');
     if (isParent) {
       queryBuilder.where('order.parent_id IS NULL');
@@ -458,6 +459,9 @@ class OrderService extends BaseService<Order> {
           queryBuilder.andWhere('orderDetail.livestream_id = :eventId', {
             eventId,
           });
+        }
+        case OrderEnum.GROUP_PRODUCT: {
+          queryBuilder.andWhere('groupProduct.id = :eventId', { eventId });
         }
       }
     }
