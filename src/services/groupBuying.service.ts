@@ -700,6 +700,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
           criteriasDescThreshold = criteriasDescThreshold.sort(
             (a, b) => b.threshold - a.threshold
           );
+          console.log(countAffordableOrder);
           console.log(criteriasDescThreshold);
           
           const mostMatchingCriteria = criteriasDescThreshold.find(
