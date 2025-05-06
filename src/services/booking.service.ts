@@ -77,7 +77,7 @@ class BookingService extends BaseService<Booking> {
         slot: true,
         bookingFormAnswer: true,
         consultationResult: true,
-        statusTrackings: { mediaFiles: true },
+        statusTrackings: { mediaFiles: true, updatedBy: true },
         report: true,
         feedback: {
           mediaFiles: true,
