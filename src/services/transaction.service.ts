@@ -973,7 +973,7 @@ class TransactionService extends BaseService<Transaction> {
     ) {
       const brand = account.brands[0];
       query.where(
-        '((brand.id = :brandId AND transaction.type = :type) OR (buyer.id = :id AND transaction.type != :type))',
+        '((brand.id = :brandId AND transaction.type = :type) OR (buyer.id = :id))',
         {
           brandId: brand.id,
           type: TransactionTypeEnum.TRANSFER_TO_WALLET,
