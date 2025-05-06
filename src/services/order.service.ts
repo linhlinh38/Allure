@@ -449,20 +449,25 @@ class OrderService extends BaseService<Order> {
       switch (type) {
         case OrderEnum.FLASH_SALE: {
           queryBuilder.andWhere('productDiscount.id = :eventId', { eventId });
+          break;
         }
         case OrderEnum.PRE_ORDER: {
           queryBuilder.andWhere('preOrderProduct.id = :eventId', { eventId });
+          break;
         }
         case OrderEnum.GROUP_BUYING: {
           queryBuilder.andWhere('groupBuying.id = :eventId', { eventId });
+          break;
         }
         case OrderEnum.LIVE_STREAM: {
           queryBuilder.andWhere('orderDetail.livestream_id = :eventId', {
             eventId,
           });
+          break;
         }
         case OrderEnum.GROUP_PRODUCT: {
           queryBuilder.andWhere('groupProduct.id = :eventId', { eventId });
+          break;
         }
       }
     }
