@@ -1654,7 +1654,7 @@ class TransactionService extends BaseService<Transaction> {
         });
       }
       if (eventIds && eventIds.length > 0) {
-        queryBuilder.andWhere('groupBuying.id IN (:...eventIds)', {
+        queryBuilder.andWhere('groupProduct.id IN (:...eventIds)', {
           eventIds,
         });
       }
