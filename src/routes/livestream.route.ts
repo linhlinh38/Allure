@@ -9,7 +9,11 @@ import { LivestreamFilterSchema } from '../dtos/request/livestreamFilter.request
 const livestreamRouter = express.Router();
 
 livestreamRouter.get('/', livestreamController.getAll);
-
+livestreamRouter.post(
+  '/filter',
+  validate(LivestreamFilterSchema),
+  livestreamController.filter
+);
 livestreamRouter.use(authentication);
 livestreamRouter.post(
   '/',
@@ -31,12 +35,6 @@ livestreamRouter.post(
   '/token',
   validate(livestreamTokenSchema),
   livestreamController.createTokenLiveStream
-);
-
-livestreamRouter.post(
-  '/filter',
-  validate(LivestreamFilterSchema),
-  livestreamController.filter
 );
 
 export default livestreamRouter;

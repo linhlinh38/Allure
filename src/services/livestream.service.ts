@@ -215,6 +215,8 @@ class LiveStreamService extends BaseService<LiveStream> {
     const queryBuilder = repository
       .createQueryBuilder('livestream')
       .leftJoinAndSelect('livestream.account', 'account')
+      .leftJoinAndSelect('livestream.livestreamProducts', 'livestreamProducts')
+      .leftJoinAndSelect('livestreamProducts.product', 'product');
 
     // Apply filters
     if (title) {

@@ -833,11 +833,12 @@ class GroupBuyingService extends BaseService<GroupBuying> {
 
     const queryBuilder = repository
       .createQueryBuilder('groupBuying')
+      .leftJoinAndSelect('groupBuying.creator', 'creator')
       .leftJoinAndSelect('groupBuying.groupProduct', 'groupProduct')
       .leftJoinAndSelect('groupProduct.criterias', 'criteria')
       .leftJoinAndSelect('criteria.voucher', 'voucher')
       .leftJoinAndSelect('groupProduct.products', 'product')
-      .leftJoinAndSelect('product.images', 'productImages')
+      .leftJoinAndSelect('product.images', 'productImages');
     if (groupProductId) {
       queryBuilder.where('groupProduct.id = :groupProductId', {
         groupProductId,

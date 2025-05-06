@@ -16,6 +16,11 @@ groupBuyingRouter.get(
   '/get-by-id/:groupBuyingId',
   GroupBuyingController.getById
 );
+groupBuyingRouter.post(
+  '/filter',
+  validate(GroupBuyingFilterSchema),
+  GroupBuyingController.filter
+);
 groupBuyingRouter.use(authentication);
 groupBuyingRouter.get(
   '/get-order/:groupBuyingId',
@@ -42,10 +47,5 @@ groupBuyingRouter.post(
 groupBuyingRouter.post(
   '/get-my-group-buyings',
   GroupBuyingController.getMyGroupBuyings
-);
-groupBuyingRouter.post(
-  '/filter',
-  validate(GroupBuyingFilterSchema),
-  GroupBuyingController.filter
 );
 export default groupBuyingRouter;
