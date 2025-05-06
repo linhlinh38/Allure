@@ -39,6 +39,7 @@ import { NotificationData } from '../dtos/request/fcm.request';
 import { walletService } from './wallet.service';
 import { GroupBuyingFilterRequest } from '../dtos/request/groupBuyingFilter.request';
 import { Paging } from '../dtos/other/paging.dto';
+import { generateMeaningfulCode } from '../utils/generateMeaningfulCode';
 
 const repository = AppDataSource.getRepository(GroupBuying);
 class GroupBuyingService extends BaseService<GroupBuying> {
@@ -770,8 +771,8 @@ class GroupBuyingService extends BaseService<GroupBuying> {
     queryRunner: QueryRunner
   ) {
     const { id, ...copy } = voucher;
-    copy.name = groupBuyingId + ' - ' + voucher.name;
-    copy.code = groupBuyingId + ' - ' + voucher.code;
+    copy.name = generateMeaningfulCode('COMPENSATE_GROUP');
+    copy.code = generateMeaningfulCode('COMPENSATE_GROUP');
     copy.applyProducts = products;
     copy.brand = brand;
     copy.applyType = VoucherApplyTypeEnum.SPECIFIC;
