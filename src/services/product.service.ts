@@ -293,8 +293,8 @@ class ProductService extends BaseService<Product> {
       .leftJoinAndSelect('product.category', 'category')
       .leftJoinAndSelect('category.parentCategory', 'parentCategory')
       .leftJoinAndSelect('product.brand', 'brand')
-      .leftJoinAndSelect('brand.products', 'products')
-      .leftJoinAndSelect('products.images', 'productImages')
+      .leftJoinAndSelect('brand.follows', 'follows')
+      .leftJoinAndSelect('follows.account', 'follower')
       .leftJoinAndSelect('product.certificates', 'certificates')
       .leftJoinAndSelect(
         'product.productClassifications',
