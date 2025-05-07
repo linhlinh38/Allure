@@ -21,7 +21,7 @@ brandRoute.put(
   validate(BrandUpdateSchema),
   BrandController.updateDetail
 );
-
+brandRoute.post('/filter', validate(FilterBrandSchema), BrandController.filter);
 brandRoute.use(authentication);
 brandRoute.put(
   '/update-status',
@@ -36,5 +36,4 @@ brandRoute.post(
 brandRoute.post('/toggle-follow/:id', BrandController.toggleFollowBrand);
 brandRoute.get('/get-followed-brands', BrandController.getFollowedBrands);
 brandRoute.post('/assign-interview/:brandId', BrandController.assignInterview);
-brandRoute.post('/filter', validate(FilterBrandSchema), BrandController.filter);
 export default brandRoute;
