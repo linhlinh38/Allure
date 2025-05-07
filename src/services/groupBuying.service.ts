@@ -730,18 +730,13 @@ class GroupBuyingService extends BaseService<GroupBuying> {
             delete order.parent.children;
             await queryRunner.manager.save(OrderDetail, order.orderDetails);
             await queryRunner.manager.save(Order, order);
-            const parentOrder = await queryRunner.manager.findOne(Order, {
-              where: {
-                children: {
-                  id: order.id,
-                },
-              },
-              relations: {
-                children: {
-                  orderDetails: true,
-                },
-              },
-            });
+            const parentOrder = await queryRunner.manager
+              .getRepository(Order)
+              .createQueryBuilder('order')
+              .leftJoinAndSelect('order.children', 'child')
+              .leftJoinAndSelect('child.orderDetails', 'orderDetails')
+              .where('child.id = :childId', { childId: order.id })
+              .getOne();
             await voucherService.calculateOrderPrice(parentOrder);
             //check if order is affordable or not
             if (orderIdCanAffordMap[order.id]) {
