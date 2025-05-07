@@ -35,7 +35,7 @@ consultantServiceRouter.post(
 );
 consultantServiceRouter.put(
   "/:id",
-  Author(["CONSULTANT"]),
+  Author(["CONSULTANT", "ADMIN", "OPERATOR"]),
   validate(ConsultantServiceUpdateSchema),
   consultantServiceController.update
 );
