@@ -737,6 +737,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
                   ShippingStatusEnum.WAIT_FOR_CONFIRMATION
                 );
               await queryRunner.manager.save(StatusTracking, statusTrackings);
+              await queryRunner.manager.save(Order, order);
               await queryRunner.manager.save(Order, order.parent);
               //create transaction
               const transaction =

@@ -289,58 +289,60 @@ class ProductService extends BaseService<Product> {
 
   private queryGetProductAndRelationsAndGetCategoryDetails() {
     return repository
-      .createQueryBuilder("product")
-      .leftJoinAndSelect("product.category", "category")
-      .leftJoinAndSelect("category.parentCategory", "parentCategory")
-      .leftJoinAndSelect("product.brand", "brand")
-      .leftJoinAndSelect("product.certificates", "certificates")
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.category', 'category')
+      .leftJoinAndSelect('category.parentCategory', 'parentCategory')
+      .leftJoinAndSelect('product.brand', 'brand')
+      .leftJoinAndSelect('brand.products', 'products')
+      .leftJoinAndSelect('products.images', 'productImages')
+      .leftJoinAndSelect('product.certificates', 'certificates')
       .leftJoinAndSelect(
-        "product.productClassifications",
-        "productClassifications",
-        "productClassifications.status = :classificationStatus",
+        'product.productClassifications',
+        'productClassifications',
+        'productClassifications.status = :classificationStatus',
         { classificationStatus: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "productClassifications.images",
-        "classificationImages",
-        "classificationImages.status = :imageStatus",
+        'productClassifications.images',
+        'classificationImages',
+        'classificationImages.status = :imageStatus',
         { imageStatus: StatusEnum.ACTIVE }
       )
-      .leftJoinAndSelect("product.images", "images")
+      .leftJoinAndSelect('product.images', 'images')
       .leftJoinAndSelect(
-        "product.productDiscounts",
-        "productDiscounts",
-        "productDiscounts.status = :discountActiveStatus",
+        'product.productDiscounts',
+        'productDiscounts',
+        'productDiscounts.status = :discountActiveStatus',
         { discountActiveStatus: ProductDiscountEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "productDiscounts.productClassifications",
-        "productDiscount_productClassifications",
-        "productDiscount_productClassifications.status = :productDiscount_productClassifications",
+        'productDiscounts.productClassifications',
+        'productDiscount_productClassifications',
+        'productDiscount_productClassifications.status = :productDiscount_productClassifications',
         { productDiscount_productClassifications: ProductDiscountEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "productDiscount_productClassifications.images",
-        "productDiscount_productClassifications_images",
-        "productDiscount_productClassifications_images.status = :productDiscount_productClassifications_images",
+        'productDiscount_productClassifications.images',
+        'productDiscount_productClassifications_images',
+        'productDiscount_productClassifications_images.status = :productDiscount_productClassifications_images',
         { productDiscount_productClassifications_images: StatusEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "product.preOrderProducts",
-        "preOrderProducts",
-        "preOrderProducts.status = :preOrderActiveStatus",
+        'product.preOrderProducts',
+        'preOrderProducts',
+        'preOrderProducts.status = :preOrderActiveStatus',
         { preOrderActiveStatus: PreOrderProductEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "preOrderProducts.productClassifications",
-        "preOrderProduct_productClassifications",
-        "preOrderProduct_productClassifications.status = :preOrderProduct_productClassifications",
+        'preOrderProducts.productClassifications',
+        'preOrderProduct_productClassifications',
+        'preOrderProduct_productClassifications.status = :preOrderProduct_productClassifications',
         { preOrderProduct_productClassifications: PreOrderProductEnum.ACTIVE }
       )
       .leftJoinAndSelect(
-        "preOrderProduct_productClassifications.images",
-        "preOrderProduct_productClassifications_images",
-        "preOrderProduct_productClassifications_images.status = :preOrderProduct_productClassifications_images",
+        'preOrderProduct_productClassifications.images',
+        'preOrderProduct_productClassifications_images',
+        'preOrderProduct_productClassifications_images.status = :preOrderProduct_productClassifications_images',
         { preOrderProduct_productClassifications_images: StatusEnum.ACTIVE }
       );
   }
