@@ -1059,6 +1059,8 @@ class VoucherService extends BaseService<Voucher> {
       orderDetail.totalPrice =
         orderDetail.subTotal - orderDetail.shopVoucherDiscount;
     });
+    console.log(childOrder.orderDetails);
+    
   }
 
   applyPlatformVoucher(totalOrder: Order) {
