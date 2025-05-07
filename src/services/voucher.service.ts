@@ -1,4 +1,5 @@
 import {
+  Brackets,
   In,
   IsNull,
   LessThanOrEqual,
@@ -353,25 +354,27 @@ class VoucherService extends BaseService<Voucher> {
     //logic to get both available and unavailable vouchers
     //get voucher in wallet
     let bothAvailableAndUnavailableVouchers = (
-      await voucherWalletRepository.find({
-        where: {
-          owner: {
-            id: loginUser,
-          },
+      await voucherWalletRepository
+        .createQueryBuilder('voucherWallet')
+        .leftJoinAndSelect('voucherWallet.voucher', 'voucher')
+        .leftJoinAndSelect('voucher.applyProducts', 'applyProducts')
+        .leftJoin('voucher.brand', 'brand')
+        .leftJoin('voucherWallet.owner', 'owner')
+        .where('owner.id = :loginUser', { loginUser })
+        .andWhere('voucherWallet.status = :status', {
           status: VoucherWalletStatus.NOT_USED,
-          voucher: {
-            endTime: MoreThanOrEqual(new Date()),
-            brand: {
-              id: checkoutItemRequest.brandId,
-            },
-          },
-        },
-        relations: {
-          voucher: {
-            applyProducts: true,
-          },
-        },
-      })
+        })
+        .andWhere('brand.id = :brandId', {
+          brandId: checkoutItemRequest.brandId,
+        })
+        .andWhere(
+          new Brackets((qb) => {
+            qb.where('voucher.endTime >= :now', { now: new Date() }).orWhere(
+              'voucher.endTime IS NULL'
+            );
+          })
+        )
+        .getMany()
     ).map((wallet) => wallet.voucher);
     const allVoucherIdsInWalletOfTheBrand = (
       await voucherWalletRepository.find({
