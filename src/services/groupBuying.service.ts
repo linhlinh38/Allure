@@ -742,6 +742,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
               await queryRunner.manager.save(StatusTracking, statusTrackings);
               await queryRunner.manager.save(OrderDetail, order.orderDetails);
               await queryRunner.manager.save(Order, order);
+              delete order.parent.children;
               await queryRunner.manager.save(Order, order.parent);
               //create transaction
               const transaction =
