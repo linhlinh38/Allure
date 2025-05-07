@@ -725,7 +725,6 @@ class GroupBuyingService extends BaseService<GroupBuying> {
             });
             //apply voucher
             order.voucher = voucherCopy;
-            console.log(order.voucher);
             voucherService.applyShopVoucher(order);
             delete order.parent.children;
             await queryRunner.manager.save(OrderDetail, order.orderDetails);
@@ -745,7 +744,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
               //change order status
               const statusTrackings =
                 orderService.updateOrderStatusBeforeCreation(
-                  order.parent,
+                  parentOrder,
                   ShippingStatusEnum.WAIT_FOR_CONFIRMATION
                 );
               await queryRunner.manager.save(StatusTracking, statusTrackings);
