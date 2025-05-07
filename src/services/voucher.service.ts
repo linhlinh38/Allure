@@ -869,10 +869,10 @@ class VoucherService extends BaseService<Voucher> {
     const now = new Date();
     let startTime = new Date(shopVoucher.startTime);
     let endTime = new Date(shopVoucher.endTime);
-    if (now < startTime) {
+    if (shopVoucher.startTime && now < startTime) {
       throw new BadRequestError('Shop voucher is not yet valid');
     }
-    if (now > endTime) {
+    if (shopVoucher.endTime && now > endTime) {
       throw new BadRequestError('Shop voucher has expired or is not yet valid');
     }
     if (shopVoucher.amount == 0) {
