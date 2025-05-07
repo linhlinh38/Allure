@@ -17,10 +17,9 @@ import { LivestreamProduct } from '../entities/livestreamProduct.entity';
 import { fcmTokenRepository } from '../repositories/fcmToken.repository';
 import { FCMService } from './FCM.service';
 import { Account } from '../entities/account.entity';
-import {
-  LivestreamFilterRequest,
-} from '../dtos/request/livestreamFilter.request';
+import { LivestreamFilterRequest } from '../dtos/request/livestreamFilter.request';
 import { Paging } from '../dtos/other/paging.dto';
+import { accountRepository } from '../repositories/account.repository';
 
 const repository = AppDataSource.getRepository(LiveStream);
 class LiveStreamService extends BaseService<LiveStream> {
@@ -207,7 +206,11 @@ class LiveStreamService extends BaseService<LiveStream> {
     return token;
   }
 
-  async filter(filterRequest: LivestreamFilterRequest, paging: Paging) {
+  async filter(
+    filterRequest: LivestreamFilterRequest,
+    paging: Paging,
+    loginUser: string
+  ) {
     const { title, statuses } = filterRequest;
     const { page, limit } = paging;
     const offset = (page - 1) * limit;
@@ -218,6 +221,18 @@ class LiveStreamService extends BaseService<LiveStream> {
       .leftJoinAndSelect('livestream.livestreamProducts', 'livestreamProducts')
       .leftJoinAndSelect('livestreamProducts.product', 'product')
       .leftJoinAndSelect('product.images', 'images');
+
+    if (loginUser) {
+      const account = await accountRepository.findOne({
+        where: { id: loginUser },
+        relations: {
+          role: true,
+        },
+      });
+      if (account?.role.role == RoleEnum.KOL) {
+        queryBuilder.andWhere('account.id = :loginUser', { loginUser });
+      }
+    }
 
     // Apply filters
     if (title) {
@@ -238,12 +253,12 @@ class LiveStreamService extends BaseService<LiveStream> {
       .take(limit)
       .getManyAndCount();
 
-      items.forEach(item => {
-        item['products'] = item.livestreamProducts.map(livestreamProduct => {
-          return livestreamProduct.product;
-        })
-        delete item.livestreamProducts;
-      })
+    items.forEach((item) => {
+      item['products'] = item.livestreamProducts.map((livestreamProduct) => {
+        return livestreamProduct.product;
+      });
+      delete item.livestreamProducts;
+    });
 
     return {
       items,
