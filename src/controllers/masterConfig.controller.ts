@@ -32,7 +32,7 @@ export default class MasterConfigController {
 
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
-      await masterConfigService.update(req.params.id, req.body);
+      await masterConfigService.updateMasterConfig(req.params.id, req.body);
       return createNormalResponse(res, "Update masterConfig success");
     } catch (err) {
       next(err);

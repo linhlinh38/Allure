@@ -17,6 +17,7 @@ export class MasterConfig extends BaseEntity {
 
   @OneToMany(() => BannerConfig, (banner) => banner.masterConfig, {
     nullable: true,
+    cascade: true,
   })
   banners?: BannerConfig[];
 
