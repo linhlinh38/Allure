@@ -59,7 +59,7 @@ class BookingService extends BaseService<Booking> {
     if (!booking) throw new BadRequestError("Booking not found");
     return booking;
   }
-  async getById(id: string) {
+  async getById(id: string, loginUser: string) {
     const booking = await bookingRepository.findOne({
       where: {
         id,
@@ -96,6 +96,21 @@ class BookingService extends BaseService<Booking> {
       },
     });
     if (!booking) throw new BadRequestError("Booking not found");
+    if (loginUser) {
+      const account = await accountRepository.findOne({
+        where: {
+          id: loginUser,
+        },
+        relations: {
+          role: true,
+        },
+      });
+      if (account.role.role == RoleEnum.CUSTOMER) {
+        if (booking.account.id != account.id) {
+          throw new BadRequestError(`Can not view another customer's booking`);
+        }
+      }
+    }
     return booking;
   }
   async noteResult(id: string, resultNote: string, loginUser: string) {

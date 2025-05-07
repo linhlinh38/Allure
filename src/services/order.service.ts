@@ -1379,7 +1379,7 @@ class OrderService extends BaseService<Order> {
     else await this.refundVoucher(order, queryRunner);
   }
 
-  async getParentById(orderId: string) {
+  async getParentById(orderId: string, loginUser: string) {
     const order = await orderRepository.findOne({
       where: { id: orderId, parent: IsNull() },
       relations: {
@@ -1408,10 +1408,25 @@ class OrderService extends BaseService<Order> {
       },
     });
     if (!order) throw new BadRequestError(`Order not found`);
+    if (loginUser) {
+      const account = await accountRepository.findOne({
+        where: {
+          id: loginUser,
+        },
+        relations: {
+          role: true,
+        },
+      });
+      if (account.role.role == RoleEnum.CUSTOMER) {
+        if (order.account.id != account.id) {
+          throw new BadRequestError(`Can not view another customer's order`);
+        }
+      }
+    }
     return order;
   }
 
-  async getById(orderId: string) {
+  async getById(orderId: string, loginUser: string) {
     const order = await orderRepository.findOne({
       where: { id: orderId },
       relations: {
@@ -1442,6 +1457,21 @@ class OrderService extends BaseService<Order> {
       },
     });
     if (!order) throw new BadRequestError(`Order not found`);
+    if(loginUser) {
+      const account = await accountRepository.findOne({
+        where: {
+          id: loginUser,
+        },
+        relations: {
+          role: true,
+        },
+      });
+      if(account.role.role == RoleEnum.CUSTOMER) {
+        if(order.account.id != account.id) {
+          throw new BadRequestError(`Can not view another customer's order`)
+        }
+      }
+    }
     return order;
   }
   async updateStatus(

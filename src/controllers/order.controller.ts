@@ -435,7 +435,7 @@ export default class OrderController {
       return createNormalResponse(
         res,
         'Get order successfully',
-        await orderService.getParentById(req.params.orderId)
+        await orderService.getParentById(req.params.orderId, req.loginUser)
       );
     } catch (err) {
       next(err);
@@ -447,7 +447,7 @@ export default class OrderController {
       return createNormalResponse(
         res,
         'Get order successfully',
-        await orderService.getById(req.params.orderId)
+        await orderService.getById(req.params.orderId, req.loginUser)
       );
     } catch (err) {
       next(err);
