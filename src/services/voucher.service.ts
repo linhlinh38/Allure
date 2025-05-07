@@ -895,8 +895,7 @@ class VoucherService extends BaseService<Voucher> {
     if (voucherWallet && voucherWallet.status == VoucherWalletStatus.USED)
       throw new BadRequestError('Shop voucher has already been used');
     if (
-      !voucherWallet ||
-      voucherWallet.status == VoucherWalletStatus.NOT_USED
+      !voucherWallet
     ) {
       return voucherWalletRepository.create({
         owner: {
@@ -907,6 +906,9 @@ class VoucherService extends BaseService<Voucher> {
         },
         status: VoucherWalletStatus.USED,
       });
+    } else if(voucherWallet.status == VoucherWalletStatus.NOT_USED) {
+      voucherWallet.status = VoucherWalletStatus.USED;
+      return voucherWallet;
     }
   }
 
