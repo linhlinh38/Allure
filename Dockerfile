@@ -11,7 +11,7 @@ COPY . .
 RUN npm run build
 RUN chmod -R 755 /app/build
 
-FROM node:latest
+FROM node:20.9.0
 
 ENV NODE_ENV production
 
