@@ -1027,9 +1027,6 @@ class VoucherService extends BaseService<Voucher> {
             )
           )
         : Math.round(Math.min(sumPrice, sumPrice * voucher.discountValue));
-        console.log(voucher.discountValue, 'discountValue');
-        console.log(discount, 'discount');
-        
     }
 
     let totalAppliedDiscount = 0;
@@ -1059,8 +1056,6 @@ class VoucherService extends BaseService<Voucher> {
       orderDetail.totalPrice =
         orderDetail.subTotal - orderDetail.shopVoucherDiscount;
     });
-    console.log(childOrder.orderDetails);
-    
   }
 
   applyPlatformVoucher(totalOrder: Order) {
