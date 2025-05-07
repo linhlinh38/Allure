@@ -793,6 +793,10 @@ class GroupBuyingService extends BaseService<GroupBuying> {
     copy.applyProducts = products;
     copy.createdAt = new Date();
     copy.updatedAt = new Date();
+    copy.startTime = new Date();
+    const endTime = new Date(copy.startTime);
+    endTime.setMonth(endTime.getMonth() + 1);
+    copy.endTime = endTime;
     return await queryRunner.manager.save(Voucher, copy);
   }
 
