@@ -1431,7 +1431,10 @@ class OrderService extends BaseService<Order> {
           },
           productClassification: {
             images: true,
-            product: { brand: true, images: true },
+            product: { brand: {
+              follows: {account: true},
+              products: {images: true}
+            }, images: true },
             productDiscount: { product: { brand: true, images: true } },
             preOrderProduct: { product: { brand: true, images: true } },
           },
