@@ -715,6 +715,8 @@ class GroupBuyingService extends BaseService<GroupBuying> {
             groupBuying.id,
             queryRunner
           );
+          console.log('voucherCopy', voucherCopy);
+          
 
           for (const order of orders) {
             const wallet = await walletRepository.findOne({
