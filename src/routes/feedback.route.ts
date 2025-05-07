@@ -25,6 +25,11 @@ feedbackRouter.get(
   "/get-consultant-feedbacks/:consultantId",
   FeedbackController.getConsultantFeedbacks
 );
+feedbackRouter.post(
+  "/filter-consultant-feedbacks/:consultantId",
+  validate(FilterConsultantFeedbackSchema),
+  FeedbackController.filterConsultantFeedbacks
+);
 feedbackRouter.use(authentication);
 feedbackRouter.get("/get-my-feedbacks", FeedbackController.getMyFeedbacks);
 feedbackRouter.post(
@@ -41,10 +46,5 @@ feedbackRouter.post(
   "/reply/:feedbackId",
   validate(ReplySchema),
   FeedbackController.reply
-);
-feedbackRouter.post(
-  "/filter-consultant-feedbacks/:consultantId",
-  validate(FilterConsultantFeedbackSchema),
-  FeedbackController.filterConsultantFeedbacks
 );
 export default feedbackRouter;
