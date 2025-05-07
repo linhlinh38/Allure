@@ -352,7 +352,6 @@ class GroupBuyingService extends BaseService<GroupBuying> {
         where: { id: groupBuyingJoinEventBody.addressId },
       });
       if (!address) throw new BadRequestError(`Address not found`);
-      console.log('hehe 10');
       //update parent order
       parentOrder.shippingAddress = address.fullAddress;
       parentOrder.phone = address.phone;
@@ -402,7 +401,6 @@ class GroupBuyingService extends BaseService<GroupBuying> {
         orderDetail.productClassification = productClassification;
         //update quantity of product classification
         productClassification.quantity -= item.quantity;
-        console.log(orderDetail);
 
         //push order detail into child order
         childOrder.orderDetails.push(orderDetail);
@@ -700,13 +698,10 @@ class GroupBuyingService extends BaseService<GroupBuying> {
           criteriasDescThreshold = criteriasDescThreshold.sort(
             (a, b) => b.threshold - a.threshold
           );
-          console.log(countAffordableOrder);
-          console.log(criteriasDescThreshold);
 
           const mostMatchingCriteria = criteriasDescThreshold.find(
             (criteria) => criteria.threshold <= countAffordableOrder
           );
-          console.log(mostMatchingCriteria);
 
           const voucherCopy = await this.createCopyOfVoucher(
             mostMatchingCriteria.voucher,
@@ -715,7 +710,6 @@ class GroupBuyingService extends BaseService<GroupBuying> {
             groupBuying.id,
             queryRunner
           );
-          console.log('voucherCopy', voucherCopy);
 
           for (const order of orders) {
             const wallet = await walletRepository.findOne({
