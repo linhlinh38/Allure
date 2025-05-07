@@ -85,7 +85,7 @@ export default class livestreamController {
         page: Number(req.query.page) ? Number(req.query.page) : 1,
         limit: Number(req.query.limit) ? Number(req.query.limit) : 10,
       } as Paging;
-      const result = await livestreamService.filter(filterRequest, paging);
+      const result = await livestreamService.filter(filterRequest, paging, req.loginUser);
       return createNormalResponse(res, 'Filter livestreams success', result);
     } catch (err) {
       next(err);
