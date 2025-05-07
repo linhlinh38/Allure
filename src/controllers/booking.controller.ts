@@ -219,12 +219,12 @@ export default class BookingController {
     }
   }
 
-  static async getById(req: Request, res: Response, next: NextFunction) {
+  static async getById(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       return createNormalResponse(
         res,
         "Get booking success",
-        await bookingService.getById(req.params.id)
+        await bookingService.getById(req.params.id, req.loginUser)
       );
     } catch (err) {
       next(err);
