@@ -733,6 +733,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
               .getRepository(Order)
               .createQueryBuilder('order')
               .leftJoinAndSelect('order.children', 'child')
+              .leftJoinAndSelect('order.account', 'account')
               .leftJoinAndSelect('child.orderDetails', 'orderDetails')
               .where('child.id = :childId', { childId: order.id })
               .getOne();
