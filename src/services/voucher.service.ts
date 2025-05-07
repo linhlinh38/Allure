@@ -1027,6 +1027,9 @@ class VoucherService extends BaseService<Voucher> {
             )
           )
         : Math.round(Math.min(sumPrice, sumPrice * voucher.discountValue));
+        console.log(voucher.discountValue, 'discountValue');
+        console.log(discount, 'discount');
+        
     }
 
     let totalAppliedDiscount = 0;
@@ -1154,6 +1157,8 @@ class VoucherService extends BaseService<Voucher> {
     totalOrder.subTotal = 0;
     totalOrder.totalPrice = 0;
     totalOrder.commissionFee = 0;
+    totalOrder.platformVoucherDiscount = 0;
+    totalOrder.shopVoucherDiscount = 0;
     totalOrder.children.forEach((childOrder) => {
       childOrder.commissionFee = 0;
       childOrder.subTotal = 0;

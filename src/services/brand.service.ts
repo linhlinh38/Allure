@@ -303,8 +303,6 @@ class BrandService extends BaseService<Brand> {
     const queryBuilder = brandRepository
       .createQueryBuilder('brand')
       .leftJoinAndSelect('brand.documents', 'documents')
-      .leftJoinAndSelect('brand.products', 'products')
-      .leftJoinAndSelect('products.images', 'productImages')
       .leftJoinAndSelect('brand.follows', 'follows')
       .leftJoinAndSelect('follows.account', 'follower')
       .leftJoinAndSelect('brand.reviewer', 'reviewer');
