@@ -726,6 +726,7 @@ class GroupBuyingService extends BaseService<GroupBuying> {
             });
             //apply voucher
             order.voucher = voucherCopy;
+            console.log(order.voucher);
             voucherService.applyShopVoucher(order);
             await voucherService.calculateOrderPrice(order.parent);
             //check if order is affordable or not
